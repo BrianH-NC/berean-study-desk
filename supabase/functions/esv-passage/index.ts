@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
       "include-headings": "false",
       "include-footnotes": "false",
       "include-verse-numbers": "true",
-      "include-short-copyright": "true",
-      "include-passage-references": "true",
+      "include-short-copyright": "false",
+      "include-passage-references": "false",
     });
 
     const esvRes = await fetch(`https://api.esv.org/v3/passage/text/?${params}`, {

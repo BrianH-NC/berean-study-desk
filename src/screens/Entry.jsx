@@ -170,16 +170,9 @@ export default function Entry() {
                       Couldn't look up that reference.
                     </div>
                   ) : passage ? (
-                    <>
-                      <p className="mt-1" style={{ fontSize: 15.5, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                        {passage.text}
-                      </p>
-                      <p className="mt-2" style={{ fontSize: 10.5, opacity: 0.6, lineHeight: 1.4 }}>
-                        Scripture quotations marked ESV are from the ESV® Bible (The Holy Bible, English Standard
-                        Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used
-                        by permission. All rights reserved.
-                      </p>
-                    </>
+                    <p className="mt-1" style={{ fontSize: 15.5, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                      {passage.text}
+                    </p>
                   ) : null}
                 </div>
               )}

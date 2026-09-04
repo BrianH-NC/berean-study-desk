@@ -15,8 +15,20 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
     async function startScanner() {
       try {
-        const { Html5Qrcode } = await import('html5-qrcode')
-        html5QrCode = new Html5Qrcode('bsd-qr-reader')
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+        // Book barcodes are EAN-13 (ISBN-13) or occasionally EAN-8/UPC --
+        // not QR codes. Without an explicit formatsToSupport list, the
+        // decoder isn't guaranteed to watch for 1D barcode formats at all.
+        html5QrCode = new Html5Qrcode('bsd-qr-reader', {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+          ],
+          verbose: false,
+        })
         scannerRef.current = html5QrCode
 
         await html5QrCode.start(

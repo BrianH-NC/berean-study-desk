@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search as SearchIcon, User, Loader2, ScanBarcode } from 'lucide-react'
+import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
   assessSubject, checksList, checksInsert, listHolyShelfUnchecked, mapAssessmentToRow,
 } from '../lib/theologyCheck'
 import { fetchBookByISBN } from '../lib/googleBooks'
+import { identifyShelfPhoto } from '../lib/shelfPhoto'
 import BarcodeScanner from '../components/BarcodeScanner'
 
 const VERDICT_FILTERS = ['All', 'Sound', 'Caution', 'Concern', 'Distinctive', 'Unable to Assess']
@@ -35,6 +36,14 @@ export default function DoctrineCheckIndex() {
   const [runError, setRunError] = useState('')
   const [showScanner, setShowScanner] = useState(false)
   const [scanLookupLoading, setScanLookupLoading] = useState(false)
+
+  const shelfFileRef = useRef(null)
+  const [shelfPhotoUrl, setShelfPhotoUrl] = useState(null)
+  const [shelfScanning, setShelfScanning] = useState(false)
+  const [shelfScanError, setShelfScanError] = useState('')
+  const [shelfFound, setShelfFound] = useState(null) // [{ title, author, confidence, include }]
+  const [shelfChecking, setShelfChecking] = useState(false)
+  const [shelfProgress, setShelfProgress] = useState(null) // { done, total }
 
   const [verdictFilter, setVerdictFilter] = useState('All')
   const [kindFilter, setKindFilter] = useState('All')
@@ -155,6 +164,51 @@ export default function DoctrineCheckIndex() {
     }
   }
 
+  async function handleShelfFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setShelfPhotoUrl(URL.createObjectURL(file))
+    setShelfFound(null)
+    setShelfScanError('')
+    setShelfScanning(true)
+    try {
+      const result = await identifyShelfPhoto(file)
+      setShelfFound((result.books || []).map((b) => ({ ...b, include: true })))
+    } catch (err) {
+      setShelfScanError(err.message)
+    } finally {
+      setShelfScanning(false)
+    }
+  }
+
+  function updateShelfFound(i, patch) {
+    setShelfFound((prev) => prev.map((b, idx) => (idx === i ? { ...b, ...patch } : b)))
+  }
+
+  // Runs checks sequentially (not in parallel) -- each is a real paid Anthropic
+  // call, so the user sees exactly what's running and can't accidentally fire
+  // a burst of simultaneous requests.
+  async function handleRunShelfChecks() {
+    const toRun = shelfFound.filter((b) => b.include && b.title?.trim())
+    if (toRun.length === 0) return
+    setShelfChecking(true)
+    let done = 0
+    setShelfProgress({ done, total: toRun.length })
+    for (const b of toRun) {
+      try {
+        await runCheck({ kind: 'book', title: b.title.trim(), authors: b.author?.trim() || '' })
+      } catch {
+        // Continue with the rest even if one subject fails to resolve.
+      }
+      done++
+      setShelfProgress({ done, total: toRun.length })
+    }
+    setShelfChecking(false)
+    setShelfFound(null)
+    setShelfPhotoUrl(null)
+    await loadChecks()
+  }
+
   return (
     <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
       <div className="card-kicker mb-1">Measured against the Baptist Faith &amp; Message 2000</div>
@@ -255,6 +309,99 @@ export default function DoctrineCheckIndex() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Scan a shelf — for browsing a real shelf (e.g. in a store) rather
+          than your own library; identifies whatever it can read from a
+          photo, then runs the checks you select. */}
+      <div className="card mb-5" style={{ padding: '18px 20px' }}>
+        <div className="card-title mb-1">Scan a shelf</div>
+        <div className="card-body mb-2">
+          Photograph any shelf — a store, a friend's study — and check whichever books you pick from what's read.
+        </div>
+
+        {!shelfFound && !shelfScanning && (
+          <button type="button" className="btn btn-secondary" onClick={() => shelfFileRef.current?.click()}>
+            <Camera size={15} strokeWidth={2.75} />
+            Choose a photo
+          </button>
+        )}
+        <input
+          ref={shelfFileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleShelfFileChange}
+        />
+
+        {shelfPhotoUrl && (shelfScanning || shelfFound) && (
+          <div className="flex gap-5 mt-2 flex-wrap">
+            <img src={shelfPhotoUrl} alt="" className="rounded-md" style={{ width: 140, objectFit: 'cover' }} />
+            <div className="flex-1" style={{ minWidth: 260 }}>
+              {shelfScanning && (
+                <div className="flex items-center gap-2" style={{ opacity: 0.7 }}>
+                  <Loader2 size={16} strokeWidth={2.75} className="animate-spin" /> Reading spines…
+                </div>
+              )}
+              {shelfScanError && (
+                <div className="text-sm" style={{ color: 'var(--color-accent-800)' }}>
+                  {shelfScanError}
+                </div>
+              )}
+              {shelfFound && (
+                <>
+                  <div className="card-kicker mb-2">
+                    {shelfFound.length} spines read · {shelfFound.filter((b) => b.include).length} selected
+                  </div>
+                  <div className="flex flex-col gap-1.5 mb-3" style={{ maxHeight: 280, overflowY: 'auto' }}>
+                    {shelfFound.map((b, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={b.include} onChange={(e) => updateShelfFound(i, { include: e.target.checked })} />
+                        <input
+                          className="input flex-1"
+                          style={{ minHeight: 28, padding: '3px 8px', fontSize: 13 }}
+                          value={b.title || ''}
+                          onChange={(e) => updateShelfFound(i, { title: e.target.value })}
+                        />
+                        <input
+                          className="input flex-1"
+                          style={{ minHeight: 28, padding: '3px 8px', fontSize: 13 }}
+                          value={b.author || ''}
+                          onChange={(e) => updateShelfFound(i, { author: e.target.value })}
+                        />
+                        <span className="tag tag-neutral shrink-0" style={{ fontSize: 10 }} title={`${b.confidence} confidence`}>
+                          {b.confidence}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {shelfChecking ? (
+                    <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                      <Loader2 size={15} strokeWidth={2.75} className="animate-spin" />
+                      Checking {shelfProgress.done} of {shelfProgress.total}…
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleRunShelfChecks}
+                        disabled={shelfFound.filter((b) => b.include).length === 0}
+                      >
+                        Check {shelfFound.filter((b) => b.include).length} book
+                        {shelfFound.filter((b) => b.include).length === 1 ? '' : 's'}
+                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={() => shelfFileRef.current?.click()}>
+                        Try another photo
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}

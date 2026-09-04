@@ -58,7 +58,7 @@ export default function Composer() {
   }
 
   return (
-    <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1080px] mx-auto page">
       <div className="card-kicker mb-1">Notebook · Miscellanies</div>
       <h2 className="!mb-4">New entry{previewNumber != null ? `, no. ${formatEntryNum(previewNumber)}` : ''}</h2>
 

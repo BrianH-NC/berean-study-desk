@@ -95,7 +95,7 @@ export default function Shelf() {
   const checkedCount = books ? books.filter((b) => b.isbn && checksByIsbn[b.isbn]).length : 0
 
   return (
-    <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1180px] mx-auto page">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <div className="card-kicker mb-1">
@@ -186,7 +186,8 @@ export default function Shelf() {
           No books match that search.
         </div>
       ) : (
-        <table className="table w-full">
+        <div className="overflow-x-auto">
+        <table className="table w-full" style={{ minWidth: 640 }}>
           <thead>
             <tr>
               <th style={{ width: '46%' }}>Book</th>
@@ -243,6 +244,7 @@ export default function Shelf() {
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {books?.length > 0 && (

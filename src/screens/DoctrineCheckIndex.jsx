@@ -210,7 +210,7 @@ export default function DoctrineCheckIndex() {
   }
 
   return (
-    <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1180px] mx-auto page">
       <div className="card-kicker mb-1">Measured against the Baptist Faith &amp; Message 2000</div>
       <h2 className="!mb-4">Doctrine Check</h2>
 
@@ -472,7 +472,8 @@ export default function DoctrineCheckIndex() {
           No checks match that filter.
         </div>
       ) : (
-        <table className="table w-full">
+        <div className="overflow-x-auto">
+        <table className="table w-full" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th style={{ width: '48%' }}>Subject</th>
@@ -519,6 +520,7 @@ export default function DoctrineCheckIndex() {
             })}
           </tbody>
         </table>
+        </div>
       )}
 
       {showScanner && <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}

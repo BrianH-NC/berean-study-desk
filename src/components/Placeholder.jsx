@@ -3,7 +3,7 @@
 // designed in a later phase.
 export default function Placeholder({ title, note }) {
   return (
-    <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1180px] mx-auto page">
       <h2>{title}</h2>
       <p className="text-sm" style={{ color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>
         {note || 'Coming in a later pass.'}

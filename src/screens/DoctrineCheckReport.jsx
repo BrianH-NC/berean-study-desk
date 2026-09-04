@@ -73,14 +73,14 @@ export default function DoctrineCheckReport() {
 
   if (check === null) {
     return (
-      <div className="max-w-[1080px] mx-auto text-center py-24" style={{ padding: '30px 40px 70px', opacity: 0.5 }}>
+      <div className="max-w-[1080px] mx-auto text-center py-24 page" style={{ opacity: 0.5 }}>
         Loading…
       </div>
     )
   }
   if (check === false) {
     return (
-      <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+      <div className="max-w-[1080px] mx-auto page">
         <p>Check not found.</p>
         <Link to="/checks" className="btn btn-secondary">
           ← Doctrine Check
@@ -93,7 +93,7 @@ export default function DoctrineCheckReport() {
   const label = check.title || check.name
 
   return (
-    <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1080px] mx-auto page">
       <div className="card-meta mb-3">
         <Link to="/checks" className="hover:underline">
           Doctrine Check
@@ -135,7 +135,7 @@ export default function DoctrineCheckReport() {
         </div>
       </div>
 
-      <div className="grid gap-9" style={{ gridTemplateColumns: '1fr 296px' }}>
+      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_296px]">
         {/* Left column */}
         <div className="flex flex-col gap-6">
           <div>

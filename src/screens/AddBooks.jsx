@@ -62,7 +62,7 @@ export default function AddBooks() {
   const includedCount = found ? found.filter((b) => b.include).length : 0
 
   return (
-    <div className="max-w-[1140px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1140px] mx-auto page">
       <div className="card-meta mb-2">
         <Link to="/shelf" className="hover:underline">
           ← Shelf

@@ -21,7 +21,7 @@ export const useAuth = () => useContext(AuthContext)
 
 function ProtectedLayout() {
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex flex-col md:flex-row min-h-dvh">
       <Sidebar />
       <main className="flex-1 min-w-0">
         <Routes>

@@ -52,7 +52,7 @@ export default function Home() {
   }, [user.id])
 
   return (
-    <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1180px] mx-auto page">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
         <div>
           <div className="card-kicker mb-1">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
@@ -76,7 +76,7 @@ export default function Home() {
       {reading && (
         <div className="card mb-6" style={{ padding: '18px 20px' }}>
           <div className="card-kicker mb-2">Currently reading</div>
-          <div className="grid gap-6 items-center" style={{ gridTemplateColumns: '80px 1fr 246px' }}>
+          <div className="grid gap-4 md:gap-6 items-center grid-cols-1 md:grid-cols-[80px_1fr_246px]">
             <div className="rounded-sm overflow-hidden bg-neutral-200" style={{ width: 80, aspectRatio: '2/3' }}>
               {reading.cover_url && <img src={reading.cover_url} alt="" className="w-full h-full object-cover" />}
             </div>
@@ -115,7 +115,7 @@ export default function Home() {
           Nothing yet — write your first entry or run your first check.
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {feed.map(({ type, item }) =>
             type === 'entry' ? (
               <Link key={item.id} to={`/notebook/${item.id}`} className="card hover:shadow-sm">

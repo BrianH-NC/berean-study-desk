@@ -37,14 +37,14 @@ export default function Topics() {
 
   if (entries === null) {
     return (
-      <div className="max-w-[1180px] mx-auto text-center py-24" style={{ padding: '30px 40px 70px', opacity: 0.5 }}>
+      <div className="max-w-[1180px] mx-auto text-center py-24 page" style={{ opacity: 0.5 }}>
         Loading…
       </div>
     )
   }
 
   return (
-    <div className="max-w-[1180px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1180px] mx-auto page">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="card-kicker mb-1">
@@ -80,7 +80,7 @@ export default function Topics() {
         tagNames.length === 0 ? (
           <p style={{ opacity: 0.5 }}>No topics tagged yet.</p>
         ) : (
-          <div className="grid gap-8" style={{ gridTemplateColumns: '1fr 360px' }}>
+          <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-[1fr_360px]">
             <div className="flex flex-wrap gap-2 items-start content-start">
               {tagNames.map((t) => (
                 <button

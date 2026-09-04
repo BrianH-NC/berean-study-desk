@@ -80,14 +80,14 @@ export default function Entry() {
 
   if (entry === null) {
     return (
-      <div className="max-w-[1080px] mx-auto text-center py-24" style={{ padding: '30px 40px 70px', opacity: 0.5 }}>
+      <div className="max-w-[1080px] mx-auto text-center py-24 page" style={{ opacity: 0.5 }}>
         Loading…
       </div>
     )
   }
   if (entry === false) {
     return (
-      <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+      <div className="max-w-[1080px] mx-auto page">
         <p>Entry not found.</p>
         <Link to="/topics" className="btn btn-secondary">
           ← Topics
@@ -97,7 +97,7 @@ export default function Entry() {
   }
 
   return (
-    <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1080px] mx-auto page">
       <div className="flex items-center justify-between mb-4">
         <div className="card-meta">
           <Link to="/topics" className="hover:underline">
@@ -117,7 +117,7 @@ export default function Entry() {
         </div>
       </div>
 
-      <div className="grid gap-9" style={{ gridTemplateColumns: '1fr 300px' }}>
+      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_300px]">
         <div>
           {editing ? (
             <div className="card" style={{ padding: '18px 20px' }}>

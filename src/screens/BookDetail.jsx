@@ -102,14 +102,14 @@ export default function BookDetail() {
 
   if (book === null) {
     return (
-      <div className="max-w-[1080px] mx-auto text-center py-24" style={{ padding: '30px 40px 70px', opacity: 0.5 }}>
+      <div className="max-w-[1080px] mx-auto text-center py-24 page" style={{ opacity: 0.5 }}>
         Loading…
       </div>
     )
   }
   if (book === false) {
     return (
-      <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+      <div className="max-w-[1080px] mx-auto page">
         <p>Book not found.</p>
         <Link to="/shelf" className="btn btn-secondary">
           ← Shelf
@@ -121,7 +121,7 @@ export default function BookDetail() {
   const VerdictIcon = check ? verdictIcon(check.verdict) : null
 
   return (
-    <div className="max-w-[1080px] mx-auto" style={{ padding: '30px 40px 70px' }}>
+    <div className="max-w-[1080px] mx-auto page">
       <div className="flex items-center justify-between mb-4">
         <div className="card-meta">
           <Link to="/shelf" className="hover:underline">
@@ -141,7 +141,7 @@ export default function BookDetail() {
         </div>
       </div>
 
-      <div className="grid gap-9" style={{ gridTemplateColumns: '160px 1fr' }}>
+      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[160px_1fr]">
         <div className="rounded-sm overflow-hidden bg-neutral-200 shrink-0" style={{ width: 160, aspectRatio: '2/3' }}>
           {book.cover_url && <img src={book.cover_url} alt="" className="w-full h-full object-cover" />}
         </div>

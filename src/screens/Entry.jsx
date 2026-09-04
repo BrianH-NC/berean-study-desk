@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEntry, getLinksFor, updateEntry, deleteEntry, formatEntryNum } from '../lib/entries'
+import { fetchEsvPassage } from '../lib/esv'
 
 export default function Entry() {
   const { id } = useParams()
@@ -11,6 +12,8 @@ export default function Entry() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [passage, setPassage] = useState(null) // null = not loaded, false = load failed
+  const [passageLoading, setPassageLoading] = useState(false)
 
   async function load() {
     const e = await getEntry(id)
@@ -24,6 +27,28 @@ export default function Entry() {
   useEffect(() => {
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!entry || !entry.ref) {
+      setPassage(null)
+      return
+    }
+    let cancelled = false
+    setPassageLoading(true)
+    fetchEsvPassage(entry.ref)
+      .then((result) => {
+        if (!cancelled) setPassage(result)
+      })
+      .catch(() => {
+        if (!cancelled) setPassage(false)
+      })
+      .finally(() => {
+        if (!cancelled) setPassageLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [entry?.ref])
 
   async function handleSave() {
     setSaving(true)
@@ -132,8 +157,23 @@ export default function Entry() {
               <h1 style={{ fontSize: 38, lineHeight: 1.08, maxWidth: '22ch' }}>{entry.title || 'Untitled'}</h1>
               <div className="card-meta mb-4">{new Date(entry.created_at).toLocaleDateString()}</div>
               {entry.ref && (
-                <div className="card mb-4" style={{ background: 'var(--color-accent-100)' }}>
-                  <div className="card-kicker">{entry.ref}</div>
+                <div className="card mb-4" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
+                  <div className="card-kicker" style={{ color: 'var(--color-accent-700)' }}>
+                    {(passage && passage.canonical) || entry.ref}
+                  </div>
+                  {passageLoading ? (
+                    <div className="text-sm mt-1" style={{ opacity: 0.6 }}>
+                      Loading passage…
+                    </div>
+                  ) : passage === false ? (
+                    <div className="text-sm mt-1" style={{ opacity: 0.6 }}>
+                      Couldn't look up that reference.
+                    </div>
+                  ) : passage ? (
+                    <p className="mt-1" style={{ fontSize: 15.5, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                      {passage.text}
+                    </p>
+                  ) : null}
                 </div>
               )}
               <p style={{ fontSize: 17, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{entry.body}</p>

@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Organic design tokens — Day mode (default). Evening mode re-declares every
+   step below under [data-mode="dark"], never just the ends, since deep ramp
+   steps (e.g. accent-700) are used as text color on light ramp-step fills. */
+:root {
+  --color-bg: #f5ead8;
+  --color-surface: #ebddc5;
+  --color-text: #201e1d;
+  --color-accent: #c67139;
+  --color-accent-2: #7a8a5e;
+  --color-divider: rgba(32, 30, 29, 0.16);
+
+  --color-neutral-100: #f9f4ed;
+  --color-neutral-200: #eee7db;
+  --color-neutral-300: #dcd3c4;
+  --color-neutral-400: #c0b6a5;
+  --color-neutral-500: #a19786;
+  --color-neutral-600: #82796a;
+  --color-neutral-700: #645c50;
+  --color-neutral-800: #474238;
+  --color-neutral-900: #2e2b25;
+
+  --color-accent-100: #fff2eb;
+  --color-accent-200: #ffe1d0;
+  --color-accent-300: #ffc6a5;
+  --color-accent-400: #f6a06b;
+  --color-accent-500: #d67f48;
+  --color-accent-600: #b2622d;
+  --color-accent-700: #8c491a;
+  --color-accent-800: #643312;
+  --color-accent-900: #402310;
+
+  --color-accent-2-100: #f0fae1;
+  --color-accent-2-200: #e1eecc;
+  --color-accent-2-300: #ccdbb2;
+  --color-accent-2-400: #aebf92;
+  --color-accent-2-500: #8fa073;
+  --color-accent-2-600: #728157;
+  --color-accent-2-700: #56633f;
+  --color-accent-2-800: #3d472b;
+  --color-accent-2-900: #272e1b;
+}
+
+[data-mode='dark'] {
+  --color-bg: #201e1d;
+  --color-surface: #2e2b25;
+  --color-text: #f5ead8;
+  --color-accent: #f6a06b;
+  --color-accent-2: #aebf92;
+  --color-divider: rgba(245, 234, 216, 0.18);
+
+  --color-neutral-100: #2e2b25;
+  --color-neutral-200: #3a352e;
+  --color-neutral-300: #474238;
+  --color-neutral-400: #645c50;
+  --color-neutral-500: #82796a;
+  --color-neutral-600: #a19786;
+  --color-neutral-700: #c0b6a5;
+  --color-neutral-800: #dcd3c4;
+  --color-neutral-900: #f9f4ed;
+
+  --color-accent-100: #402310;
+  --color-accent-200: #643312;
+  --color-accent-300: #8c491a;
+  --color-accent-400: #b2622d;
+  --color-accent-500: #d67f48;
+  --color-accent-600: #f6a06b;
+  --color-accent-700: #ffc6a5;
+  --color-accent-800: #ffe1d0;
+  --color-accent-900: #fff2eb;
+
+  --color-accent-2-100: #272e1b;
+  --color-accent-2-200: #3d472b;
+  --color-accent-2-300: #56633f;
+  --color-accent-2-400: #728157;
+  --color-accent-2-500: #8fa073;
+  --color-accent-2-600: #aebf92;
+  --color-accent-2-700: #ccdbb2;
+  --color-accent-2-800: #e1eecc;
+  --color-accent-2-900: #f0fae1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: theme('fontFamily.body');
+  font-size: 15px;
+  line-height: 1.55;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: theme('fontFamily.heading');
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 8.8px;
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 13.2px; }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+@layer components {
+  /* — buttons — */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer no-underline
+           font-heading text-sm leading-tight text-ink bg-transparent border border-transparent
+           rounded-full transition-colors;
+    padding: 8.8px 15.84px;
+  }
+  .btn:disabled { @apply opacity-45 cursor-not-allowed; }
+  .btn-primary { @apply bg-accent text-bg; }
+  .btn-primary:hover { background: var(--color-accent-600); }
+  .btn-primary:active { background: var(--color-accent-700); }
+  .btn-secondary { border-color: var(--color-divider); }
+  .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+  .btn-ghost { @apply text-accent px-1; }
+  .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+  .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+  .btn-icon { @apply w-9 h-9 p-0; }
+  .btn-block { @apply w-full mt-2; }
+
+  /* — forms — */
+  .field > label {
+    @apply block mb-1;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  }
+  .input {
+    @apply w-full font-body text-sm text-ink bg-surface border rounded-full;
+    min-height: 36px;
+    padding: 6px 14px;
+    border-color: var(--color-divider);
+    caret-color: var(--color-accent);
+  }
+  .input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+  .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+  textarea.input { min-height: 90px; resize: vertical; border-radius: 16px; }
+
+  /* — cards — */
+  .card {
+    @apply flex flex-col gap-2 bg-surface rounded-card;
+    padding: 13.2px;
+  }
+  .card-kicker { @apply text-accent uppercase; font-size: 10px; letter-spacing: 0.1em; }
+  .card-title { @apply font-heading text-ink; font-size: 17px; line-height: 1.2; }
+  .card-body { @apply flex-1; font-size: 13px; opacity: 0.8; margin: 0; }
+  .card-meta {
+    @apply flex items-center gap-1.5;
+    font-size: 11px;
+    color: color-mix(in srgb, var(--color-text) 50%, transparent);
+  }
+
+  /* — tags — */
+  .tag {
+    @apply inline-flex items-center rounded-full;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+  }
+  .tag-accent { @apply bg-accent-100 text-accent-800; }
+  .tag-accent-2 { @apply bg-sage-100 text-sage-800; }
+  .tag-neutral { @apply bg-neutral-100 text-neutral-800; }
+  .tag-outline { @apply border border-accent text-accent; }
+
+  /* — segmented control — */
+  .seg {
+    @apply inline-flex overflow-hidden rounded-full border;
+    border-color: var(--color-divider);
+  }
+  .seg-opt {
+    @apply inline-flex items-center gap-1.5 cursor-pointer;
+    font-size: 13px;
+    padding: 7px 12px;
+  }
+  .seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+  .seg-opt:has(input:checked) { @apply bg-accent text-bg; }
+  .seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  .seg-opt input { @apply absolute opacity-0 w-0 h-0 pointer-events-none; }
+
+  /* — verdict badge (Doctrine Check, Phase 2+; defined now since Shelf shows it too) — */
+  .verdict-sound { @apply text-sage-800 bg-sage-100; }
+  .verdict-caution, .verdict-concern { @apply text-accent-800 bg-accent-100; }
+  .verdict-distinctive, .verdict-unassessed { @apply text-neutral-700 bg-neutral-100; }
+}
+
+.washed { filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94); }

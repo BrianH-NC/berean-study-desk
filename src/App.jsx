@@ -29,7 +29,7 @@ function ProtectedLayout() {
           <Route path="/shelf/add" element={<AddBooks />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />
-          <Route path="/notebook" element={<Navigate to="/topics" replace />} />
+          <Route path="/notebook" element={<Navigate to="/notebook/new" replace />} />
           <Route path="/notebook/new" element={<Composer />} />
           <Route path="/notebook/:id" element={<Entry />} />
           <Route path="/reading" element={<Reading />} />

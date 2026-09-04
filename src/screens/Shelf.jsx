@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search as SearchIcon, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react'
+import { Search as SearchIcon } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
+import { verdictClass, verdictIcon } from '../lib/verdict'
 
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
 const SORTS = [
@@ -10,25 +11,6 @@ const SORTS = [
   { value: 'author', label: 'Author A–Z' },
   { value: 'recent', label: 'Recently added' },
 ]
-
-// The Anthropic-backed edge function returns one of these five verdict
-// strings (see theology-checker/supabase/functions/theology-check/index.ts);
-// this maps each to the badge treatment defined in index.css.
-function verdictClass(verdict) {
-  if (!verdict) return 'verdict-unassessed'
-  const v = verdict.toLowerCase()
-  if (v.startsWith('sound')) return 'verdict-sound'
-  if (v.startsWith('caution')) return 'verdict-caution'
-  if (v.startsWith('concern')) return 'verdict-concern'
-  return 'verdict-distinctive' // "Baptism/Polity Distinctive", "Unable to Assess"
-}
-
-function verdictIcon(verdict) {
-  const cls = verdictClass(verdict)
-  if (cls === 'verdict-sound') return ShieldCheck
-  if (cls === 'verdict-caution' || cls === 'verdict-concern') return ShieldAlert
-  return ShieldQuestion
-}
 
 export default function Shelf() {
   const user = useAuth()

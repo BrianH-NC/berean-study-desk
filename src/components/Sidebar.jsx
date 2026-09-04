@@ -28,6 +28,7 @@ export default function Sidebar() {
   const location = useLocation()
   const [mode, setMode] = useState(getInitialMode)
   const [bookCount, setBookCount] = useState(null)
+  const [checksCount, setChecksCount] = useState(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-mode', mode)
@@ -42,6 +43,13 @@ export default function Sidebar() {
       .eq('user_id', user.id)
       .then(({ count }) => {
         if (!cancelled) setBookCount(count ?? null)
+      })
+    // theology_checks is shared (no user_id), so its count isn't scoped per-user.
+    supabase
+      .from('theology_checks')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => {
+        if (!cancelled) setChecksCount(count ?? null)
       })
     return () => {
       cancelled = true
@@ -73,7 +81,7 @@ export default function Sidebar() {
         {NAV.map((item) => {
           const active = isActive(item)
           const Icon = item.icon
-          const count = item.to === '/shelf' ? bookCount : null
+          const count = item.to === '/shelf' ? bookCount : item.to === '/checks' ? checksCount : null
           return (
             <NavLink
               key={item.to}

@@ -201,6 +201,22 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   .verdict-sound { @apply text-sage-800 bg-sage-100; }
   .verdict-caution, .verdict-concern { @apply text-accent-800 bg-accent-100; }
   .verdict-distinctive, .verdict-unassessed { @apply text-neutral-700 bg-neutral-100; }
+
+  /* — dialog — */
+  .dialog-backdrop {
+    @apply fixed inset-0 grid place-items-center;
+    padding: 17.6px;
+    background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+    z-index: 100;
+  }
+  .dialog {
+    width: min(440px, 100%);
+    @apply flex flex-col gap-3 bg-surface rounded-card shadow-lg;
+    padding: 17.6px;
+  }
+  .dialog-title { @apply font-heading; font-size: 20px; }
+  .dialog-body { font-size: 14px; opacity: 0.85; }
+  .dialog-actions { @apply flex justify-end gap-2; margin-top: 8.8px; }
 }
 
 .washed { filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94); }

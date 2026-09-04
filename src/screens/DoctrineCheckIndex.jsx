@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search as SearchIcon, User, Loader2 } from 'lucide-react'
+import { Search as SearchIcon, User, Loader2, ScanBarcode } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
   assessSubject, checksList, checksInsert, listHolyShelfUnchecked, mapAssessmentToRow,
 } from '../lib/theologyCheck'
+import { fetchBookByISBN } from '../lib/googleBooks'
+import BarcodeScanner from '../components/BarcodeScanner'
 
 const VERDICT_FILTERS = ['All', 'Sound', 'Caution', 'Concern', 'Distinctive', 'Unable to Assess']
 
@@ -31,6 +33,8 @@ export default function DoctrineCheckIndex() {
   const [name, setName] = useState('')
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState('')
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanLookupLoading, setScanLookupLoading] = useState(false)
 
   const [verdictFilter, setVerdictFilter] = useState('All')
   const [kindFilter, setKindFilter] = useState('All')
@@ -124,6 +128,19 @@ export default function DoctrineCheckIndex() {
     }
   }
 
+  async function handleScan(scannedIsbn) {
+    setShowScanner(false)
+    setSubjectKind('book')
+    setIsbn(scannedIsbn)
+    setScanLookupLoading(true)
+    const book = await fetchBookByISBN(scannedIsbn)
+    setScanLookupLoading(false)
+    if (book) {
+      setTitle(book.title)
+      setAuthors(book.author)
+    }
+  }
+
   async function handleCheckShelfBook(book) {
     setCheckingIsbn(book.isbn)
     try {
@@ -145,24 +162,38 @@ export default function DoctrineCheckIndex() {
 
       {/* New check card */}
       <div className="card mb-5" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
-        <div className="seg self-start mb-2">
-          <button
-            type="button"
-            className="seg-opt"
-            style={subjectKind === 'book' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-            onClick={() => setSubjectKind('book')}
-          >
-            Book or ISBN
-          </button>
-          <button
-            type="button"
-            className="seg-opt"
-            style={subjectKind === 'person' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-            onClick={() => setSubjectKind('person')}
-          >
-            Author or teacher
-          </button>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+          <div className="seg self-start">
+            <button
+              type="button"
+              className="seg-opt"
+              style={subjectKind === 'book' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+              onClick={() => setSubjectKind('book')}
+            >
+              Book or ISBN
+            </button>
+            <button
+              type="button"
+              className="seg-opt"
+              style={subjectKind === 'person' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+              onClick={() => setSubjectKind('person')}
+            >
+              Author or teacher
+            </button>
+          </div>
+          {subjectKind === 'book' && (
+            <button type="button" className="btn btn-secondary" onClick={() => setShowScanner(true)}>
+              <ScanBarcode size={15} strokeWidth={2.75} />
+              Scan barcode
+            </button>
+          )}
         </div>
+
+        {scanLookupLoading && (
+          <div className="text-sm mb-2 flex items-center gap-1.5" style={{ opacity: 0.7 }}>
+            <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Looking up that ISBN…
+          </div>
+        )}
 
         <form onSubmit={handleNewCheck} className="flex gap-2 flex-wrap items-end">
           {subjectKind === 'book' ? (
@@ -342,6 +373,8 @@ export default function DoctrineCheckIndex() {
           </tbody>
         </table>
       )}
+
+      {showScanner && <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
     </div>
   )
 }

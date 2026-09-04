@@ -57,7 +57,7 @@ export default function Home() {
         <div>
           <div className="card-kicker mb-1">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
           <h2 className="!mb-0">
-            {greeting()}, {user.email.split('@')[0]}
+            {greeting()}, {user.user_metadata?.display_name || user.email.split('@')[0]}
           </h2>
         </div>
         <div className="flex gap-2">

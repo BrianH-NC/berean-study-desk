@@ -5,6 +5,7 @@ import Auth from './components/Auth'
 import Sidebar from './components/Sidebar'
 import Home from './screens/Home'
 import Shelf from './screens/Shelf'
+import BookDetail from './screens/BookDetail'
 import AddBooks from './screens/AddBooks'
 import DoctrineCheckIndex from './screens/DoctrineCheckIndex'
 import DoctrineCheckReport from './screens/DoctrineCheckReport'
@@ -27,6 +28,7 @@ function ProtectedLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />
           <Route path="/shelf/add" element={<AddBooks />} />
+          <Route path="/shelf/:id" element={<BookDetail />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />
           <Route path="/notebook" element={<Navigate to="/notebook/new" replace />} />

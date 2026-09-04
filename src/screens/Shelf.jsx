@@ -200,7 +200,7 @@ export default function Shelf() {
               const verdict = b.isbn ? checksByIsbn[b.isbn] : null
               const VerdictIcon = verdictIcon(verdict)
               return (
-                <tr key={b.id}>
+                <tr key={b.id} className="cursor-pointer" onClick={() => navigate(`/shelf/${b.id}`)}>
                   <td>
                     <div className="flex items-center gap-2.5">
                       <div

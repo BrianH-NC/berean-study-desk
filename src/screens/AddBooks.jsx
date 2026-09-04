@@ -1,20 +1,68 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Camera, Loader2 } from 'lucide-react'
+import { Camera, Loader2, ScanBarcode } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
+import { fetchBookByISBN } from '../lib/googleBooks'
+import BarcodeScanner from '../components/BarcodeScanner'
 
 export default function AddBooks() {
   const user = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
+  // Single book: scan or manual entry
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanLookupLoading, setScanLookupLoading] = useState(false)
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [isbn, setIsbn] = useState('')
+  const [savingOne, setSavingOne] = useState(false)
+  const [oneError, setOneError] = useState('')
+
+  // Whole shelf at a time
+  const [showShelfScan, setShowShelfScan] = useState(false)
   const [photoUrl, setPhotoUrl] = useState(null)
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState('')
   const [found, setFound] = useState(null) // [{ title, author, confidence, include }]
-  const [saving, setSaving] = useState(false)
+  const [savingShelf, setSavingShelf] = useState(false)
+
+  async function handleScan(scannedIsbn) {
+    setShowScanner(false)
+    setIsbn(scannedIsbn)
+    setScanLookupLoading(true)
+    const book = await fetchBookByISBN(scannedIsbn)
+    setScanLookupLoading(false)
+    if (book) {
+      setTitle(book.title)
+      setAuthor(book.author)
+    }
+  }
+
+  async function handleAddOne(e) {
+    e.preventDefault()
+    if (!title.trim()) return
+    setSavingOne(true)
+    setOneError('')
+    try {
+      const { error } = await supabase.from('books').insert({
+        user_id: user.id,
+        title: title.trim(),
+        author: author.trim() || null,
+        isbn: isbn.trim() || null,
+        reading_status: 'unread',
+        tags: [],
+      })
+      if (error) throw error
+      navigate('/shelf')
+    } catch (err) {
+      setOneError(err.message)
+    } finally {
+      setSavingOne(false)
+    }
+  }
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0]
@@ -40,7 +88,7 @@ export default function AddBooks() {
   async function handleAddSelected() {
     const toAdd = found.filter((b) => b.include && b.title?.trim())
     if (toAdd.length === 0) return
-    setSaving(true)
+    setSavingShelf(true)
     try {
       const rows = toAdd.map((b) => ({
         user_id: user.id,
@@ -55,7 +103,7 @@ export default function AddBooks() {
     } catch (err) {
       alert('Error adding books: ' + err.message)
     } finally {
-      setSaving(false)
+      setSavingShelf(false)
     }
   }
 
@@ -70,99 +118,123 @@ export default function AddBooks() {
       </div>
       <h2 className="!mb-4">Add to the shelf</h2>
 
-      {!found && (
-        <div
-          className="card flex flex-col items-center gap-3 text-center cursor-pointer"
-          style={{ padding: '40px 24px', border: '2px dashed var(--color-neutral-400)' }}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Camera size={26} strokeWidth={2.75} style={{ opacity: 0.6 }} />
-          <div>
-            <div className="card-title">Photograph a shelf</div>
-            <div className="card-body">Take or choose a photo of a shelf full of books — I'll read as many spines as I can.</div>
+      {/* Add one book: scan or type it in */}
+      <div className="card mb-5" style={{ padding: '18px 20px' }}>
+        <div className="card-title mb-2">Add a book</div>
+        <button type="button" className="btn btn-primary mb-3" onClick={() => setShowScanner(true)}>
+          <ScanBarcode size={15} strokeWidth={2.75} />
+          Scan barcode
+        </button>
+
+        {scanLookupLoading && (
+          <div className="text-sm mb-2 flex items-center gap-1.5" style={{ opacity: 0.7 }}>
+            <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Looking up that ISBN…
           </div>
-          <button type="button" className="btn btn-primary" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
-            Choose a photo
+        )}
+
+        <form onSubmit={handleAddOne} className="flex gap-2 flex-wrap items-end">
+          <div className="field" style={{ minWidth: 220 }}>
+            <label htmlFor="ab-title">Title</label>
+            <input id="ab-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </div>
+          <div className="field" style={{ minWidth: 180 }}>
+            <label htmlFor="ab-author">Author</label>
+            <input id="ab-author" className="input" value={author} onChange={(e) => setAuthor(e.target.value)} />
+          </div>
+          <div className="field" style={{ minWidth: 140 }}>
+            <label htmlFor="ab-isbn">ISBN (optional)</label>
+            <input id="ab-isbn" className="input" value={isbn} onChange={(e) => setIsbn(e.target.value)} />
+          </div>
+          <button type="submit" className="btn btn-secondary" disabled={savingOne}>
+            {savingOne ? 'Adding…' : 'Add to shelf'}
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </div>
-      )}
-
-      {photoUrl && (
-        <div className="flex gap-6 mt-5 flex-wrap">
-          <img src={photoUrl} alt="" className="rounded-md" style={{ width: 200, objectFit: 'cover' }} />
-          <div className="flex-1" style={{ minWidth: 280 }}>
-            {scanning && (
-              <div className="flex items-center gap-2" style={{ opacity: 0.7 }}>
-                <Loader2 size={16} strokeWidth={2.75} className="animate-spin" /> Reading spines…
-              </div>
-            )}
-            {scanError && (
-              <div className="text-sm" style={{ color: 'var(--color-accent-800)' }}>
-                {scanError}
-              </div>
-            )}
-
-            {found && (
-              <>
-                <div className="card-kicker mb-2">
-                  {found.length} spines read · {includedCount} selected
-                </div>
-                <div className="flex flex-col gap-2 mb-4" style={{ maxHeight: 420, overflowY: 'auto' }}>
-                  {found.map((b, i) => (
-                    <div key={i} className="flex items-center gap-2 card !flex-row" style={{ padding: '8px 12px' }}>
-                      <input type="checkbox" checked={b.include} onChange={(e) => updateFound(i, { include: e.target.checked })} />
-                      <input
-                        className="input flex-1"
-                        style={{ minHeight: 30, padding: '4px 10px' }}
-                        value={b.title || ''}
-                        onChange={(e) => updateFound(i, { title: e.target.value })}
-                        placeholder="Title"
-                      />
-                      <input
-                        className="input flex-1"
-                        style={{ minHeight: 30, padding: '4px 10px' }}
-                        value={b.author || ''}
-                        onChange={(e) => updateFound(i, { author: e.target.value })}
-                        placeholder="Author"
-                      />
-                      <span
-                        className="tag tag-neutral shrink-0"
-                        title={`${b.confidence} confidence`}
-                      >
-                        {b.confidence}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" className="btn btn-primary" onClick={handleAddSelected} disabled={saving || includedCount === 0}>
-                    {saving ? 'Adding…' : `Add ${includedCount} book${includedCount === 1 ? '' : 's'}`}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-                    Try another photo
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </div>
-              </>
-            )}
+        </form>
+        {oneError && (
+          <div className="mt-2 text-sm" style={{ color: 'var(--color-accent-800)' }}>
+            {oneError}
           </div>
+        )}
+      </div>
+
+      {/* Whole shelf at a time */}
+      {!showShelfScan ? (
+        <button type="button" className="btn btn-ghost" onClick={() => setShowShelfScan(true)}>
+          Or scan a whole shelf at once →
+        </button>
+      ) : (
+        <div className="card" style={{ padding: '18px 20px' }}>
+          <div className="card-title mb-1">Scan a shelf</div>
+          <div className="card-body mb-2">Photograph a shelf full of books — I'll read as many spines as I can.</div>
+
+          {!found && !scanning && (
+            <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+              <Camera size={15} strokeWidth={2.75} />
+              Choose a photo
+            </button>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+
+          {photoUrl && (scanning || found) && (
+            <div className="flex gap-5 mt-3 flex-wrap">
+              <img src={photoUrl} alt="" className="rounded-md" style={{ width: 140, objectFit: 'cover' }} />
+              <div className="flex-1" style={{ minWidth: 260 }}>
+                {scanning && (
+                  <div className="flex items-center gap-2" style={{ opacity: 0.7 }}>
+                    <Loader2 size={16} strokeWidth={2.75} className="animate-spin" /> Reading spines…
+                  </div>
+                )}
+                {scanError && (
+                  <div className="text-sm" style={{ color: 'var(--color-accent-800)' }}>
+                    {scanError}
+                  </div>
+                )}
+
+                {found && (
+                  <>
+                    <div className="card-kicker mb-2">
+                      {found.length} spines read · {includedCount} selected
+                    </div>
+                    <div className="flex flex-col gap-2 mb-4" style={{ maxHeight: 420, overflowY: 'auto' }}>
+                      {found.map((b, i) => (
+                        <div key={i} className="flex items-center gap-2 card !flex-row" style={{ padding: '8px 12px' }}>
+                          <input type="checkbox" checked={b.include} onChange={(e) => updateFound(i, { include: e.target.checked })} />
+                          <input
+                            className="input flex-1"
+                            style={{ minHeight: 30, padding: '4px 10px' }}
+                            value={b.title || ''}
+                            onChange={(e) => updateFound(i, { title: e.target.value })}
+                            placeholder="Title"
+                          />
+                          <input
+                            className="input flex-1"
+                            style={{ minHeight: 30, padding: '4px 10px' }}
+                            value={b.author || ''}
+                            onChange={(e) => updateFound(i, { author: e.target.value })}
+                            placeholder="Author"
+                          />
+                          <span className="tag tag-neutral shrink-0" title={`${b.confidence} confidence`}>
+                            {b.confidence}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" className="btn btn-primary" onClick={handleAddSelected} disabled={savingShelf || includedCount === 0}>
+                        {savingShelf ? 'Adding…' : `Add ${includedCount} book${includedCount === 1 ? '' : 's'}`}
+                      </button>
+                      <button type="button" className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+                        Try another photo
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {showScanner && <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
     </div>
   )
 }

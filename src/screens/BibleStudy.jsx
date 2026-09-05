@@ -136,6 +136,8 @@ export default function BibleStudy() {
   const [commentaryData, setCommentaryData] = useState(null) // null = not loaded, false = error
   const [commentaryLoading, setCommentaryLoading] = useState(false)
 
+  const activeCommentaryBlockRef = useRef(null)
+
   const [showCrossRefs, setShowCrossRefs] = useState(false)
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
@@ -324,6 +326,16 @@ export default function BibleStudy() {
   }, [verses, verseRange])
 
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
+
+  // Scrolls the highlighted commentary block into view -- without this, opening
+  // commentary on a chapter with many verse-blocks (e.g. Adam Clarke, which runs
+  // nearly one block per verse) leaves the reader to hunt for the right section.
+  useEffect(() => {
+    if (showCommentary && commentaryData) {
+      activeCommentaryBlockRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [showCommentary, commentaryData, selectedSorted])
+
   const selectionRef = selectedSorted.length
     ? formatReference(book, chapter, selectedSorted[0], selectedSorted[selectedSorted.length - 1])
     : ''
@@ -513,7 +525,11 @@ export default function BibleStudy() {
                       selectedSorted[0] >= block.number &&
                       (nextNumber == null || selectedSorted[0] < nextNumber)
                     return (
-                      <div key={i} style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}>
+                      <div
+                        key={i}
+                        ref={isActive ? activeCommentaryBlockRef : null}
+                        style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}
+                      >
                         <div className="card-meta mb-1">Verse {rangeLabel}</div>
                         <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content.join('\n\n')}</p>
                       </div>

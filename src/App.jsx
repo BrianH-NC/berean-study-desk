@@ -7,6 +7,8 @@ import Home from './screens/Home'
 import Shelf from './screens/Shelf'
 import BookDetail from './screens/BookDetail'
 import AddBooks from './screens/AddBooks'
+import Wishlist from './screens/Wishlist'
+import WishlistAdd from './screens/WishlistAdd'
 import DoctrineCheckIndex from './screens/DoctrineCheckIndex'
 import DoctrineCheckReport from './screens/DoctrineCheckReport'
 import Composer from './screens/Composer'
@@ -28,6 +30,8 @@ function ProtectedLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />
           <Route path="/shelf/add" element={<AddBooks />} />
+          <Route path="/shelf/wishlist" element={<Wishlist />} />
+          <Route path="/shelf/wishlist/add" element={<WishlistAdd />} />
           <Route path="/shelf/:id" element={<BookDetail />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />

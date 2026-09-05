@@ -4,6 +4,7 @@ import { Camera, Loader2, ScanBarcode } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
+import { identifyBookImage } from '../lib/bookPhoto'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import BarcodeScanner from '../components/BarcodeScanner'
 
@@ -11,13 +12,17 @@ export default function AddBooks() {
   const user = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  const coverFileRef = useRef(null)
 
-  // Single book: scan or manual entry
+  // Single book: scan, photo, or manual entry
   const [showScanner, setShowScanner] = useState(false)
   const [scanLookupLoading, setScanLookupLoading] = useState(false)
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [isbn, setIsbn] = useState('')
+  const [coverUrl, setCoverUrl] = useState('')
   const [savingOne, setSavingOne] = useState(false)
   const [oneError, setOneError] = useState('')
 
@@ -38,6 +43,32 @@ export default function AddBooks() {
     if (book) {
       setTitle(book.title)
       setAuthor(book.author)
+      setCoverUrl(book.cover_url || '')
+    }
+  }
+
+  async function handlePhotoFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoLoading(true)
+    setPhotoError('')
+    try {
+      const result = await identifyBookImage(file)
+      if (result.title) setTitle(result.title)
+      if (result.author) setAuthor(result.author)
+      if (result.isbn) {
+        setIsbn(result.isbn)
+        const book = await fetchBookByISBN(result.isbn)
+        if (book?.cover_url) setCoverUrl(book.cover_url)
+      }
+      if (!result.title && !result.author) {
+        setPhotoError("Couldn't make out a title or author from that photo -- try again or type it in.")
+      }
+    } catch (err) {
+      setPhotoError(err.message)
+    } finally {
+      setPhotoLoading(false)
+      e.target.value = ''
     }
   }
 
@@ -52,6 +83,7 @@ export default function AddBooks() {
         title: title.trim(),
         author: author.trim() || null,
         isbn: isbn.trim() || null,
+        cover_url: coverUrl || null,
         reading_status: 'unread',
         tags: [],
       })
@@ -121,14 +153,26 @@ export default function AddBooks() {
       {/* Add one book: scan or type it in */}
       <div className="card mb-5" style={{ padding: '18px 20px' }}>
         <div className="card-title mb-2">Add a book</div>
-        <button type="button" className="btn btn-primary mb-3" onClick={() => setShowScanner(true)}>
-          <ScanBarcode size={15} strokeWidth={2.75} />
-          Scan barcode
-        </button>
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <button type="button" className="btn btn-primary" onClick={() => setShowScanner(true)}>
+            <ScanBarcode size={15} strokeWidth={2.75} />
+            Scan barcode
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => coverFileRef.current?.click()} disabled={photoLoading}>
+            {photoLoading ? <Loader2 size={15} strokeWidth={2.75} className="animate-spin" /> : <Camera size={15} strokeWidth={2.75} />}
+            Take a photo
+          </button>
+          <input ref={coverFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoFile} />
+        </div>
 
         {scanLookupLoading && (
           <div className="text-sm mb-2 flex items-center gap-1.5" style={{ opacity: 0.7 }}>
             <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Looking up that ISBN…
+          </div>
+        )}
+        {photoError && (
+          <div className="text-sm mb-2" style={{ color: 'var(--color-accent-800)' }}>
+            {photoError}
           </div>
         )}
 

@@ -107,6 +107,9 @@ export default function Shelf() {
           <button type="button" className="btn btn-primary" onClick={() => navigate('/shelf/add')}>
             Add books
           </button>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/shelf/wishlist')}>
+            Wishlist
+          </button>
           <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={!books?.length}>
             Export
           </button>

@@ -15,7 +15,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const ESV_API_KEY = Deno.env.get("ESV_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+// Only SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are reliably auto-injected
+// into every Edge Function -- SUPABASE_ANON_KEY is not guaranteed, so the
+// service role key is used here purely to construct a client capable of
+// verifying the caller's JWT via auth.getUser(). This does not grant the
+// caller any service-role privileges; it only validates their own token.
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -28,8 +33,8 @@ const CORS_HEADERS = {
 // finds the site can't run up the Crossway API usage without an account.
 async function getAuthedUser(req: Request) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (!token || !SUPABASE_URL || !SERVICE_ROLE_KEY) return null;
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) return null;
   return data.user;

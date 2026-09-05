@@ -3,18 +3,17 @@
 // Deploy via dashboard: Edge Functions > Deploy a new function > Via Editor,
 // name it "checks-api", paste this in.
 //
-// No new secret needed — SUPABASE_URL, SUPABASE_ANON_KEY, and
-// SUPABASE_SERVICE_ROLE_KEY are automatically available to every Edge
-// Function on this platform. The service role key bypasses Row Level
-// Security, which is exactly why this function exists: the theology_checks
-// table should have NO policy granting the public anon key direct access,
-// so this is the only path in.
+// No new secret needed — SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are
+// automatically available to every Edge Function on this platform (unlike
+// SUPABASE_ANON_KEY, which is not reliably injected). The service role key
+// bypasses Row Level Security, which is exactly why this function exists:
+// the theology_checks table should have NO policy granting the public anon
+// key direct access, so this is the only path in.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -31,15 +30,16 @@ function json(obj: unknown, status = 200) {
 
 // The anon key alone (verify_jwt's minimum bar) isn't enough to call this --
 // it's public, embedded in the deployed site's JS bundle. This checks that
-// the caller sent a real signed-in user's access token. theology_checks
-// itself is a shared/global table by design (every signed-in user can read
-// and add to it, same as before), but "listHolyShelfUnchecked" below reads
-// the per-user books table and must not leak one user's shelf to another.
-async function getAuthedUser(req: Request) {
+// the caller sent a real signed-in user's access token (verified with the
+// admin client purely to validate the JWT -- this does not grant the caller
+// any service-role privileges). theology_checks itself is a shared/global
+// table by design (every signed-in user can read and add to it, same as
+// before), but "listHolyShelfUnchecked" below reads the per-user books
+// table and must not leak one user's shelf to another.
+async function getAuthedUser(req: Request, admin: ReturnType<typeof createClient>) {
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data, error } = await anon.auth.getUser(token);
+  if (!token) return null;
+  const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return null;
   return data.user;
 }
@@ -51,12 +51,12 @@ Deno.serve(async (req) => {
     return json({ error: "Server misconfiguration: service role credentials unavailable." }, 500);
   }
 
-  const user = await getAuthedUser(req);
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+  const user = await getAuthedUser(req, admin);
   if (!user) {
     return json({ error: "Sign in required." }, 401);
   }
-
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   try {
     const body = await req.json();

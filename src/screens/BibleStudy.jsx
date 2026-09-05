@@ -19,8 +19,16 @@ import {
   COMPARISON_TRANSLATIONS,
   fetchTranslationChapter,
 } from '../lib/helloao'
+import { fetchEsvPassage } from '../lib/esv'
 
 const VIEW_MODES = ['Read', 'Search']
+
+// ESV is licensed (unlike the rest of COMPARISON_TRANSLATIONS), so it's fetched
+// live per-selection through the app's own esv-passage Edge Function rather
+// than the Free Use Bible API -- listed separately since its fetch shape
+// (one passage of text) differs from the others (a whole chapter of verses).
+const ESV_OPTION = { id: 'ESV', name: 'English Standard Version', short: 'ESV' }
+const COMPARE_OPTIONS = [ESV_OPTION, ...COMPARISON_TRANSLATIONS]
 
 function highlightTerms(text, query) {
   const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
@@ -259,21 +267,23 @@ export default function BibleStudy() {
     }
   }, [showCrossRefs, book, chapter])
 
-  // Fetches every selected comparison translation for the current chapter --
-  // re-runs whenever the chapter changes or a translation is toggled on/off.
-  // BSB itself needs no fetch here since it's already the locally-loaded
-  // `verses` for this chapter.
+  // Fetches every selected Free Use Bible API translation for the current
+  // chapter -- re-runs whenever the chapter changes or a translation is
+  // toggled on/off. BSB itself needs no fetch here since it's already the
+  // locally-loaded `verses` for this chapter. ESV is handled separately
+  // below (it's fetched per-selection, not per-chapter).
   useEffect(() => {
-    if (!showCompare || compareIds.length === 0) return
+    const ids = compareIds.filter((id) => id !== 'ESV')
+    if (!showCompare || ids.length === 0) return
     let cancelled = false
     setCompareData((prev) => {
       const next = { ...prev }
-      compareIds.forEach((id) => {
+      ids.forEach((id) => {
         next[id] = { status: 'loading', verses: null }
       })
       return next
     })
-    compareIds.forEach((id) => {
+    ids.forEach((id) => {
       fetchTranslationChapter(id, book, chapter)
         .then((verses) => {
           if (cancelled) return
@@ -288,6 +298,30 @@ export default function BibleStudy() {
       cancelled = true
     }
   }, [showCompare, compareIds, book, chapter])
+
+  // ESV is fetched as one passage of text scoped to the exact verse selection
+  // (via the same esv-passage Edge Function used elsewhere), so it re-runs on
+  // selection changes rather than only on chapter changes.
+  useEffect(() => {
+    if (!showCompare || !compareIds.includes('ESV')) return
+    const sorted = [...selectedVerses].sort((a, b) => a - b)
+    if (sorted.length === 0) return
+    const reference = formatReference(book, chapter, sorted[0], sorted[sorted.length - 1])
+    let cancelled = false
+    setCompareData((prev) => ({ ...prev, ESV: { status: 'loading', text: null } }))
+    fetchEsvPassage(reference)
+      .then((result) => {
+        if (cancelled) return
+        setCompareData((prev) => ({ ...prev, ESV: { status: 'ready', text: result.text } }))
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setCompareData((prev) => ({ ...prev, ESV: { status: 'error', text: null, message: err.message } }))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showCompare, compareIds, selectedVerses, book, chapter])
 
   useEffect(() => {
     if (viewMode !== 'Search') return
@@ -658,7 +692,7 @@ export default function BibleStudy() {
               ) : (
                 <>
                   <div className="flex gap-1.5 flex-wrap mb-3">
-                    {COMPARISON_TRANSLATIONS.map((t) => {
+                    {COMPARE_OPTIONS.map((t) => {
                       const active = compareIds.includes(t.id)
                       return (
                         <button
@@ -695,7 +729,7 @@ export default function BibleStudy() {
                       </p>
                     ) : (
                       compareIds.map((id) => {
-                        const meta = COMPARISON_TRANSLATIONS.find((t) => t.id === id)
+                        const meta = COMPARE_OPTIONS.find((t) => t.id === id)
                         const entry = compareData[id]
                         return (
                           <div key={id}>
@@ -708,8 +742,11 @@ export default function BibleStudy() {
                               </div>
                             ) : entry.status === 'error' ? (
                               <p className="text-sm" style={{ opacity: 0.6 }}>
-                                Couldn't load {meta?.short}.
+                                Couldn't load {meta?.short}
+                                {entry.message ? ` — ${entry.message}` : '.'}
                               </p>
+                            ) : id === 'ESV' ? (
+                              <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.text}</p>
                             ) : (
                               <p style={{ fontSize: 14, lineHeight: 1.6 }}>
                                 {entry.verses
@@ -726,7 +763,7 @@ export default function BibleStudy() {
                 </>
               )}
               <div className="card-meta mt-2">
-                Additional translations via the{' '}
+                ESV® via Crossway; other translations via the{' '}
                 <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                   Free Use Bible API
                 </a>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
+import { getStoredTheme } from '../lib/theme'
 
 const NAV = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -35,6 +36,14 @@ export default function Sidebar() {
     document.documentElement.setAttribute('data-mode', mode)
     localStorage.setItem('bsd-mode', mode)
   }, [mode])
+
+  // The theme itself only ever changes from Settings, which applies it (and
+  // the DOM attribute) directly -- this just makes sure whatever was last
+  // chosen is still attached to <html> on a fresh load, since Sidebar (not
+  // Settings) is the chrome that's guaranteed to mount on every page.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', getStoredTheme())
+  }, [])
 
   useEffect(() => {
     let cancelled = false

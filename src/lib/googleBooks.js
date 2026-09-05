@@ -39,3 +39,19 @@ export async function fetchBookByISBN(isbn) {
 
   return null
 }
+
+// Best-effort cover lookup for books with no ISBN on file -- searches by
+// title/author instead of an exact ISBN match, so it's less reliable and
+// only used as a fallback (see Shelf's "Find missing covers").
+export async function searchBookCover(title, author) {
+  try {
+    const q = encodeURIComponent(`intitle:${title}${author ? ` inauthor:${author}` : ''}`)
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`)
+    const data = await res.json()
+    const cover = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail
+    if (cover) return cover.replace('http:', 'https:')
+  } catch (e) {
+    console.error('Google Books cover search error:', e)
+  }
+  return null
+}

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search as SearchIcon } from 'lucide-react'
+import { Search as SearchIcon, Loader2 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
+import { fetchBookByISBN, searchBookCover } from '../lib/googleBooks'
 
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
 const SORTS = [
@@ -22,31 +23,54 @@ export default function Shelf() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [tradition, setTradition] = useState(null)
   const [sort, setSort] = useState('title')
+  const [findingCovers, setFindingCovers] = useState(false)
+  const [coverProgress, setCoverProgress] = useState(null) // { done, total }
+
+  async function loadBooks() {
+    const [{ data: bookRows }, { data: checkRows }] = await Promise.all([
+      supabase.from('books').select('*').eq('user_id', user.id).order('title'),
+      supabase.from('theology_checks').select('isbn, verdict').eq('kind', 'book').not('isbn', 'is', null),
+    ])
+    setBooks(bookRows || [])
+
+    const map = {}
+    ;(checkRows || []).forEach((c) => {
+      if (c.isbn) map[c.isbn] = c.verdict
+    })
+    setChecksByIsbn(map)
+  }
 
   useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      const [{ data: bookRows }, { data: checkRows }] = await Promise.all([
-        supabase.from('books').select('*').eq('user_id', user.id).order('title'),
-        supabase.from('theology_checks').select('isbn, verdict').eq('kind', 'book').not('isbn', 'is', null),
-      ])
-      if (cancelled) return
-
-      setBooks(bookRows || [])
-
-      const map = {}
-      ;(checkRows || []).forEach((c) => {
-        if (c.isbn) map[c.isbn] = c.verdict
-      })
-      setChecksByIsbn(map)
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
+    loadBooks()
   }, [user.id])
+
+  // Sequential, not parallel -- these are free Google Books/Open Library
+  // lookups (no cost concern), but running them one at a time keeps the
+  // progress readout meaningful and avoids hammering either API at once.
+  async function handleFindCovers() {
+    const missing = books.filter((b) => !b.cover_url)
+    if (missing.length === 0) return
+    setFindingCovers(true)
+    let done = 0
+    let found = 0
+    setCoverProgress({ done, total: missing.length })
+    for (const b of missing) {
+      let cover = b.isbn ? (await fetchBookByISBN(b.isbn))?.cover_url : null
+      if (!cover) cover = await searchBookCover(b.title, b.author)
+      if (cover) {
+        await supabase.from('books').update({ cover_url: cover }).eq('id', b.id)
+        found++
+      }
+      done++
+      setCoverProgress({ done, total: missing.length })
+    }
+    setFindingCovers(false)
+    setCoverProgress(null)
+    await loadBooks()
+    if (found < missing.length) {
+      alert(`Found covers for ${found} of ${missing.length} books. The rest weren't matched — try adding an ISBN, or check the title/author spelling.`)
+    }
+  }
 
   const traditions = useMemo(() => {
     if (!books) return []
@@ -93,6 +117,7 @@ export default function Shelf() {
   }
 
   const checkedCount = books ? books.filter((b) => b.isbn && checksByIsbn[b.isbn]).length : 0
+  const missingCoverCount = books ? books.filter((b) => !b.cover_url).length : 0
 
   return (
     <div className="max-w-[1180px] mx-auto page">
@@ -103,7 +128,18 @@ export default function Shelf() {
           </div>
           <h2 className="!mb-0">The shelf</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {findingCovers && coverProgress && (
+            <span className="text-sm flex items-center gap-1.5" style={{ opacity: 0.7 }}>
+              <Loader2 size={13} strokeWidth={2.75} className="animate-spin" />
+              Finding covers… {coverProgress.done} of {coverProgress.total}
+            </span>
+          )}
+          {missingCoverCount > 0 && (
+            <button type="button" className="btn btn-secondary" onClick={handleFindCovers} disabled={findingCovers}>
+              Find missing covers ({missingCoverCount})
+            </button>
+          )}
           <button type="button" className="btn btn-primary" onClick={() => navigate('/shelf/add')}>
             Add books
           </button>

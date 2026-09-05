@@ -75,7 +75,12 @@ export default function Home() {
 
       {reading && (
         <div className="card mb-6" style={{ padding: '18px 20px' }}>
-          <div className="card-kicker mb-2">Currently reading</div>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="card-kicker">Currently reading</div>
+            <Link to={`/reading/${reading.id}`} className="text-sm hover:underline">
+              Continue reading →
+            </Link>
+          </div>
           <div className="grid gap-4 md:gap-6 items-center grid-cols-1 md:grid-cols-[80px_1fr_246px]">
             <div className="rounded-sm overflow-hidden bg-neutral-200" style={{ width: 80, aspectRatio: '2/3' }}>
               {reading.cover_url && <img src={reading.cover_url} alt="" className="w-full h-full object-cover" />}

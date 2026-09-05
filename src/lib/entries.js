@@ -108,6 +108,19 @@ export async function getEntry(id) {
   return data
 }
 
+// Notes taken during a focused reading session on a specific shelf book
+// (entries.shelf_book_id), newest first.
+export async function listEntriesForBook(userId, bookId) {
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('shelf_book_id', bookId)
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
 // "See also" (this entry -> others) and "Referenced by" (others -> this
 // entry) — one row per link, direction stored once, both directions queried
 // at display time. Mirrors the asymmetric-storage/symmetric-display pattern

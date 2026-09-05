@@ -12,6 +12,7 @@ export default function BookDetail() {
 
   const [book, setBook] = useState(null) // null = loading, false = not found
   const [check, setCheck] = useState(null) // null = not loaded/none
+  const [noteCount, setNoteCount] = useState(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -32,6 +33,8 @@ export default function BookDetail() {
         const { data: c } = await supabase.from('theology_checks').select('*').eq('isbn', data.isbn).eq('kind', 'book').maybeSingle()
         setCheck(c || null)
       }
+      const { count } = await supabase.from('entries').select('id', { count: 'exact', head: true }).eq('shelf_book_id', id)
+      setNoteCount(count ?? 0)
     }
   }
 
@@ -207,6 +210,20 @@ export default function BookDetail() {
               {book.notes && <p style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.notes}</p>}
             </>
           )}
+
+          <div className="card mt-5" style={{ padding: '18px 20px' }}>
+            <div className="card-kicker mb-2">Reading</div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <Link to={`/reading/${book.id}`} className="btn btn-secondary">
+                {book.reading_status === 'unread' ? 'Start reading session →' : 'Continue reading session →'}
+              </Link>
+              {noteCount > 0 && (
+                <span className="card-meta">
+                  {noteCount} note{noteCount === 1 ? '' : 's'} so far
+                </span>
+              )}
+            </div>
+          </div>
 
           <div className="card mt-5" style={{ padding: '18px 20px' }}>
             <div className="card-kicker mb-2">Doctrine Check</div>

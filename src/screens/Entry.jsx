@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEntry, getLinksFor, updateEntry, deleteEntry, formatEntryNum } from '../lib/entries'
 import { fetchEsvPassage } from '../lib/esv'
+import { supabase } from '../lib/supabase'
+
+const STANCE_CLASS = { agree: 'tag-accent-2', disagree: 'verdict-concern', unsure: 'tag-neutral' }
 
 export default function Entry() {
   const { id } = useParams()
@@ -9,6 +12,7 @@ export default function Entry() {
 
   const [entry, setEntry] = useState(null) // null = loading, false = not found
   const [links, setLinks] = useState({ seeAlso: [], referencedBy: [] })
+  const [book, setBook] = useState(null) // the shelf book this note was taken while reading, if any
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -21,6 +25,10 @@ export default function Entry() {
     if (e) {
       setLinks(await getLinksFor(id))
       setForm({ title: e.title || '', body: e.body || '', ref: e.ref || '', tags: (e.tags || []).join(', ') })
+      if (e.shelf_book_id) {
+        const { data } = await supabase.from('books').select('id, title').eq('id', e.shelf_book_id).maybeSingle()
+        setBook(data || null)
+      }
     }
   }
 
@@ -155,7 +163,15 @@ export default function Entry() {
           ) : (
             <article>
               <h1 style={{ fontSize: 38, lineHeight: 1.08, maxWidth: '22ch' }}>{entry.title || 'Untitled'}</h1>
-              <div className="card-meta mb-4">{new Date(entry.created_at).toLocaleDateString()}</div>
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <div className="card-meta">{new Date(entry.created_at).toLocaleDateString()}</div>
+                {book && (
+                  <Link to={`/reading/${book.id}`} className="card-meta hover:underline">
+                    · while reading {book.title}
+                  </Link>
+                )}
+                {entry.stance && <span className={`tag ${STANCE_CLASS[entry.stance] || 'tag-neutral'}`}>{entry.stance}</span>}
+              </div>
               {entry.ref && (
                 <div className="card mb-4" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
                   <div className="card-kicker" style={{ color: 'var(--color-accent-700)' }}>

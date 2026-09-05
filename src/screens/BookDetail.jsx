@@ -42,6 +42,11 @@ export default function BookDetail() {
     load()
   }, [id])
 
+  async function handleQuickStatus(status) {
+    const { error } = await supabase.from('books').update({ reading_status: status }).eq('id', id)
+    if (!error) setBook((prev) => ({ ...prev, reading_status: status }))
+  }
+
   async function handleSave() {
     setSaving(true)
     try {
@@ -197,9 +202,25 @@ export default function BookDetail() {
             </div>
           ) : (
             <>
-              <div className="flex gap-2 flex-wrap mb-3">
+              <div className="flex items-center gap-2 flex-wrap mb-3">
                 {book.tradition && <span className="tag tag-neutral">{book.tradition}</span>}
-                <span className="tag tag-neutral">{book.reading_status || 'unread'}</span>
+                {book.reading_status === 'in-progress' ? (
+                  <span className="tag tag-accent">Reading</span>
+                ) : book.reading_status === 'read' ? (
+                  <span className="tag tag-accent-2">Read</span>
+                ) : (
+                  <span className="tag tag-neutral">Unread</span>
+                )}
+                {book.reading_status !== 'in-progress' && (
+                  <button type="button" className="btn btn-ghost !px-1" style={{ fontSize: 12 }} onClick={() => handleQuickStatus('in-progress')}>
+                    I'm reading this →
+                  </button>
+                )}
+                {book.reading_status === 'in-progress' && (
+                  <button type="button" className="btn btn-ghost !px-1" style={{ fontSize: 12 }} onClick={() => handleQuickStatus('read')}>
+                    Mark as read
+                  </button>
+                )}
                 {book.location && <span className="tag tag-neutral">{book.location}</span>}
                 {(book.tags || []).map((t) => (
                   <span key={t} className="tag tag-neutral">

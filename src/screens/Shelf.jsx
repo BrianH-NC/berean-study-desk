@@ -9,16 +9,33 @@ import { fetchBookByISBN, searchBookCover } from '../lib/googleBooks'
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
 const VIEW_MODES = ['Category', 'Title', 'Author', 'Recent']
 
+function firstLetter(str) {
+  const c = (str || '').trim().charAt(0).toUpperCase()
+  return /[A-Z]/.test(c) ? c : '#'
+}
+
+// Groups a list by the first letter of `field`, alphabetical with the "#"
+// (no usable letter) bucket last -- used for the Title and Author views.
+function groupByLetter(list, field) {
+  const map = {}
+  list.forEach((b) => {
+    const key = firstLetter(b[field])
+    ;(map[key] = map[key] || []).push(b)
+  })
+  Object.values(map).forEach((arr) => arr.sort((a, b) => (a[field] || '').localeCompare(b[field] || '')))
+  const letters = Object.keys(map).sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
+  return { map, letters }
+}
+
 function BookTable({ books, checksByIsbn, navigate }) {
   return (
     <div className="overflow-x-auto">
-      <table className="table w-full" style={{ minWidth: 640 }}>
+      <table className="table w-full" style={{ minWidth: 560 }}>
         <thead>
           <tr>
-            <th style={{ width: '46%' }}>Book</th>
-            <th style={{ width: '18%' }}>Tradition</th>
-            <th style={{ width: '18%' }}>Verdict</th>
-            <th style={{ width: '18%' }}>Status</th>
+            <th style={{ width: '58%' }}>Book</th>
+            <th style={{ width: '21%' }}>Verdict</th>
+            <th style={{ width: '21%' }}>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -47,7 +64,6 @@ function BookTable({ books, checksByIsbn, navigate }) {
                     </div>
                   </div>
                 </td>
-                <td>{b.tradition ? <span className="tag tag-neutral">{b.tradition}</span> : '—'}</td>
                 <td>
                   {verdict ? (
                     <span className={`tag ${verdictClass(verdict)} flex items-center gap-1 w-fit`}>
@@ -64,7 +80,7 @@ function BookTable({ books, checksByIsbn, navigate }) {
                   ) : b.reading_status === 'read' ? (
                     <span className="tag tag-accent-2">Read</span>
                   ) : (
-                    <span style={{ opacity: 0.5, fontSize: 12 }}>Unread</span>
+                    <span className="tag tag-neutral">Unread</span>
                   )}
                   {b.location && <span className="card-meta ml-1">{b.location}</span>}
                 </td>
@@ -73,6 +89,24 @@ function BookTable({ books, checksByIsbn, navigate }) {
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function GroupedSections({ names, groups, checksByIsbn, navigate }) {
+  return (
+    <div className="flex flex-col">
+      {names.map((name, i) => (
+        <div key={name} className="pt-6 mt-6 first:pt-0 first:mt-0" style={i > 0 ? { borderTop: '1px solid var(--color-divider)' } : undefined}>
+          <div className="flex items-baseline gap-2 mb-3">
+            <h3 className="font-heading !mb-0" style={{ fontSize: 19 }}>
+              {name}
+            </h3>
+            <span className="card-meta">{groups[name].length}</span>
+          </div>
+          <BookTable books={groups[name]} checksByIsbn={checksByIsbn} navigate={navigate} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -183,13 +217,10 @@ export default function Shelf() {
     return names
   }, [byCategory])
 
-  const sortedFlat = useMemo(() => {
-    const list = [...filtered]
-    if (viewBy === 'Author') list.sort((a, b) => (a.author || '').localeCompare(b.author || ''))
-    else if (viewBy === 'Recent') list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    else list.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
-    return list
-  }, [filtered, viewBy])
+  const titleGroups = useMemo(() => groupByLetter(filtered, 'title'), [filtered])
+  const authorGroups = useMemo(() => groupByLetter(filtered, 'author'), [filtered])
+
+  const sortedRecent = useMemo(() => [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), [filtered])
 
   function handleExport() {
     const blob = new Blob([JSON.stringify(books, null, 2)], { type: 'application/json' })
@@ -316,18 +347,13 @@ export default function Shelf() {
           No books match that search.
         </div>
       ) : viewBy === 'Category' ? (
-        <div className="flex flex-col gap-7">
-          {categoryNames.map((name) => (
-            <div key={name}>
-              <div className="card-kicker mb-2">
-                {name} · {byCategory[name].length}
-              </div>
-              <BookTable books={byCategory[name]} checksByIsbn={checksByIsbn} navigate={navigate} />
-            </div>
-          ))}
-        </div>
+        <GroupedSections names={categoryNames} groups={byCategory} checksByIsbn={checksByIsbn} navigate={navigate} />
+      ) : viewBy === 'Title' ? (
+        <GroupedSections names={titleGroups.letters} groups={titleGroups.map} checksByIsbn={checksByIsbn} navigate={navigate} />
+      ) : viewBy === 'Author' ? (
+        <GroupedSections names={authorGroups.letters} groups={authorGroups.map} checksByIsbn={checksByIsbn} navigate={navigate} />
       ) : (
-        <BookTable books={sortedFlat} checksByIsbn={checksByIsbn} navigate={navigate} />
+        <BookTable books={sortedRecent} checksByIsbn={checksByIsbn} navigate={navigate} />
       )}
 
       {books?.length > 0 && (

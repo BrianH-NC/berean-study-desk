@@ -47,9 +47,15 @@ export default function Reading() {
       .select('*')
       .eq('id', bookId)
       .single()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (cancelled) return
-        setBook(data || false)
+        // Opening a session on a book directly (e.g. from Book Detail) should
+        // mark it in-progress the same way starting one from the picker does.
+        if (data && data.reading_status !== 'in-progress') {
+          await supabase.from('books').update({ reading_status: 'in-progress' }).eq('id', bookId)
+          data.reading_status = 'in-progress'
+        }
+        if (!cancelled) setBook(data || false)
       })
     listEntriesForBook(user.id, bookId).then((rows) => {
       if (!cancelled) setNotes(rows)

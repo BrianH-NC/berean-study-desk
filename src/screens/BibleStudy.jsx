@@ -126,7 +126,8 @@ export default function BibleStudy() {
   const [verses, setVerses] = useState(null) // null = loading
   const [chapterCount, setChapterCount] = useState(null)
   const [selectedVerses, setSelectedVerses] = useState(new Set())
-  const [pendingSelection, setPendingSelection] = useState(null)
+  const [verseRange, setVerseRange] = useState(null) // { start, end } -- restricts the reader to just these verses; null shows the whole chapter
+  const [pendingRange, setPendingRange] = useState(null) // a verseRange to apply once the (possibly still-loading) chapter arrives
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
 
@@ -157,24 +158,27 @@ export default function BibleStudy() {
     if (qBook && qChapter) {
       setBook(qBook)
       setChapter(parseInt(qChapter, 10) || 1)
-      if (qVerse) setPendingSelection(parseInt(qVerse, 10))
+      if (qVerse) {
+        const v = parseInt(qVerse, 10)
+        setPendingRange({ start: v, end: v })
+      }
     }
   }, [searchParams])
 
+  // Fetches whenever book/chapter changes. Resets the verse-range scope to
+  // "whole chapter" up front -- a pending range (set by goTo, below) will
+  // re-narrow it once this load finishes, in the effect after this one.
   useEffect(() => {
     let cancelled = false
     setVerses(null)
     setSelectedVerses(new Set())
+    setVerseRange(null)
     setRefError('')
     Promise.all([fetchChapter(book, chapter), fetchChapterCount(book)])
       .then(([rows, count]) => {
         if (cancelled) return
         setVerses(rows)
         setChapterCount(count)
-        if (pendingSelection) {
-          setSelectedVerses(new Set([pendingSelection]))
-          setPendingSelection(null)
-        }
       })
       .catch((err) => {
         if (cancelled) return
@@ -184,8 +188,21 @@ export default function BibleStudy() {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book, chapter])
+
+  // Applies a pending verse-range request as soon as the chapter it targets
+  // has actually loaded. Separate from the fetch effect above so that
+  // re-requesting a specific verse *within the same chapter* still narrows
+  // the view even though book/chapter themselves didn't change (and so
+  // wouldn't have re-triggered that effect).
+  useEffect(() => {
+    if (!pendingRange || verses === null) return
+    const set = new Set()
+    for (let v = pendingRange.start; v <= pendingRange.end; v++) set.add(v)
+    setSelectedVerses(set)
+    setVerseRange(pendingRange)
+    setPendingRange(null)
+  }, [pendingRange, verses])
 
   // Commentary and cross references are third-party live calls (bible.helloao.org),
   // only made when the user actually opens that panel -- not on every chapter load.
@@ -251,12 +268,34 @@ export default function BibleStudy() {
     return () => clearTimeout(searchDebounce.current)
   }, [searchQuery, searchTestament, searchBook, viewMode])
 
-  function goTo(bookName, chapterNum, verseNum) {
+  // verseStart/verseEnd are optional -- omit both for a plain chapter browse
+  // (picker, cross-reference chapter jumps without a verse), which shows
+  // the whole chapter.
+  function goTo(bookName, chapterNum, verseStart, verseEnd) {
     setBook(bookName)
     setChapter(chapterNum)
-    if (verseNum) setPendingSelection(verseNum)
+    if (verseStart) {
+      setPendingRange({ start: verseStart, end: verseEnd || verseStart })
+    } else {
+      // Explicit "no verse requested" -- clear any stale scope immediately
+      // rather than waiting on the fetch effect, since it won't re-fire at
+      // all if the book/chapter happen to already match.
+      setPendingRange(null)
+      setVerseRange(null)
+    }
     setViewMode('Read')
     setShowPicker(false)
+  }
+
+  function stepChapter(delta) {
+    setPendingRange(null)
+    setVerseRange(null)
+    setChapter((c) => {
+      const next = c + delta
+      if (next < 1) return c
+      if (chapterCount && next > chapterCount) return c
+      return next
+    })
   }
 
   function handleQuickRef(e) {
@@ -267,14 +306,7 @@ export default function BibleStudy() {
       return
     }
     setRefError('')
-    goTo(parsed.book, parsed.chapter, parsed.verseStart)
-    if (parsed.verseStart && parsed.verseEnd && parsed.verseEnd !== parsed.verseStart) {
-      const range = new Set()
-      for (let v = parsed.verseStart; v <= parsed.verseEnd; v++) range.add(v)
-      setPendingSelection(null)
-      // applied after load via a one-off effect below
-      setTimeout(() => setSelectedVerses(range), 0)
-    }
+    goTo(parsed.book, parsed.chapter, parsed.verseStart, parsed.verseEnd)
   }
 
   function toggleVerse(v) {
@@ -285,6 +317,11 @@ export default function BibleStudy() {
       return next
     })
   }
+
+  const displayedVerses = useMemo(() => {
+    if (!verses || !verseRange) return verses
+    return verses.filter((v) => v.verse >= verseRange.start && v.verse <= verseRange.end)
+  }, [verses, verseRange])
 
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
   const selectionRef = selectedSorted.length
@@ -352,7 +389,7 @@ export default function BibleStudy() {
           )}
 
           <div className="flex items-center justify-between mb-3">
-            <button type="button" className="btn btn-icon btn-ghost" onClick={() => setChapter((c) => Math.max(1, c - 1))} disabled={chapter <= 1} aria-label="Previous chapter">
+            <button type="button" className="btn btn-icon btn-ghost" onClick={() => stepChapter(-1)} disabled={chapter <= 1} aria-label="Previous chapter">
               <ChevronLeft size={18} strokeWidth={2.75} />
             </button>
             <h3 className="!mb-0">
@@ -361,7 +398,7 @@ export default function BibleStudy() {
             <button
               type="button"
               className="btn btn-icon btn-ghost"
-              onClick={() => setChapter((c) => (chapterCount ? Math.min(chapterCount, c + 1) : c + 1))}
+              onClick={() => stepChapter(1)}
               disabled={chapterCount != null && chapter >= chapterCount}
               aria-label="Next chapter"
             >
@@ -378,25 +415,38 @@ export default function BibleStudy() {
               <div className="text-center py-16" style={{ opacity: 0.5 }}>
                 No text found for that reference.
               </div>
+            ) : displayedVerses.length === 0 ? (
+              <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                That verse isn't in this chapter.
+              </div>
             ) : (
-              verses.map((v) => (
-                <p
-                  key={v.id}
-                  onClick={() => toggleVerse(v.verse)}
-                  className="cursor-pointer"
-                  style={{
-                    fontSize: 17,
-                    lineHeight: 1.75,
-                    display: 'inline',
-                    background: selectedVerses.has(v.verse) ? 'var(--color-accent-100)' : 'transparent',
-                    borderRadius: 6,
-                    padding: '2px 3px',
-                  }}
-                >
-                  <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.verse}</sup>
-                  {v.text + ' '}
-                </p>
-              ))
+              <>
+                {displayedVerses.map((v) => (
+                  <p
+                    key={v.id}
+                    onClick={() => toggleVerse(v.verse)}
+                    className="cursor-pointer"
+                    style={{
+                      fontSize: 17,
+                      lineHeight: 1.75,
+                      display: 'inline',
+                      background: selectedVerses.has(v.verse) ? 'var(--color-accent-100)' : 'transparent',
+                      borderRadius: 6,
+                      padding: '2px 3px',
+                    }}
+                  >
+                    <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.verse}</sup>
+                    {v.text + ' '}
+                  </p>
+                ))}
+                {verseRange && (
+                  <div className="mt-2">
+                    <button type="button" className="btn btn-secondary !text-[13px]" onClick={() => setVerseRange(null)}>
+                      Show whole chapter
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

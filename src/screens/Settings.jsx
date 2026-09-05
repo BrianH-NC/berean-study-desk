@@ -119,7 +119,9 @@ export default function Settings() {
             <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
               OpenBible.info
             </a>
-            , licensed under CC BY 4.0.
+            , licensed under CC BY 4.0. The translation comparison panel (King James Version, American Standard
+            Version, World English Bible, Darby, Young's Literal Translation, Douay-Rheims) uses public-domain and
+            freely-licensed texts distributed via eBible.org, also served through the Free Use Bible API.
           </div>
         </div>
       </div>

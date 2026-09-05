@@ -55,3 +55,37 @@ export async function fetchCrossReferences(bookName, chapter) {
   if (!res.ok) throw new Error(`Cross-reference lookup failed (${res.status})`)
   return res.json()
 }
+
+// A curated slice of the API's 1,256 translations for side-by-side comparison
+// against BSB -- all public-domain or freely-licensed classics (via eBible.org),
+// chosen to span translation philosophy from hyper-literal to modern paraphrase
+// rather than listing all 1,256.
+export const COMPARISON_TRANSLATIONS = [
+  { id: 'eng_kjv', name: 'King James Version', short: 'KJV' },
+  { id: 'eng_asv', name: 'American Standard Version (1901)', short: 'ASV' },
+  { id: 'ENGWEBP', name: 'World English Bible', short: 'WEB' },
+  { id: 'eng_dby', name: 'Darby Translation', short: 'DBY' },
+  { id: 'eng_ylt', name: "Young's Literal Translation", short: 'YLT' },
+  { id: 'eng_dra', name: 'Douay-Rheims 1899', short: 'DRA' },
+]
+
+// Returns [{ number, text }, ...] for a chapter in the given translation --
+// flattened from the API's block-based content (verse blocks interspersed
+// with headings/subtitles; each verse's own content is itself a list of
+// segments, some of which are line breaks or footnote markers with no text).
+export async function fetchTranslationChapter(translationId, bookName, chapter) {
+  const code = bookCodeFor(bookName)
+  if (!code) throw new Error(`No book code for "${bookName}"`)
+  const res = await fetch(`${API_BASE}/${translationId}/${code}/${chapter}.json`)
+  if (!res.ok) throw new Error(`Translation lookup failed (${res.status})`)
+  const data = await res.json()
+  return data.chapter.content
+    .filter((block) => block.type === 'verse')
+    .map((block) => ({
+      number: block.number,
+      text: block.content
+        .map((seg) => seg.text)
+        .filter(Boolean)
+        .join(' '),
+    }))
+}

@@ -11,7 +11,14 @@ import {
   formatReference,
 } from '../lib/bsb'
 import { CANONICAL_BOOKS } from '../lib/entries'
-import { COMMENTARIES, fetchCommentaryChapter, fetchCrossReferences, bookNameForCode } from '../lib/helloao'
+import {
+  COMMENTARIES,
+  fetchCommentaryChapter,
+  fetchCrossReferences,
+  bookNameForCode,
+  COMPARISON_TRANSLATIONS,
+  fetchTranslationChapter,
+} from '../lib/helloao'
 
 const VIEW_MODES = ['Read', 'Search']
 
@@ -142,6 +149,10 @@ export default function BibleStudy() {
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
 
+  const [showCompare, setShowCompare] = useState(false)
+  const [compareIds, setCompareIds] = useState(['eng_kjv', 'ENGWEBP'])
+  const [compareData, setCompareData] = useState({}) // translationId -> { status: 'loading'|'ready'|'error', verses }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchTestament, setSearchTestament] = useState('')
   const [searchBook, setSearchBook] = useState('')
@@ -247,6 +258,36 @@ export default function BibleStudy() {
       cancelled = true
     }
   }, [showCrossRefs, book, chapter])
+
+  // Fetches every selected comparison translation for the current chapter --
+  // re-runs whenever the chapter changes or a translation is toggled on/off.
+  // BSB itself needs no fetch here since it's already the locally-loaded
+  // `verses` for this chapter.
+  useEffect(() => {
+    if (!showCompare || compareIds.length === 0) return
+    let cancelled = false
+    setCompareData((prev) => {
+      const next = { ...prev }
+      compareIds.forEach((id) => {
+        next[id] = { status: 'loading', verses: null }
+      })
+      return next
+    })
+    compareIds.forEach((id) => {
+      fetchTranslationChapter(id, book, chapter)
+        .then((verses) => {
+          if (cancelled) return
+          setCompareData((prev) => ({ ...prev, [id]: { status: 'ready', verses } }))
+        })
+        .catch(() => {
+          if (cancelled) return
+          setCompareData((prev) => ({ ...prev, [id]: { status: 'error', verses: null } }))
+        })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [showCompare, compareIds, book, chapter])
 
   useEffect(() => {
     if (viewMode !== 'Search') return
@@ -493,6 +534,9 @@ export default function BibleStudy() {
             <button type="button" className="btn btn-secondary" onClick={() => setShowCrossRefs((v) => !v)}>
               {showCrossRefs ? 'Hide cross references' : 'Cross references'}
             </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowCompare((v) => !v)}>
+              {showCompare ? 'Hide comparison' : 'Compare translations'}
+            </button>
           </div>
 
           {showCommentary && (
@@ -597,6 +641,92 @@ export default function BibleStudy() {
               ) : null}
               <div className="card-meta mt-2">
                 Cross references from OpenBible.info (CC BY 4.0), via the{' '}
+                <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+                  Free Use Bible API
+                </a>
+              </div>
+            </div>
+          )}
+
+          {showCompare && (
+            <div className="card mt-3" style={{ padding: '16px 20px' }}>
+              <div className="card-kicker mb-2">Compare Translations</div>
+              {selectedSorted.length === 0 ? (
+                <p className="text-sm" style={{ opacity: 0.6 }}>
+                  Tap a verse above to compare translations.
+                </p>
+              ) : (
+                <>
+                  <div className="flex gap-1.5 flex-wrap mb-3">
+                    {COMPARISON_TRANSLATIONS.map((t) => {
+                      const active = compareIds.includes(t.id)
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className="tag"
+                          style={{
+                            background: active ? 'var(--color-accent)' : 'var(--color-surface)',
+                            color: active ? 'var(--color-bg)' : 'var(--color-text)',
+                            border: '1px solid var(--color-divider)',
+                          }}
+                          onClick={() =>
+                            setCompareIds((prev) => (active ? prev.filter((id) => id !== t.id) : [...prev, t.id]))
+                          }
+                        >
+                          {t.short}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div>
+                      <div className="card-meta mb-1">BSB — Berean Standard Bible</div>
+                      <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                        {(verses || [])
+                          .filter((v) => selectedVerses.has(v.verse))
+                          .map((v) => `${v.verse} ${v.text}`)
+                          .join('  ')}
+                      </p>
+                    </div>
+                    {compareIds.length === 0 ? (
+                      <p className="text-sm" style={{ opacity: 0.6 }}>
+                        Pick at least one translation above.
+                      </p>
+                    ) : (
+                      compareIds.map((id) => {
+                        const meta = COMPARISON_TRANSLATIONS.find((t) => t.id === id)
+                        const entry = compareData[id]
+                        return (
+                          <div key={id}>
+                            <div className="card-meta mb-1">
+                              {meta?.short} — {meta?.name}
+                            </div>
+                            {!entry || entry.status === 'loading' ? (
+                              <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                                <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Loading…
+                              </div>
+                            ) : entry.status === 'error' ? (
+                              <p className="text-sm" style={{ opacity: 0.6 }}>
+                                Couldn't load {meta?.short}.
+                              </p>
+                            ) : (
+                              <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                                {entry.verses
+                                  .filter((v) => selectedVerses.has(v.number))
+                                  .map((v) => `${v.number} ${v.text}`)
+                                  .join('  ')}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+              <div className="card-meta mt-2">
+                Additional translations via the{' '}
                 <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                   Free Use Bible API
                 </a>

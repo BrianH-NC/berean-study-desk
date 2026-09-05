@@ -1,10 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
 
 const STATUSES = ['unread', 'in-progress', 'read']
+
+function StarRow({ rating }) {
+  return (
+    <div className="flex items-center gap-0.5 mb-3">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={14}
+          strokeWidth={2.5}
+          style={{ color: 'var(--color-accent)' }}
+          fill={n <= rating ? 'currentColor' : 'none'}
+        />
+      ))}
+    </div>
+  )
+}
 
 export default function BookDetail() {
   const { id } = useParams()
@@ -23,6 +40,15 @@ export default function BookDetail() {
     setBook(data || false)
     if (data) {
       setForm({
+        title: data.title || '',
+        author: data.author || '',
+        isbn: data.isbn || '',
+        publisher: data.publisher || '',
+        pub_date: data.pub_date || '',
+        pages: data.pages != null ? String(data.pages) : '',
+        cover_url: data.cover_url || '',
+        description: data.description || '',
+        rating: data.rating != null ? String(data.rating) : '',
         tradition: data.tradition || '',
         reading_status: data.reading_status || 'unread',
         location: data.location || '',
@@ -48,11 +74,21 @@ export default function BookDetail() {
   }
 
   async function handleSave() {
+    if (!form.title.trim()) return
     setSaving(true)
     try {
       const { error } = await supabase
         .from('books')
         .update({
+          title: form.title.trim(),
+          author: form.author.trim() || null,
+          isbn: form.isbn.trim() || null,
+          publisher: form.publisher.trim() || null,
+          pub_date: form.pub_date.trim() || null,
+          pages: form.pages.trim() ? parseInt(form.pages, 10) : null,
+          cover_url: form.cover_url.trim() || null,
+          description: form.description.trim() || null,
+          rating: form.rating ? parseInt(form.rating, 10) : null,
           tradition: form.tradition.trim() || null,
           reading_status: form.reading_status,
           location: form.location.trim() || null,
@@ -155,14 +191,67 @@ export default function BookDetail() {
         </div>
 
         <div>
-          <h2 className="!mb-1">{book.title}</h2>
-          <div className="card-meta mb-1">{book.author}</div>
-          <div className="card-meta mb-4">
-            {[book.publisher, book.pub_date, book.pages ? `${book.pages} pages` : null, book.isbn].filter(Boolean).join(' · ')}
-          </div>
+          {!editing && (
+            <>
+              <h2 className="!mb-1">{book.title}</h2>
+              <div className="card-meta mb-1">{book.author}</div>
+              <div className="card-meta mb-4">
+                {[book.publisher, book.pub_date, book.pages ? `${book.pages} pages` : null, book.isbn].filter(Boolean).join(' · ')}
+              </div>
+            </>
+          )}
 
           {editing ? (
-            <div className="card" style={{ padding: '18px 20px' }}>
+            <div className="card mb-5" style={{ padding: '18px 20px' }}>
+              <input
+                className="input !border-none !bg-transparent !text-[23px] font-heading !px-0 mb-1"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Title"
+                required
+              />
+              <input
+                className="input !border-none !bg-transparent !px-0 mb-3"
+                value={form.author}
+                onChange={(e) => setForm({ ...form, author: e.target.value })}
+                placeholder="Author"
+              />
+
+              <div className="flex gap-3 flex-wrap mb-3">
+                <div className="field" style={{ minWidth: 160 }}>
+                  <label>ISBN</label>
+                  <input className="input" value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} />
+                </div>
+                <div className="field" style={{ minWidth: 180 }}>
+                  <label>Publisher</label>
+                  <input className="input" value={form.publisher} onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
+                </div>
+                <div className="field" style={{ minWidth: 130 }}>
+                  <label>Published</label>
+                  <input className="input" value={form.pub_date} onChange={(e) => setForm({ ...form, pub_date: e.target.value })} />
+                </div>
+                <div className="field" style={{ minWidth: 90 }}>
+                  <label>Pages</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="0"
+                    value={form.pages}
+                    onChange={(e) => setForm({ ...form, pages: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="field mb-3">
+                <label>Cover image URL</label>
+                <input className="input" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://…" />
+              </div>
+
+              <div className="field mb-3">
+                <label>Summary</label>
+                <textarea className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+
               <div className="flex gap-3 flex-wrap mb-3">
                 <div className="field" style={{ minWidth: 180 }}>
                   <label>Tradition</label>
@@ -182,17 +271,30 @@ export default function BookDetail() {
                   <label>Location</label>
                   <input className="input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                 </div>
+                <div className="field" style={{ minWidth: 130 }}>
+                  <label>Rating</label>
+                  <select className="input" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })}>
+                    <option value="">No rating</option>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n} star{n === 1 ? '' : 's'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="field" style={{ minWidth: 200 }}>
                   <label>Tags</label>
                   <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
                 </div>
               </div>
+
               <div className="field mb-3">
-                <label>Notes</label>
+                <label>Your notes</label>
                 <textarea className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
+
               <div className="flex gap-2">
-                <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || !form.title.trim()}>
                   {saving ? 'Saving…' : 'Save'}
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
@@ -228,7 +330,14 @@ export default function BookDetail() {
                   </span>
                 ))}
               </div>
-              {book.notes && <p style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.notes}</p>}
+              {book.rating && <StarRow rating={book.rating} />}
+              {book.description && <p className="mb-3" style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.description}</p>}
+              {book.notes && (
+                <div className="card mb-3" style={{ padding: '14px 16px' }}>
+                  <div className="card-kicker mb-1">Your notes</div>
+                  <p style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.notes}</p>
+                </div>
+              )}
             </>
           )}
 

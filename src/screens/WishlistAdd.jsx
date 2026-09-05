@@ -26,6 +26,7 @@ export default function WishlistAdd() {
   const [author, setAuthor] = useState('')
   const [isbn, setIsbn] = useState('')
   const [coverUrl, setCoverUrl] = useState('')
+  const [extraMeta, setExtraMeta] = useState({}) // publisher/pub_date/pages/description from a lookup, carried through silently
   const [priority, setPriority] = useState('medium')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -41,6 +42,7 @@ export default function WishlistAdd() {
       setTitle(book.title)
       setAuthor(book.author)
       setCoverUrl(book.cover_url || '')
+      setExtraMeta({ publisher: book.publisher, pub_date: book.pub_date, pages: book.pages, description: book.description })
     }
   }
 
@@ -57,6 +59,7 @@ export default function WishlistAdd() {
         setIsbn(result.isbn)
         const book = await fetchBookByISBN(result.isbn)
         if (book?.cover_url) setCoverUrl(book.cover_url)
+        if (book) setExtraMeta({ publisher: book.publisher, pub_date: book.pub_date, pages: book.pages, description: book.description })
       }
       if (!result.title && !result.author) {
         setPhotoError("Couldn't make out a title or author from that photo -- try again or type it in.")
@@ -81,6 +84,10 @@ export default function WishlistAdd() {
         author: author.trim() || null,
         isbn: isbn.trim() || null,
         cover_url: coverUrl.trim() || null,
+        publisher: extraMeta.publisher || null,
+        pub_date: extraMeta.pub_date || null,
+        pages: extraMeta.pages || null,
+        description: extraMeta.description || null,
         priority,
         notes: notes.trim() || null,
       })

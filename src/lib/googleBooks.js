@@ -16,6 +16,10 @@ export async function fetchBookByISBN(isbn) {
         title: info.title || '',
         author: info.authors?.join(', ') || '',
         cover_url: info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+        publisher: info.publisher || '',
+        pub_date: info.publishedDate || '',
+        pages: info.pageCount || null,
+        description: info.description || '',
         isbn,
       }
     }
@@ -24,10 +28,13 @@ export async function fetchBookByISBN(isbn) {
   }
 
   // Open Library fills in whatever Google Books didn't have -- either the
-  // whole record if Google had no match at all, or just the cover, since
-  // Google's own thumbnail is frequently missing even when its metadata is
-  // otherwise good.
-  if (!result || !result.cover_url) {
+  // whole record if Google had no match at all, or just individual fields
+  // (most often the cover, since Google's own thumbnail is frequently
+  // missing even when its metadata is otherwise good). Open Library's
+  // per-ISBN endpoint doesn't reliably return a summary, so description
+  // stays Google-Books-only.
+  const needsBackfill = !result || !result.cover_url || !result.publisher || !result.pub_date || !result.pages
+  if (needsBackfill) {
     try {
       const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
       const data = await res.json()
@@ -39,10 +46,17 @@ export async function fetchBookByISBN(isbn) {
             title: book.title || '',
             author: book.authors?.map((a) => a.name).join(', ') || '',
             cover_url: cover,
+            publisher: book.publishers?.[0]?.name || '',
+            pub_date: book.publish_date || '',
+            pages: book.number_of_pages || null,
+            description: '',
             isbn,
           }
-        } else if (!result.cover_url && cover) {
-          result.cover_url = cover
+        } else {
+          if (!result.cover_url && cover) result.cover_url = cover
+          if (!result.publisher && book.publishers?.[0]?.name) result.publisher = book.publishers[0].name
+          if (!result.pub_date && book.publish_date) result.pub_date = book.publish_date
+          if (!result.pages && book.number_of_pages) result.pages = book.number_of_pages
         }
       }
     } catch (e) {

@@ -1,9 +1,10 @@
 // Fetch wrapper for the identify-shelf-photo Edge Function -- same calling
-// convention as theologyCheck.js / esv.js (plain fetch, anon key auth, key
-// stays server-side).
+// convention as theologyCheck.js / esv.js (plain fetch, real user session
+// auth, key stays server-side).
+
+import { authHeaders } from './functionAuth'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const FUNCTIONS_BASE = SUPABASE_URL + '/functions/v1'
 
 export function fileToBase64(file) {
@@ -20,11 +21,7 @@ export async function identifyShelfPhoto(file) {
   const image_base64 = await fileToBase64(file)
   const res = await fetch(`${FUNCTIONS_BASE}/identify-shelf-photo`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-      apikey: SUPABASE_ANON_KEY,
-    },
+    headers: await authHeaders(),
     body: JSON.stringify({ image_base64, media_type: file.type }),
   })
   const data = await res.json()

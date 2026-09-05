@@ -1,11 +1,8 @@
-// Deploy path: supabase/functions/identify-shelf-photo/index.ts
+// Deploy path: supabase/functions/identify-book-image/index.ts
 //
-// Uses the same ANTHROPIC_API_KEY secret as theology-check and
-// identify-book-image -- no new secret needed.
-//
-// Distinct from identify-book-image: that one identifies a single book from
-// a cover/listing photo and returns one object. This one identifies as many
-// book spines as it can read in a shelf photo and returns an array.
+// Deploy via dashboard: Edge Functions > Deploy a new function > Via Editor,
+// name it "identify-book-image", paste this in.
+// Uses the same ANTHROPIC_API_KEY secret as the theology-check function.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -69,7 +66,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 2000,
+        max_tokens: 300,
         messages: [
           {
             role: "user",
@@ -80,13 +77,14 @@ Deno.serve(async (req) => {
               },
               {
                 type: "text",
-                text: `This image shows a bookshelf with multiple books. Identify as many individual books as you can from their spines -- title and author for each. Spines may be angled, partially obscured, in a foreign language, or hard to read; give your best guess with an honest confidence level for each, and skip any you genuinely cannot make out at all rather than guessing wildly.
+                text: `This image shows a book, likely a cover, a store listing, or a search result page. Identify the book's title and author as precisely as you can. If an ISBN is visible anywhere in the image, include it.
 
 Respond with ONLY a JSON object, no other text, no markdown fences, in exactly this shape:
 {
-  "books": [
-    { "title": "...", "author": "best guess or null", "confidence": "High" | "Medium" | "Low" }
-  ]
+  "title": "best guess at the title, or null if you cannot tell",
+  "author": "best guess at the author, or null if you cannot tell",
+  "isbn": "ISBN if visible in the image, otherwise null",
+  "confidence": "High" | "Medium" | "Low"
 }`,
               },
             ],

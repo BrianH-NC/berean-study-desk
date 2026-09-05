@@ -4,18 +4,15 @@
 // two functions are the app's only Anthropic-backed calls, and both keep the
 // API key server-side.
 
+import { authHeaders } from './functionAuth'
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const FUNCTIONS_BASE = SUPABASE_URL + '/functions/v1'
 
 async function callFunction(name, body) {
   const res = await fetch(`${FUNCTIONS_BASE}/${name}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-      apikey: SUPABASE_ANON_KEY,
-    },
+    headers: await authHeaders(),
     body: JSON.stringify(body),
   })
   const data = await res.json()

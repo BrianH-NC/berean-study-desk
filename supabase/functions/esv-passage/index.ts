@@ -73,6 +73,11 @@ Deno.serve(async (req) => {
       "include-headings": "false",
       "include-footnotes": "false",
       "include-verse-numbers": "true",
+      // Without this, the passage's very first verse is left unnumbered
+      // (Crossway assumes it's obvious from context) -- fine for a single
+      // citation, but the Bible Study reader parses these numbers to split
+      // a whole chapter into per-verse entries, so every verse needs one.
+      "include-first-verse-numbers": "true",
       "include-short-copyright": "false",
       "include-passage-references": "false",
     });

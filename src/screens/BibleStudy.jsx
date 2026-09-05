@@ -19,16 +19,31 @@ import {
   COMPARISON_TRANSLATIONS,
   fetchTranslationChapter,
 } from '../lib/helloao'
-import { fetchEsvPassage } from '../lib/esv'
+import { fetchEsvChapterVerses } from '../lib/esv'
 
 const VIEW_MODES = ['Read', 'Search']
 
-// ESV is licensed (unlike the rest of COMPARISON_TRANSLATIONS), so it's fetched
-// live per-selection through the app's own esv-passage Edge Function rather
-// than the Free Use Bible API -- listed separately since its fetch shape
-// (one passage of text) differs from the others (a whole chapter of verses).
+// Every translation the reading pane and the comparison panel can show, in
+// one list so both stay in sync. BSB is the app's own local copy; ESV is
+// fetched live through the app's esv-passage Edge Function (it's licensed,
+// unlike the rest); everything else comes from the Free Use Bible API.
+const BSB_OPTION = { id: 'BSB', name: 'Berean Standard Bible', short: 'BSB' }
 const ESV_OPTION = { id: 'ESV', name: 'English Standard Version', short: 'ESV' }
-const COMPARE_OPTIONS = [ESV_OPTION, ...COMPARISON_TRANSLATIONS]
+const ALL_TRANSLATIONS = [BSB_OPTION, ESV_OPTION, ...COMPARISON_TRANSLATIONS]
+
+// Normalizes every translation source to the same [{ number, text }, ...]
+// shape for one chapter, so the reading pane and comparison panel can treat
+// them identically regardless of where the text actually comes from.
+async function fetchChapterVersesFor(translationId, bookName, chapterNum) {
+  if (translationId === 'BSB') {
+    const rows = await fetchChapter(bookName, chapterNum)
+    return rows.map((r) => ({ number: r.verse, text: r.text }))
+  }
+  if (translationId === 'ESV') {
+    return fetchEsvChapterVerses(bookName, chapterNum)
+  }
+  return fetchTranslationChapter(translationId, bookName, chapterNum)
+}
 
 function highlightTerms(text, query) {
   const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
@@ -138,6 +153,7 @@ export default function BibleStudy() {
   const [refError, setRefError] = useState('')
   const [book, setBook] = useState('John')
   const [chapter, setChapter] = useState(3)
+  const [readingTranslation, setReadingTranslation] = useState('BSB')
   const [verses, setVerses] = useState(null) // null = loading
   const [chapterCount, setChapterCount] = useState(null)
   const [selectedVerses, setSelectedVerses] = useState(new Set())
@@ -186,20 +202,34 @@ export default function BibleStudy() {
     }
   }, [searchParams])
 
-  // Fetches whenever book/chapter changes. Resets the verse-range scope to
-  // "whole chapter" up front -- a pending range (set by goTo, below) will
-  // re-narrow it once this load finishes, in the effect after this one.
+  // Chapter counts (for the Prev/Next bounds) come from BSB's own versification
+  // regardless of the active reading translation -- chapter divisions are the
+  // same standard 66-book canon across all of them, so one lookup per book
+  // (not per chapter, and not re-fetched on every translation switch) is enough.
+  useEffect(() => {
+    let cancelled = false
+    fetchChapterCount(book).then((count) => {
+      if (!cancelled) setChapterCount(count)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [book])
+
+  // Fetches whenever book/chapter/reading-translation changes. Resets the
+  // verse-range scope to "whole chapter" up front -- a pending range (set by
+  // goTo, below) will re-narrow it once this load finishes, in the effect
+  // after this one.
   useEffect(() => {
     let cancelled = false
     setVerses(null)
     setSelectedVerses(new Set())
     setVerseRange(null)
     setRefError('')
-    Promise.all([fetchChapter(book, chapter), fetchChapterCount(book)])
-      .then(([rows, count]) => {
+    fetchChapterVersesFor(readingTranslation, book, chapter)
+      .then((rows) => {
         if (cancelled) return
         setVerses(rows)
-        setChapterCount(count)
       })
       .catch((err) => {
         if (cancelled) return
@@ -209,7 +239,7 @@ export default function BibleStudy() {
     return () => {
       cancelled = true
     }
-  }, [book, chapter])
+  }, [book, chapter, readingTranslation])
 
   // Applies a pending verse-range request as soon as the chapter it targets
   // has actually loaded. Separate from the fetch effect above so that
@@ -267,13 +297,20 @@ export default function BibleStudy() {
     }
   }, [showCrossRefs, book, chapter])
 
-  // Fetches every selected Free Use Bible API translation for the current
-  // chapter -- re-runs whenever the chapter changes or a translation is
-  // toggled on/off. BSB itself needs no fetch here since it's already the
-  // locally-loaded `verses` for this chapter. ESV is handled separately
-  // below (it's fetched per-selection, not per-chapter).
+  // The reading pane already shows `readingTranslation` as the anchor text --
+  // drop it from the comparison list if the user switches the reader to a
+  // translation that's also toggled on there, so it doesn't sit active with
+  // nothing rendered for it.
   useEffect(() => {
-    const ids = compareIds.filter((id) => id !== 'ESV')
+    setCompareIds((prev) => prev.filter((id) => id !== readingTranslation))
+  }, [readingTranslation])
+
+  // Fetches every selected comparison translation for the current chapter --
+  // re-runs whenever the chapter, reading translation, or the toggled set
+  // changes. Uses the same normalized fetch as the reading pane, so BSB/ESV/
+  // Free Use Bible API translations are all handled uniformly here.
+  useEffect(() => {
+    const ids = compareIds.filter((id) => id !== readingTranslation)
     if (!showCompare || ids.length === 0) return
     let cancelled = false
     setCompareData((prev) => {
@@ -284,44 +321,20 @@ export default function BibleStudy() {
       return next
     })
     ids.forEach((id) => {
-      fetchTranslationChapter(id, book, chapter)
+      fetchChapterVersesFor(id, book, chapter)
         .then((verses) => {
           if (cancelled) return
           setCompareData((prev) => ({ ...prev, [id]: { status: 'ready', verses } }))
         })
-        .catch(() => {
+        .catch((err) => {
           if (cancelled) return
-          setCompareData((prev) => ({ ...prev, [id]: { status: 'error', verses: null } }))
+          setCompareData((prev) => ({ ...prev, [id]: { status: 'error', verses: null, message: err.message } }))
         })
     })
     return () => {
       cancelled = true
     }
-  }, [showCompare, compareIds, book, chapter])
-
-  // ESV is fetched as one passage of text scoped to the exact verse selection
-  // (via the same esv-passage Edge Function used elsewhere), so it re-runs on
-  // selection changes rather than only on chapter changes.
-  useEffect(() => {
-    if (!showCompare || !compareIds.includes('ESV')) return
-    const sorted = [...selectedVerses].sort((a, b) => a - b)
-    if (sorted.length === 0) return
-    const reference = formatReference(book, chapter, sorted[0], sorted[sorted.length - 1])
-    let cancelled = false
-    setCompareData((prev) => ({ ...prev, ESV: { status: 'loading', text: null } }))
-    fetchEsvPassage(reference)
-      .then((result) => {
-        if (cancelled) return
-        setCompareData((prev) => ({ ...prev, ESV: { status: 'ready', text: result.text } }))
-      })
-      .catch((err) => {
-        if (cancelled) return
-        setCompareData((prev) => ({ ...prev, ESV: { status: 'error', text: null, message: err.message } }))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [showCompare, compareIds, selectedVerses, book, chapter])
+  }, [showCompare, compareIds, book, chapter, readingTranslation])
 
   useEffect(() => {
     if (viewMode !== 'Search') return
@@ -397,7 +410,7 @@ export default function BibleStudy() {
 
   const displayedVerses = useMemo(() => {
     if (!verses || !verseRange) return verses
-    return verses.filter((v) => v.verse >= verseRange.start && v.verse <= verseRange.end)
+    return verses.filter((v) => v.number >= verseRange.start && v.number <= verseRange.end)
   }, [verses, verseRange])
 
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
@@ -415,7 +428,7 @@ export default function BibleStudy() {
     ? formatReference(book, chapter, selectedSorted[0], selectedSorted[selectedSorted.length - 1])
     : ''
   const selectionText = useMemo(
-    () => (verses || []).filter((v) => selectedVerses.has(v.verse)).map((v) => v.text).join(' '),
+    () => (verses || []).filter((v) => selectedVerses.has(v.number)).map((v) => v.text).join(' '),
     [verses, selectedVerses]
   )
 
@@ -430,11 +443,14 @@ export default function BibleStudy() {
     navigate('/notebook/new', { state: { ref: selectionRef, body: `"${selectionText}"` } })
   }
 
+  const readingMeta = ALL_TRANSLATIONS.find((t) => t.id === readingTranslation) || BSB_OPTION
+  const sidePanelOpen = showCommentary || showCompare
+
   return (
-    <div className="max-w-[900px] mx-auto page">
+    <div className="max-w-[1180px] mx-auto page">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
-          <div className="card-kicker mb-1">Berean Standard Bible</div>
+          <div className="card-kicker mb-1">{readingMeta.name}</div>
           <h2 className="!mb-0">Bible Study</h2>
         </div>
         <div className="seg">
@@ -493,136 +509,248 @@ export default function BibleStudy() {
             </button>
           </div>
 
-          <div className="card mb-3" style={{ padding: '22px 26px' }}>
-            {verses === null ? (
-              <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                Loading…
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <select
+              className="input"
+              style={{ width: 'auto' }}
+              value={readingTranslation}
+              onChange={(e) => setReadingTranslation(e.target.value)}
+              aria-label="Reading translation"
+            >
+              {ALL_TRANSLATIONS.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2 flex-wrap ml-auto">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowCommentary((v) => !v)}>
+                {showCommentary ? 'Hide commentary' : 'Commentary'}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowCrossRefs((v) => !v)}>
+                {showCrossRefs ? 'Hide cross references' : 'Cross references'}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowCompare((v) => !v)}>
+                {showCompare ? 'Hide comparison' : 'Compare translations'}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-4 items-start flex-wrap lg:flex-nowrap">
+            <div className={sidePanelOpen ? 'flex-1 min-w-[280px]' : 'w-full max-w-[720px] mx-auto'}>
+              <div className="card mb-3" style={{ padding: '22px 26px' }}>
+                {verses === null ? (
+                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                    Loading…
+                  </div>
+                ) : verses.length === 0 ? (
+                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                    No text found for that reference.
+                  </div>
+                ) : displayedVerses.length === 0 ? (
+                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                    That verse isn't in this chapter.
+                  </div>
+                ) : (
+                  <>
+                    {displayedVerses.map((v) => (
+                      <p
+                        key={v.number}
+                        onClick={() => toggleVerse(v.number)}
+                        className="cursor-pointer"
+                        style={{
+                          fontSize: 17,
+                          lineHeight: 1.75,
+                          display: 'inline',
+                          background: selectedVerses.has(v.number) ? 'var(--color-accent-100)' : 'transparent',
+                          borderRadius: 6,
+                          padding: '2px 3px',
+                        }}
+                      >
+                        <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.number}</sup>
+                        {v.text + ' '}
+                      </p>
+                    ))}
+                    {verseRange && (
+                      <div className="mt-2">
+                        <button type="button" className="btn btn-secondary !text-[13px]" onClick={() => setVerseRange(null)}>
+                          Show whole chapter
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            ) : verses.length === 0 ? (
-              <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                No text found for that reference.
-              </div>
-            ) : displayedVerses.length === 0 ? (
-              <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                That verse isn't in this chapter.
-              </div>
-            ) : (
-              <>
-                {displayedVerses.map((v) => (
-                  <p
-                    key={v.id}
-                    onClick={() => toggleVerse(v.verse)}
-                    className="cursor-pointer"
-                    style={{
-                      fontSize: 17,
-                      lineHeight: 1.75,
-                      display: 'inline',
-                      background: selectedVerses.has(v.verse) ? 'var(--color-accent-100)' : 'transparent',
-                      borderRadius: 6,
-                      padding: '2px 3px',
-                    }}
-                  >
-                    <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.verse}</sup>
-                    {v.text + ' '}
-                  </p>
-                ))}
-                {verseRange && (
-                  <div className="mt-2">
-                    <button type="button" className="btn btn-secondary !text-[13px]" onClick={() => setVerseRange(null)}>
-                      Show whole chapter
+
+              {selectedSorted.length > 0 && (
+                <div className="card" style={{ padding: '14px 18px' }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="card-title !text-[14px]">{selectionRef}</span>
+                    <button type="button" className="btn btn-secondary" onClick={() => copy('text', selectionText)}>
+                      <Copy size={13} strokeWidth={2.75} />
+                      Copy text
                     </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => copy('ref', selectionRef)}>
+                      <Copy size={13} strokeWidth={2.75} />
+                      Copy reference
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={handleCreateEntry}>
+                      <NotebookPen size={13} strokeWidth={2.75} />
+                      Create Notebook Entry
+                    </button>
+                    <button type="button" className="btn btn-ghost" onClick={() => setSelectedVerses(new Set())}>
+                      Clear
+                    </button>
+                    {copied && <span className="card-meta">Copied!</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {sidePanelOpen && (
+              <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 380 }}>
+                {showCommentary && (
+                  <div className="card" style={{ padding: '16px 20px' }}>
+                    <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                      <div className="card-kicker">Commentary</div>
+                      <select className="input" style={{ width: 'auto' }} value={commentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
+                        {COMMENTARIES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {commentaryLoading ? (
+                      <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                        <Loader2 size={14} strokeWidth={2.75} className="animate-spin" /> Loading commentary…
+                      </div>
+                    ) : commentaryData === false ? (
+                      <p className="text-sm" style={{ opacity: 0.6 }}>
+                        Couldn't load commentary for this chapter.
+                      </p>
+                    ) : commentaryData ? (
+                      <div className="flex flex-col gap-3" style={{ maxHeight: 420, overflowY: 'auto' }}>
+                        {commentaryData.chapter.content.map((block, i) => {
+                          const nextNumber = commentaryData.chapter.content[i + 1]?.number
+                          const rangeLabel = nextNumber && nextNumber > block.number + 1 ? `${block.number}–${nextNumber - 1}` : block.number
+                          const isActive =
+                            selectedSorted.length > 0 &&
+                            selectedSorted[0] >= block.number &&
+                            (nextNumber == null || selectedSorted[0] < nextNumber)
+                          return (
+                            <div
+                              key={i}
+                              ref={isActive ? activeCommentaryBlockRef : null}
+                              style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}
+                            >
+                              <div className="card-meta mb-1">Verse {rangeLabel}</div>
+                              <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content.join('\n\n')}</p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+                    <div className="card-meta mt-2">
+                      {commentaryData?.commentary?.name || 'Commentary'} — via the{' '}
+                      <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+                        Free Use Bible API
+                      </a>
+                    </div>
                   </div>
                 )}
-              </>
+
+                {showCompare && (
+                  <div className="card" style={{ padding: '16px 20px' }}>
+                    <div className="card-kicker mb-2">Compare Translations</div>
+                    {selectedSorted.length === 0 ? (
+                      <p className="text-sm" style={{ opacity: 0.6 }}>
+                        Tap a verse above to compare translations.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="flex gap-1.5 flex-wrap mb-3">
+                          {ALL_TRANSLATIONS.filter((t) => t.id !== readingTranslation).map((t) => {
+                            const active = compareIds.includes(t.id)
+                            return (
+                              <button
+                                key={t.id}
+                                type="button"
+                                className="tag font-body font-medium"
+                                style={{
+                                  background: active ? 'var(--color-accent)' : 'var(--color-surface)',
+                                  color: active ? 'var(--color-bg)' : 'var(--color-text)',
+                                  border: '1px solid var(--color-divider)',
+                                }}
+                                onClick={() =>
+                                  setCompareIds((prev) => (active ? prev.filter((id) => id !== t.id) : [...prev, t.id]))
+                                }
+                              >
+                                {t.short}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <div className="card-meta mb-1">
+                              {readingMeta.short} — {readingMeta.name}
+                            </div>
+                            <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                              {(verses || [])
+                                .filter((v) => selectedVerses.has(v.number))
+                                .map((v) => `${v.number} ${v.text}`)
+                                .join('  ')}
+                            </p>
+                          </div>
+                          {compareIds.length === 0 ? (
+                            <p className="text-sm" style={{ opacity: 0.6 }}>
+                              Pick at least one translation above.
+                            </p>
+                          ) : (
+                            compareIds.map((id) => {
+                              const meta = ALL_TRANSLATIONS.find((t) => t.id === id)
+                              const entry = compareData[id]
+                              return (
+                                <div key={id}>
+                                  <div className="card-meta mb-1">
+                                    {meta?.short} — {meta?.name}
+                                  </div>
+                                  {!entry || entry.status === 'loading' ? (
+                                    <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                                      <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Loading…
+                                    </div>
+                                  ) : entry.status === 'error' ? (
+                                    <p className="text-sm" style={{ opacity: 0.6 }}>
+                                      Couldn't load {meta?.short}
+                                      {entry.message ? ` — ${entry.message}` : '.'}
+                                    </p>
+                                  ) : (
+                                    <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                                      {entry.verses
+                                        .filter((v) => selectedVerses.has(v.number))
+                                        .map((v) => `${v.number} ${v.text}`)
+                                        .join('  ')}
+                                    </p>
+                                  )}
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      </>
+                    )}
+                    <div className="card-meta mt-2">
+                      ESV® via Crossway; other translations via the{' '}
+                      <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+                        Free Use Bible API
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
-          {selectedSorted.length > 0 && (
-            <div className="card" style={{ padding: '14px 18px' }}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="card-title !text-[14px]">{selectionRef}</span>
-                <button type="button" className="btn btn-secondary" onClick={() => copy('text', selectionText)}>
-                  <Copy size={13} strokeWidth={2.75} />
-                  Copy text
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => copy('ref', selectionRef)}>
-                  <Copy size={13} strokeWidth={2.75} />
-                  Copy reference
-                </button>
-                <button type="button" className="btn btn-primary" onClick={handleCreateEntry}>
-                  <NotebookPen size={13} strokeWidth={2.75} />
-                  Create Notebook Entry
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => setSelectedVerses(new Set())}>
-                  Clear
-                </button>
-                {copied && <span className="card-meta">Copied!</span>}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2 mt-3 flex-wrap">
-            <button type="button" className="btn btn-secondary" onClick={() => setShowCommentary((v) => !v)}>
-              {showCommentary ? 'Hide commentary' : 'Commentary'}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowCrossRefs((v) => !v)}>
-              {showCrossRefs ? 'Hide cross references' : 'Cross references'}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowCompare((v) => !v)}>
-              {showCompare ? 'Hide comparison' : 'Compare translations'}
-            </button>
-          </div>
-
-          {showCommentary && (
-            <div className="card mt-3" style={{ padding: '16px 20px' }}>
-              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                <div className="card-kicker">Commentary</div>
-                <select className="input" style={{ width: 'auto' }} value={commentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
-                  {COMMENTARIES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {commentaryLoading ? (
-                <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
-                  <Loader2 size={14} strokeWidth={2.75} className="animate-spin" /> Loading commentary…
-                </div>
-              ) : commentaryData === false ? (
-                <p className="text-sm" style={{ opacity: 0.6 }}>
-                  Couldn't load commentary for this chapter.
-                </p>
-              ) : commentaryData ? (
-                <div className="flex flex-col gap-3" style={{ maxHeight: 420, overflowY: 'auto' }}>
-                  {commentaryData.chapter.content.map((block, i) => {
-                    const nextNumber = commentaryData.chapter.content[i + 1]?.number
-                    const rangeLabel = nextNumber && nextNumber > block.number + 1 ? `${block.number}–${nextNumber - 1}` : block.number
-                    const isActive =
-                      selectedSorted.length > 0 &&
-                      selectedSorted[0] >= block.number &&
-                      (nextNumber == null || selectedSorted[0] < nextNumber)
-                    return (
-                      <div
-                        key={i}
-                        ref={isActive ? activeCommentaryBlockRef : null}
-                        style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}
-                      >
-                        <div className="card-meta mb-1">Verse {rangeLabel}</div>
-                        <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content.join('\n\n')}</p>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null}
-              <div className="card-meta mt-2">
-                {commentaryData?.commentary?.name || 'Commentary'} — via the{' '}
-                <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
-                  Free Use Bible API
-                </a>
-              </div>
-            </div>
-          )}
 
           {showCrossRefs && (
             <div className="card mt-3" style={{ padding: '16px 20px' }}>
@@ -675,95 +803,6 @@ export default function BibleStudy() {
               ) : null}
               <div className="card-meta mt-2">
                 Cross references from OpenBible.info (CC BY 4.0), via the{' '}
-                <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
-                  Free Use Bible API
-                </a>
-              </div>
-            </div>
-          )}
-
-          {showCompare && (
-            <div className="card mt-3" style={{ padding: '16px 20px' }}>
-              <div className="card-kicker mb-2">Compare Translations</div>
-              {selectedSorted.length === 0 ? (
-                <p className="text-sm" style={{ opacity: 0.6 }}>
-                  Tap a verse above to compare translations.
-                </p>
-              ) : (
-                <>
-                  <div className="flex gap-1.5 flex-wrap mb-3">
-                    {COMPARE_OPTIONS.map((t) => {
-                      const active = compareIds.includes(t.id)
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          className="tag"
-                          style={{
-                            background: active ? 'var(--color-accent)' : 'var(--color-surface)',
-                            color: active ? 'var(--color-bg)' : 'var(--color-text)',
-                            border: '1px solid var(--color-divider)',
-                          }}
-                          onClick={() =>
-                            setCompareIds((prev) => (active ? prev.filter((id) => id !== t.id) : [...prev, t.id]))
-                          }
-                        >
-                          {t.short}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <div className="card-meta mb-1">BSB — Berean Standard Bible</div>
-                      <p style={{ fontSize: 14, lineHeight: 1.6 }}>
-                        {(verses || [])
-                          .filter((v) => selectedVerses.has(v.verse))
-                          .map((v) => `${v.verse} ${v.text}`)
-                          .join('  ')}
-                      </p>
-                    </div>
-                    {compareIds.length === 0 ? (
-                      <p className="text-sm" style={{ opacity: 0.6 }}>
-                        Pick at least one translation above.
-                      </p>
-                    ) : (
-                      compareIds.map((id) => {
-                        const meta = COMPARE_OPTIONS.find((t) => t.id === id)
-                        const entry = compareData[id]
-                        return (
-                          <div key={id}>
-                            <div className="card-meta mb-1">
-                              {meta?.short} — {meta?.name}
-                            </div>
-                            {!entry || entry.status === 'loading' ? (
-                              <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
-                                <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Loading…
-                              </div>
-                            ) : entry.status === 'error' ? (
-                              <p className="text-sm" style={{ opacity: 0.6 }}>
-                                Couldn't load {meta?.short}
-                                {entry.message ? ` — ${entry.message}` : '.'}
-                              </p>
-                            ) : id === 'ESV' ? (
-                              <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.text}</p>
-                            ) : (
-                              <p style={{ fontSize: 14, lineHeight: 1.6 }}>
-                                {entry.verses
-                                  .filter((v) => selectedVerses.has(v.number))
-                                  .map((v) => `${v.number} ${v.text}`)
-                                  .join('  ')}
-                              </p>
-                            )}
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </>
-              )}
-              <div className="card-meta mt-2">
-                ESV® via Crossway; other translations via the{' '}
                 <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                   Free Use Bible API
                 </a>

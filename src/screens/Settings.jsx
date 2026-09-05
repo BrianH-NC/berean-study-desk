@@ -100,9 +100,10 @@ export default function Settings() {
         <div className="card">
           <div className="card-title">Licenses</div>
           <div className="card-body mb-2">
-            Scripture quotations marked ESV — including in the Bible Study translation comparison panel — are from
-            the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway, a publishing
-            ministry of Good News Publishers. Used by permission. All rights reserved.
+            Scripture quotations marked ESV — including wherever ESV is selected as the Bible Study reading
+            translation or shown in the comparison panel — are from the ESV® Bible (The Holy Bible, English Standard
+            Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by
+            permission. All rights reserved.
           </div>
           <div className="card-body mb-2">
             Scripture quotations marked BSB are from The Holy Bible, Berean Standard Bible (BSB), which was placed
@@ -119,10 +120,10 @@ export default function Settings() {
             <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
               OpenBible.info
             </a>
-            , licensed under CC BY 4.0. The translation comparison panel's other options (King James Version,
-            American Standard Version, World English Bible, Darby, Young's Literal Translation, Douay-Rheims) use
-            public-domain and freely-licensed texts distributed via eBible.org, also served through the Free Use
-            Bible API.
+            , licensed under CC BY 4.0. The reading pane's and comparison panel's other translation options (King
+            James Version, American Standard Version, World English Bible, Darby, Young's Literal Translation,
+            Douay-Rheims) use public-domain and freely-licensed texts distributed via eBible.org, also served through
+            the Free Use Bible API.
           </div>
         </div>
       </div>

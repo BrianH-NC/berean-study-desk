@@ -69,6 +69,13 @@ export const COMPARISON_TRANSLATIONS = [
   { id: 'eng_dra', name: 'Douay-Rheims 1899', short: 'DRA' },
 ]
 
+// A verse's content segment is either a plain string, or an object whose
+// `.text` holds the words (other object shapes -- {lineBreak: true},
+// {noteId: N} -- carry no text and are skipped).
+function segmentText(seg) {
+  return typeof seg === 'string' ? seg : seg.text
+}
+
 // Returns [{ number, text }, ...] for a chapter in the given translation --
 // flattened from the API's block-based content (verse blocks interspersed
 // with headings/subtitles; each verse's own content is itself a list of
@@ -83,9 +90,6 @@ export async function fetchTranslationChapter(translationId, bookName, chapter) 
     .filter((block) => block.type === 'verse')
     .map((block) => ({
       number: block.number,
-      text: block.content
-        .map((seg) => seg.text)
-        .filter(Boolean)
-        .join(' '),
+      text: block.content.map(segmentText).filter(Boolean).join(' '),
     }))
 }

@@ -104,10 +104,22 @@ export default function Settings() {
             copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All
             rights reserved.
           </div>
-          <div className="card-body">
+          <div className="card-body mb-2">
             Scripture quotations marked BSB are from The Holy Bible, Berean Standard Bible (BSB), which was placed
             into the public domain on April 30, 2023 by the Berean Bible Translation Committee. No permission is
             required for its use.
+          </div>
+          <div className="card-body">
+            Bible commentary and cross-reference data in Bible Study is provided live by the{' '}
+            <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+              Free Use Bible API
+            </a>{' '}
+            (AO Lab). Commentaries (Matthew Henry, John Calvin, John Gill, Adam Clarke, Jamieson-Fausset-Brown,
+            Keil-Delitzsch, Tyndale) are classic public-domain works. Cross-reference data is from{' '}
+            <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
+              OpenBible.info
+            </a>
+            , licensed under CC BY 4.0.
           </div>
         </div>
       </div>

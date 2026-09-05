@@ -11,6 +11,7 @@ import {
   formatReference,
 } from '../lib/bsb'
 import { CANONICAL_BOOKS } from '../lib/entries'
+import { COMMENTARIES, fetchCommentaryChapter, fetchCrossReferences, bookNameForCode } from '../lib/helloao'
 
 const VIEW_MODES = ['Read', 'Search']
 
@@ -129,6 +130,15 @@ export default function BibleStudy() {
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
 
+  const [showCommentary, setShowCommentary] = useState(false)
+  const [commentaryId, setCommentaryId] = useState('matthew-henry')
+  const [commentaryData, setCommentaryData] = useState(null) // null = not loaded, false = error
+  const [commentaryLoading, setCommentaryLoading] = useState(false)
+
+  const [showCrossRefs, setShowCrossRefs] = useState(false)
+  const [crossRefData, setCrossRefData] = useState(null)
+  const [crossRefLoading, setCrossRefLoading] = useState(false)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [searchTestament, setSearchTestament] = useState('')
   const [searchBook, setSearchBook] = useState('')
@@ -176,6 +186,48 @@ export default function BibleStudy() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [book, chapter])
+
+  // Commentary and cross references are third-party live calls (bible.helloao.org),
+  // only made when the user actually opens that panel -- not on every chapter load.
+  useEffect(() => {
+    if (!showCommentary) return
+    let cancelled = false
+    setCommentaryData(null)
+    setCommentaryLoading(true)
+    fetchCommentaryChapter(commentaryId, book, chapter)
+      .then((data) => {
+        if (!cancelled) setCommentaryData(data)
+      })
+      .catch(() => {
+        if (!cancelled) setCommentaryData(false)
+      })
+      .finally(() => {
+        if (!cancelled) setCommentaryLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showCommentary, commentaryId, book, chapter])
+
+  useEffect(() => {
+    if (!showCrossRefs) return
+    let cancelled = false
+    setCrossRefData(null)
+    setCrossRefLoading(true)
+    fetchCrossReferences(book, chapter)
+      .then((data) => {
+        if (!cancelled) setCrossRefData(data)
+      })
+      .catch(() => {
+        if (!cancelled) setCrossRefData(false)
+      })
+      .finally(() => {
+        if (!cancelled) setCrossRefLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [showCrossRefs, book, chapter])
 
   useEffect(() => {
     if (viewMode !== 'Search') return
@@ -368,6 +420,120 @@ export default function BibleStudy() {
                   Clear
                 </button>
                 {copied && <span className="card-meta">Copied!</span>}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <button type="button" className="btn btn-secondary" onClick={() => setShowCommentary((v) => !v)}>
+              {showCommentary ? 'Hide commentary' : 'Commentary'}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowCrossRefs((v) => !v)}>
+              {showCrossRefs ? 'Hide cross references' : 'Cross references'}
+            </button>
+          </div>
+
+          {showCommentary && (
+            <div className="card mt-3" style={{ padding: '16px 20px' }}>
+              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                <div className="card-kicker">Commentary</div>
+                <select className="input" style={{ width: 'auto' }} value={commentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
+                  {COMMENTARIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {commentaryLoading ? (
+                <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                  <Loader2 size={14} strokeWidth={2.75} className="animate-spin" /> Loading commentary…
+                </div>
+              ) : commentaryData === false ? (
+                <p className="text-sm" style={{ opacity: 0.6 }}>
+                  Couldn't load commentary for this chapter.
+                </p>
+              ) : commentaryData ? (
+                <div className="flex flex-col gap-3" style={{ maxHeight: 420, overflowY: 'auto' }}>
+                  {commentaryData.chapter.content.map((block, i) => {
+                    const nextNumber = commentaryData.chapter.content[i + 1]?.number
+                    const rangeLabel = nextNumber && nextNumber > block.number + 1 ? `${block.number}–${nextNumber - 1}` : block.number
+                    const isActive =
+                      selectedSorted.length > 0 &&
+                      selectedSorted[0] >= block.number &&
+                      (nextNumber == null || selectedSorted[0] < nextNumber)
+                    return (
+                      <div key={i} style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}>
+                        <div className="card-meta mb-1">Verse {rangeLabel}</div>
+                        <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content.join('\n\n')}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+              <div className="card-meta mt-2">
+                {commentaryData?.commentary?.name || 'Commentary'} — via the{' '}
+                <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+                  Free Use Bible API
+                </a>
+              </div>
+            </div>
+          )}
+
+          {showCrossRefs && (
+            <div className="card mt-3" style={{ padding: '16px 20px' }}>
+              <div className="card-kicker mb-2">Cross References</div>
+              {selectedSorted.length === 0 ? (
+                <p className="text-sm" style={{ opacity: 0.6 }}>
+                  Tap a verse above to see related verses.
+                </p>
+              ) : crossRefLoading ? (
+                <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                  <Loader2 size={14} strokeWidth={2.75} className="animate-spin" /> Loading cross references…
+                </div>
+              ) : crossRefData === false ? (
+                <p className="text-sm" style={{ opacity: 0.6 }}>
+                  Couldn't load cross references for this chapter.
+                </p>
+              ) : crossRefData ? (
+                <div className="flex flex-col gap-3">
+                  {selectedSorted.map((vNum) => {
+                    const entry = crossRefData.chapter.content.find((c) => c.verse === vNum)
+                    const refs = (entry?.references || []).slice(0, 6)
+                    return (
+                      <div key={vNum}>
+                        <div className="card-meta mb-1">
+                          {book} {chapter}:{vNum}
+                        </div>
+                        {refs.length === 0 ? (
+                          <p className="text-sm" style={{ opacity: 0.5 }}>
+                            No cross references found.
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {refs.map((r, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                className="tag tag-neutral"
+                                onClick={() => goTo(bookNameForCode(r.book), r.chapter, r.verse)}
+                              >
+                                {bookNameForCode(r.book)} {r.chapter}:{r.verse}
+                                {r.endVerse ? `-${r.endVerse}` : ''}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+              <div className="card-meta mt-2">
+                Cross references from OpenBible.info (CC BY 4.0), via the{' '}
+                <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
+                  Free Use Bible API
+                </a>
               </div>
             </div>
           )}

@@ -7,11 +7,75 @@ import { verdictClass, verdictIcon } from '../lib/verdict'
 import { fetchBookByISBN, searchBookCover } from '../lib/googleBooks'
 
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
-const SORTS = [
-  { value: 'title', label: 'Title A–Z' },
-  { value: 'author', label: 'Author A–Z' },
-  { value: 'recent', label: 'Recently added' },
-]
+const VIEW_MODES = ['Category', 'Title', 'Author', 'Recent']
+
+function BookTable({ books, checksByIsbn, navigate }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="table w-full" style={{ minWidth: 640 }}>
+        <thead>
+          <tr>
+            <th style={{ width: '46%' }}>Book</th>
+            <th style={{ width: '18%' }}>Tradition</th>
+            <th style={{ width: '18%' }}>Verdict</th>
+            <th style={{ width: '18%' }}>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {books.map((b) => {
+            const verdict = b.isbn ? checksByIsbn[b.isbn] : null
+            const VerdictIcon = verdictIcon(verdict)
+            return (
+              <tr key={b.id} className="cursor-pointer" onClick={() => navigate(`/shelf/${b.id}`)}>
+                <td>
+                  <div className="flex items-center gap-2.5">
+                    <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 30, height: 45 }}>
+                      {b.cover_url && <img src={b.cover_url} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                    <div>
+                      <div className="card-title !text-[14px]">{b.title}</div>
+                      <div className="card-meta">{b.author}</div>
+                      {b.tags?.length > 0 && (
+                        <div className="flex gap-1 flex-wrap mt-1">
+                          {b.tags.map((t) => (
+                            <span key={t} className="tag tag-neutral" style={{ fontSize: 10 }}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td>{b.tradition ? <span className="tag tag-neutral">{b.tradition}</span> : '—'}</td>
+                <td>
+                  {verdict ? (
+                    <span className={`tag ${verdictClass(verdict)} flex items-center gap-1 w-fit`}>
+                      <VerdictIcon size={12} strokeWidth={2.75} />
+                      {verdict}
+                    </span>
+                  ) : (
+                    <span style={{ opacity: 0.4, fontSize: 12 }}>not checked</span>
+                  )}
+                </td>
+                <td>
+                  {b.reading_status === 'in-progress' ? (
+                    <span className="tag tag-accent">Reading</span>
+                  ) : b.reading_status === 'read' ? (
+                    <span className="tag tag-accent-2">Read</span>
+                  ) : (
+                    <span style={{ opacity: 0.5, fontSize: 12 }}>Unread</span>
+                  )}
+                  {b.location && <span className="card-meta ml-1">{b.location}</span>}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 export default function Shelf() {
   const user = useAuth()
@@ -22,7 +86,7 @@ export default function Shelf() {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [tradition, setTradition] = useState(null)
-  const [sort, setSort] = useState('title')
+  const [viewBy, setViewBy] = useState('Category')
   const [findingCovers, setFindingCovers] = useState(false)
   const [coverProgress, setCoverProgress] = useState(null) // { done, total }
 
@@ -93,18 +157,39 @@ export default function Shelf() {
 
     if (query.trim()) {
       const q = query.trim().toLowerCase()
-      list = list.filter(
-        (b) => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q)
-      )
+      list = list.filter((b) => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q))
     }
 
-    const sorted = [...list]
-    if (sort === 'title') sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
-    else if (sort === 'author') sorted.sort((a, b) => (a.author || '').localeCompare(b.author || ''))
-    else if (sort === 'recent') sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    return list
+  }, [books, statusFilter, tradition, query])
 
-    return sorted
-  }, [books, statusFilter, tradition, query, sort])
+  // Category view: group by each book's tags, same "a book can appear under
+  // more than one heading" pattern Topics uses for Notebook entries. Books
+  // with no tags fall into a catch-all "Untagged" group, shown last.
+  const byCategory = useMemo(() => {
+    const map = {}
+    filtered.forEach((b) => {
+      const cats = b.tags?.length ? b.tags : ['Untagged']
+      cats.forEach((c) => (map[c] = map[c] || []).push(b))
+    })
+    Object.values(map).forEach((list) => list.sort((a, b) => (a.title || '').localeCompare(b.title || '')))
+    return map
+  }, [filtered])
+
+  const categoryNames = useMemo(() => {
+    const names = Object.keys(byCategory).filter((n) => n !== 'Untagged')
+    names.sort((a, b) => byCategory[b].length - byCategory[a].length)
+    if (byCategory['Untagged']) names.push('Untagged')
+    return names
+  }, [byCategory])
+
+  const sortedFlat = useMemo(() => {
+    const list = [...filtered]
+    if (viewBy === 'Author') list.sort((a, b) => (a.author || '').localeCompare(b.author || ''))
+    else if (viewBy === 'Recent') list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    else list.sort((a, b) => (a.title || '').localeCompare(b.title || ''))
+    return list
+  }, [filtered, viewBy])
 
   function handleExport() {
     const blob = new Blob([JSON.stringify(books, null, 2)], { type: 'application/json' })
@@ -124,7 +209,7 @@ export default function Shelf() {
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <div className="card-kicker mb-1">
-            {books ? `${books.length} books · ${checkedCount} checked` : ' '}
+            {books ? `${books.length} books · ${checkedCount} checked` : ' '}
           </div>
           <h2 className="!mb-0">The shelf</h2>
         </div>
@@ -183,13 +268,19 @@ export default function Shelf() {
           ))}
         </div>
 
-        <select className="input ml-auto" style={{ width: 'auto' }} value={sort} onChange={(e) => setSort(e.target.value)}>
-          {SORTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
+        <div className="seg ml-auto">
+          {VIEW_MODES.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="seg-opt"
+              style={viewBy === v ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+              onClick={() => setViewBy(v)}
+            >
+              {v}
+            </button>
           ))}
-        </select>
+        </div>
       </div>
 
       {traditions.length > 0 && (
@@ -224,66 +315,19 @@ export default function Shelf() {
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
           No books match that search.
         </div>
-      ) : (
-        <div className="overflow-x-auto">
-        <table className="table w-full" style={{ minWidth: 640 }}>
-          <thead>
-            <tr>
-              <th style={{ width: '46%' }}>Book</th>
-              <th style={{ width: '18%' }}>Tradition</th>
-              <th style={{ width: '18%' }}>Verdict</th>
-              <th style={{ width: '18%' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((b) => {
-              const verdict = b.isbn ? checksByIsbn[b.isbn] : null
-              const VerdictIcon = verdictIcon(verdict)
-              return (
-                <tr key={b.id} className="cursor-pointer" onClick={() => navigate(`/shelf/${b.id}`)}>
-                  <td>
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="rounded-sm shrink-0 overflow-hidden bg-neutral-200"
-                        style={{ width: 30, height: 45 }}
-                      >
-                        {b.cover_url && (
-                          <img src={b.cover_url} alt="" className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="card-title !text-[14px]">{b.title}</div>
-                        <div className="card-meta">{b.author}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{b.tradition ? <span className="tag tag-neutral">{b.tradition}</span> : '—'}</td>
-                  <td>
-                    {verdict ? (
-                      <span className={`tag ${verdictClass(verdict)} flex items-center gap-1 w-fit`}>
-                        <VerdictIcon size={12} strokeWidth={2.75} />
-                        {verdict}
-                      </span>
-                    ) : (
-                      <span style={{ opacity: 0.4, fontSize: 12 }}>not checked</span>
-                    )}
-                  </td>
-                  <td>
-                    {b.reading_status === 'in-progress' ? (
-                      <span className="tag tag-accent">Reading</span>
-                    ) : b.reading_status === 'read' ? (
-                      <span className="tag tag-accent-2">Read</span>
-                    ) : (
-                      <span style={{ opacity: 0.5, fontSize: 12 }}>Unread</span>
-                    )}
-                    {b.location && <span className="card-meta ml-1">{b.location}</span>}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      ) : viewBy === 'Category' ? (
+        <div className="flex flex-col gap-7">
+          {categoryNames.map((name) => (
+            <div key={name}>
+              <div className="card-kicker mb-2">
+                {name} · {byCategory[name].length}
+              </div>
+              <BookTable books={byCategory[name]} checksByIsbn={checksByIsbn} navigate={navigate} />
+            </div>
+          ))}
         </div>
+      ) : (
+        <BookTable books={sortedFlat} checksByIsbn={checksByIsbn} navigate={navigate} />
       )}
 
       {books?.length > 0 && (

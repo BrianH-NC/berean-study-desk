@@ -4,6 +4,7 @@ import { Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
+import ChangeCoverDialog from '../components/ChangeCoverDialog'
 
 const STATUSES = ['unread', 'in-progress', 'read']
 
@@ -34,6 +35,7 @@ export default function BookDetail() {
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [checking, setChecking] = useState(false)
+  const [showCoverPicker, setShowCoverPicker] = useState(false)
 
   async function load() {
     const { data } = await supabase.from('books').select('*').eq('id', id).single()
@@ -244,7 +246,17 @@ export default function BookDetail() {
 
               <div className="field mb-3">
                 <label>Cover image URL</label>
-                <input className="input" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://…" />
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1"
+                    value={form.cover_url}
+                    onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+                    placeholder="https://…"
+                  />
+                  <button type="button" className="btn btn-secondary shrink-0" onClick={() => setShowCoverPicker(true)}>
+                    Change cover
+                  </button>
+                </div>
               </div>
 
               <div className="field mb-3">
@@ -373,6 +385,18 @@ export default function BookDetail() {
           </div>
         </div>
       </div>
+
+      {showCoverPicker && (
+        <ChangeCoverDialog
+          isbn={form.isbn.trim()}
+          currentUrl={form.cover_url}
+          onSelect={(url) => {
+            setForm({ ...form, cover_url: url })
+            setShowCoverPicker(false)
+          }}
+          onClose={() => setShowCoverPicker(false)}
+        />
+      )}
     </div>
   )
 }

@@ -67,6 +67,44 @@ export async function fetchBookByISBN(isbn) {
   return result
 }
 
+// Every candidate cover for one ISBN, kept separate (not merged/backfilled
+// like fetchBookByISBN) so "Change cover" can show them side by side and let
+// the user pick -- e.g. their own 2008 hardcover instead of the 2021
+// paperback the "best" single guess would otherwise land on.
+export async function fetchCoverCandidates(isbn) {
+  const candidates = []
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+    )
+    const data = await res.json()
+    const cover = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:')
+    if (cover) candidates.push({ source: 'Google Books', url: cover })
+  } catch (e) {
+    console.error('Google Books error:', e)
+  }
+
+  try {
+    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
+    const data = await res.json()
+    const book = data[`ISBN:${isbn}`]
+    const cover = book?.cover?.large || book?.cover?.medium || book?.cover?.small
+    if (cover) candidates.push({ source: 'Open Library', url: cover })
+  } catch (e) {
+    console.error('Open Library error:', e)
+  }
+
+  try {
+    const amazon = await fetchAmazonCoverByISBN(isbn)
+    if (amazon) candidates.push({ source: 'Amazon', url: amazon })
+  } catch (e) {
+    console.error('Amazon cover error:', e)
+  }
+
+  return candidates
+}
+
 // Best-effort cover lookup for books with no ISBN on file -- searches by
 // title/author instead of an exact ISBN match, so it's less reliable and
 // only used as a fallback (see Shelf's "Find missing covers"). Tries Google

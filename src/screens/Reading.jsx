@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { createEntry, listEntriesForBook, formatEntryNum } from '../lib/entries'
+import { stanceClass } from '../lib/stance'
 
 const STANCES = [
   { value: '', label: 'No stance' },
@@ -10,12 +11,6 @@ const STANCES = [
   { value: 'disagree', label: 'Disagree' },
   { value: 'unsure', label: 'Unsure' },
 ]
-
-function stanceClass(stance) {
-  if (stance === 'agree') return 'tag-accent-2'
-  if (stance === 'disagree') return 'verdict-concern'
-  return 'tag-neutral'
-}
 
 export default function Reading() {
   const user = useAuth()

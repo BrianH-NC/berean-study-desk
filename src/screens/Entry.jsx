@@ -3,8 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEntry, getLinksFor, updateEntry, deleteEntry, formatEntryNum } from '../lib/entries'
 import { fetchEsvPassage } from '../lib/esv'
 import { supabase } from '../lib/supabase'
-
-const STANCE_CLASS = { agree: 'tag-accent-2', disagree: 'verdict-concern', unsure: 'tag-neutral' }
+import { stanceClass } from '../lib/stance'
 
 export default function Entry() {
   const { id } = useParams()
@@ -170,7 +169,7 @@ export default function Entry() {
                     · while reading {book.title}
                   </Link>
                 )}
-                {entry.stance && <span className={`tag ${STANCE_CLASS[entry.stance] || 'tag-neutral'}`}>{entry.stance}</span>}
+                {entry.stance && <span className={`tag ${stanceClass(entry.stance)}`}>{entry.stance}</span>}
               </div>
               {entry.ref && (
                 <div className="card mb-4" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>

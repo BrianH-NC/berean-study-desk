@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { User, Loader2 } from 'lucide-react'
+import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { compareConfession, askFollowup, checksUpdate, CONFESSIONS } from '../lib/theologyCheck'
+import { listEntriesForBook, formatEntryNum } from '../lib/entries'
+import { stanceClass } from '../lib/stance'
 
 export default function DoctrineCheckReport() {
   const { id } = useParams()
+  const user = useAuth()
   const [check, setCheck] = useState(null) // null = loading, false = not found
+  const [linkedBook, setLinkedBook] = useState(null) // the shelf book this check's ISBN matches, if any
+  const [bookNotes, setBookNotes] = useState(null) // notes taken while reading that book
   const [confessionSlug, setConfessionSlug] = useState(CONFESSIONS[0].slug)
   const [comparing, setComparing] = useState(false)
   const [question, setQuestion] = useState('')
@@ -16,6 +22,16 @@ export default function DoctrineCheckReport() {
   async function load() {
     const { data } = await supabase.from('theology_checks').select('*').eq('id', id).single()
     setCheck(data || false)
+    if (data?.kind === 'book' && data.isbn) {
+      const { data: book } = await supabase
+        .from('books')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .eq('isbn', data.isbn)
+        .maybeSingle()
+      setLinkedBook(book || null)
+      if (book) setBookNotes(await listEntriesForBook(user.id, book.id))
+    }
   }
 
   useEffect(() => {
@@ -176,6 +192,32 @@ export default function DoctrineCheckReport() {
 
           {check.denominational_note && (
             <p className="card-meta">{check.denominational_note}</p>
+          )}
+
+          {linkedBook && bookNotes?.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="!mb-0">Your notes on this book</h4>
+                <Link to={`/reading/${linkedBook.id}`} className="text-sm hover:underline">
+                  Continue reading →
+                </Link>
+              </div>
+              <div className="flex flex-col gap-3">
+                {bookNotes.map((n) => (
+                  <Link key={n.id} to={`/notebook/${n.id}`} className="card hover:shadow-sm" style={{ padding: '14px 16px' }}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="card-meta">
+                        no. {formatEntryNum(n.number)} · {new Date(n.created_at).toLocaleDateString()}
+                      </div>
+                      {n.stance && <span className={`tag ${stanceClass(n.stance)}`}>{n.stance}</span>}
+                    </div>
+                    {n.title && <div className="card-title !text-[14px] mb-0.5">{n.title}</div>}
+                    {n.ref && <div className="card-meta mb-1">{n.ref}</div>}
+                    <p className="card-body">{n.body}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Ask about this check */}

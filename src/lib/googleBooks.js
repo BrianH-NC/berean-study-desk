@@ -81,3 +81,47 @@ export async function searchBookCover(title, author) {
 
   return null
 }
+
+// ISBN-13 (978-prefixed) -> ISBN-10, via the standard mod-11 check digit --
+// Amazon's image URLs are keyed by ISBN-10/ASIN, not ISBN-13.
+function isbn13to10(isbn13) {
+  const digits = isbn13.replace(/[^0-9]/g, '')
+  if (digits.length !== 13 || !digits.startsWith('978')) return null
+  const core = digits.slice(3, 12)
+  let sum = 0
+  for (let i = 0; i < 9; i++) sum += (10 - i) * Number(core[i])
+  const check = (11 - (sum % 11)) % 11
+  return core + (check === 10 ? 'X' : String(check))
+}
+
+// Loads a URL as an <img> (no CORS involved, unlike fetch) and reports its
+// rendered size, so a too-small "image not found" placeholder can be told
+// apart from an actual cover.
+function loadImageDimensions(url) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+// Last resort, ISBN-only cover guess via Amazon's product-image URL pattern.
+// There's no public Amazon API for this without an Associates account in
+// good standing (ongoing qualifying sales required just to keep API access),
+// so this just guesses the URL their site itself uses and checks the image
+// actually loaded and isn't their tiny "no cover available" placeholder.
+// Unofficial and can stop working without notice -- kept separate from
+// fetchBookByISBN so it never risks overwriting a title/author during a
+// barcode scan, and is only reached from "Find missing covers" once Google
+// Books and Open Library have both already come up empty.
+export async function fetchAmazonCoverByISBN(isbn) {
+  const digits = isbn.replace(/[^0-9Xx]/g, '')
+  const isbn10 = digits.length === 10 ? digits : isbn13to10(digits)
+  if (!isbn10) return null
+  const url = `https://images-na.ssl-images-amazon.com/images/P/${isbn10}.01.LZZZZZZZ.jpg`
+  const dims = await loadImageDimensions(url)
+  // Amazon's "no cover available" placeholder renders very small; a real
+  // cover thumbnail at this size code is comfortably larger.
+  return dims && dims.width > 60 && dims.height > 60 ? url : null
+}

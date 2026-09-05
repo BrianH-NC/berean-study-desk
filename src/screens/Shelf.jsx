@@ -4,7 +4,7 @@ import { Search as SearchIcon, Loader2 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
-import { fetchBookByISBN, searchBookCover } from '../lib/googleBooks'
+import { fetchBookByISBN, searchBookCover, fetchAmazonCoverByISBN } from '../lib/googleBooks'
 
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
 const VIEW_MODES = ['Category', 'Title', 'Author', 'Recent']
@@ -155,6 +155,7 @@ export default function Shelf() {
     for (const b of missing) {
       let cover = b.isbn ? (await fetchBookByISBN(b.isbn))?.cover_url : null
       if (!cover) cover = await searchBookCover(b.title, b.author)
+      if (!cover && b.isbn) cover = await fetchAmazonCoverByISBN(b.isbn)
       if (cover) {
         await supabase.from('books').update({ cover_url: cover }).eq('id', b.id)
         found++

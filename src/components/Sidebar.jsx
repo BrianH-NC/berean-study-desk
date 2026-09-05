@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { getStoredTheme } from '../lib/theme'
+import Logo from './Logo'
 
 const NAV = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -89,12 +90,15 @@ export default function Sidebar() {
     <>
       {/* Desktop: persistent left rail */}
       <aside className="hidden md:flex shrink-0 h-dvh sticky top-0 flex-col bg-surface" style={{ width: 230 }}>
-        <div className="px-4 pt-6 pb-4">
-          <div className="font-heading whitespace-nowrap" style={{ fontSize: 18 }}>
-            Berean Study Desk
-          </div>
-          <div className="text-accent uppercase mt-1" style={{ fontSize: 10, letterSpacing: '0.14em' }}>
-            Acts 17:11
+        <div className="px-4 pt-6 pb-4 flex items-center gap-2.5">
+          <Logo size={34} />
+          <div>
+            <div className="font-heading whitespace-nowrap" style={{ fontSize: 18 }}>
+              Berean Study Desk
+            </div>
+            <div className="text-accent uppercase mt-1" style={{ fontSize: 10, letterSpacing: '0.14em' }}>
+              Acts 17:11
+            </div>
           </div>
         </div>
 
@@ -161,8 +165,11 @@ export default function Sidebar() {
 
       {/* Mobile: compact top bar + fixed bottom tab bar */}
       <div className="md:hidden sticky top-0 z-20 flex items-center justify-between bg-surface px-4 py-3">
-        <div className="font-heading" style={{ fontSize: 16 }}>
-          Berean Study Desk
+        <div className="flex items-center gap-2">
+          <Logo size={26} />
+          <div className="font-heading" style={{ fontSize: 16 }}>
+            Berean Study Desk
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button

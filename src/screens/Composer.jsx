@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../App'
 import { createEntry, setRelated, listEntries, formatEntryNum, nextGapNumber } from '../lib/entries'
 
 export default function Composer() {
   const user = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Prefilled when arriving from Bible Study's "Create Notebook Entry" verse action.
+  const prefill = location.state || {}
 
   const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [ref, setRef] = useState('')
+  const [body, setBody] = useState(prefill.body || '')
+  const [ref, setRef] = useState(prefill.ref || '')
   const [tags, setTags] = useState('')
   const [related, setRelatedInput] = useState('')
   const [saving, setSaving] = useState(false)

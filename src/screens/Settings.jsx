@@ -99,10 +99,15 @@ export default function Settings() {
 
         <div className="card">
           <div className="card-title">Licenses</div>
-          <div className="card-body">
+          <div className="card-body mb-2">
             Scripture quotations marked ESV are from the ESV® Bible (The Holy Bible, English Standard Version®),
             copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All
             rights reserved.
+          </div>
+          <div className="card-body">
+            Scripture quotations marked BSB are from The Holy Bible, Berean Standard Bible (BSB), which was placed
+            into the public domain on April 30, 2023 by the Berean Bible Translation Committee. No permission is
+            required for its use.
           </div>
         </div>
       </div>

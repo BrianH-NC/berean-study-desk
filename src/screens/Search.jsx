@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search as SearchIcon, User, BookOpen, Loader2 } from 'lucide-react'
+import { Search as SearchIcon, User, BookOpen, BookText, Loader2 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { checksList } from '../lib/theologyCheck'
 import { listEntries, formatEntryNum, bookNameForRef } from '../lib/entries'
 import { fetchEsvPassage } from '../lib/esv'
+import { searchVerses } from '../lib/bsb'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 
 function matches(haystacks, q) {
@@ -23,6 +24,12 @@ export default function Search() {
   const [passage, setPassage] = useState(null) // null = not fetched, false = failed
   const [passageLoading, setPassageLoading] = useState(false)
   const [passageFor, setPassageFor] = useState(null)
+
+  // BSB is 31,000+ rows -- unlike shelf/checks/entries this can't be fetched
+  // once and filtered client-side, so it's a live, debounced server query.
+  const [bsbResults, setBsbResults] = useState(null)
+  const [bsbSearching, setBsbSearching] = useState(false)
+  const bsbDebounce = useRef(null)
 
   useEffect(() => {
     supabase
@@ -57,6 +64,25 @@ export default function Search() {
 
   const scriptureRef = useMemo(() => (q ? bookNameForRef(query.trim()) && query.trim() : null), [q, query])
 
+  useEffect(() => {
+    if (!q) {
+      setBsbResults(null)
+      return
+    }
+    clearTimeout(bsbDebounce.current)
+    bsbDebounce.current = setTimeout(async () => {
+      setBsbSearching(true)
+      try {
+        setBsbResults(await searchVerses({ query: query.trim(), limit: 5 }))
+      } catch {
+        setBsbResults([])
+      } finally {
+        setBsbSearching(false)
+      }
+    }, 350)
+    return () => clearTimeout(bsbDebounce.current)
+  }, [q, query])
+
   function handleLookup() {
     setPassageFor(scriptureRef)
     setPassage(null)
@@ -68,7 +94,7 @@ export default function Search() {
   }
 
   const loading = books === null || checks === null || entries === null
-  const totalMatches = bookMatches.length + checkMatches.length + entryMatches.length
+  const totalMatches = bookMatches.length + checkMatches.length + entryMatches.length + (bsbResults?.length || 0)
 
   return (
     <div className="max-w-[1080px] mx-auto page">
@@ -211,6 +237,33 @@ export default function Search() {
                       </div>
                     </Link>
                   ))}
+              </div>
+            </div>
+          )}
+
+          {(bsbSearching || bsbResults?.length > 0) && (
+            <div>
+              <div className="card-kicker mb-2 flex items-center gap-1.5">
+                Bible Verses (BSB) {bsbResults ? `· ${bsbResults.length}` : ''}
+                {bsbSearching && <Loader2 size={12} strokeWidth={2.75} className="animate-spin" />}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {(bsbResults || []).map((v) => (
+                  <Link
+                    key={v.id}
+                    to={`/bible?book=${encodeURIComponent(v.book_name)}&chapter=${v.chapter}&verse=${v.verse}`}
+                    className="flex items-start gap-2.5 py-2 hover:bg-black/[0.02]"
+                    style={{ borderBottom: '1px solid var(--color-divider)' }}
+                  >
+                    <BookText size={15} strokeWidth={2.75} className="shrink-0 mt-0.5" style={{ opacity: 0.4 }} />
+                    <div className="min-w-0">
+                      <div className="card-title !text-[14px]">
+                        {v.book_name} {v.chapter}:{v.verse}
+                      </div>
+                      <div className="card-meta truncate">{v.text}</div>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
           )}

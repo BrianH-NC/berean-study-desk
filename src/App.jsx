@@ -14,6 +14,7 @@ import DoctrineCheckReport from './screens/DoctrineCheckReport'
 import Composer from './screens/Composer'
 import Entry from './screens/Entry'
 import Reading from './screens/Reading'
+import BibleStudy from './screens/BibleStudy'
 import Search from './screens/Search'
 import Topics from './screens/Topics'
 import Settings from './screens/Settings'
@@ -40,6 +41,7 @@ function ProtectedLayout() {
           <Route path="/notebook/:id" element={<Entry />} />
           <Route path="/reading" element={<Reading />} />
           <Route path="/reading/:bookId" element={<Reading />} />
+          <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/settings" element={<Settings />} />

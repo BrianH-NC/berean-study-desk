@@ -91,6 +91,16 @@ export function bookNameForRef(ref) {
   return BOOK_ALIASES[key] || m[1].trim().replace(/\s+/g, ' ')
 }
 
+// Resolves a bare book name/abbreviation (no chapter attached) to its
+// canonical form, or null if it isn't recognized. Shares BOOK_ALIASES with
+// bookNameForRef above rather than duplicating the alias table -- used by
+// the Bible Study tab's reference parser (src/lib/bsb.js).
+export function resolveBookName(input) {
+  if (!input) return null
+  const key = input.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return BOOK_ALIASES[key] || null
+}
+
 export function canonicalIndex(bookName) {
   const i = CANONICAL_BOOKS.indexOf(bookName)
   return i === -1 ? 999 : i

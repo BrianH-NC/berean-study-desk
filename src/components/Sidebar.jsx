@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  Home, LibraryBig, ShieldCheck, NotebookPen, Search, Tags, BookOpenText,
+  Home, LibraryBig, ShieldCheck, NotebookPen, Search, Tags, BookOpenText, BookText,
   Sun, Moon, Settings as SettingsIcon,
 } from 'lucide-react'
 import { useAuth } from '../App'
@@ -13,6 +13,7 @@ const NAV = [
   { to: '/shelf', label: 'Shelf', icon: LibraryBig, matchPrefixes: ['/shelf'] },
   { to: '/checks', label: 'Doctrine Check', shortLabel: 'Checks', icon: ShieldCheck, matchPrefixes: ['/checks'] },
   { to: '/notebook', label: 'Notebook', icon: NotebookPen, matchPrefixes: ['/notebook'] },
+  { to: '/bible', label: 'Bible Study', shortLabel: 'Bible', icon: BookText, matchPrefixes: ['/bible'] },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/topics', label: 'Topics', icon: Tags },
   { to: '/reading', label: 'Reading now', shortLabel: 'Reading', icon: BookOpenText, matchPrefixes: ['/reading'] },

@@ -1,0 +1,446 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2 } from 'lucide-react'
+import {
+  OT_BOOKS,
+  NT_BOOKS,
+  parseReference,
+  fetchChapter,
+  fetchChapterCount,
+  searchVerses,
+  formatReference,
+} from '../lib/bsb'
+import { CANONICAL_BOOKS } from '../lib/entries'
+
+const VIEW_MODES = ['Read', 'Search']
+
+function highlightTerms(text, query) {
+  const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
+  if (words.length === 0) return text
+  const pattern = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi')
+  const parts = text.split(pattern)
+  return parts.map((part, i) =>
+    words.some((w) => w.toLowerCase() === part.toLowerCase()) ? (
+      <mark key={i} style={{ background: 'var(--color-accent-200)', color: 'inherit', borderRadius: 3 }}>
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  )
+}
+
+function BookPickerDialog({ initialBook, onPick, onClose }) {
+  const [testament, setTestament] = useState(OT_BOOKS.includes(initialBook) ? 'OT' : 'NT')
+  const [pickedBook, setPickedBook] = useState(null)
+  const [chapterCount, setChapterCount] = useState(null)
+
+  async function handlePickBook(b) {
+    setPickedBook(b)
+    setChapterCount(null)
+    const count = await fetchChapterCount(b)
+    setChapterCount(count)
+  }
+
+  const books = testament === 'OT' ? OT_BOOKS : NT_BOOKS
+
+  return (
+    <div className="dialog-backdrop" onClick={onClose}>
+      <div className="dialog" style={{ width: 'min(520px, 100%)' }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div className="dialog-title">{pickedBook ? pickedBook : 'Choose a book'}</div>
+          <button type="button" className="btn btn-icon btn-ghost" onClick={onClose} aria-label="Close">
+            <X size={16} strokeWidth={2.75} />
+          </button>
+        </div>
+
+        {!pickedBook ? (
+          <>
+            <div className="seg self-start">
+              <button
+                type="button"
+                className="seg-opt"
+                style={testament === 'OT' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+                onClick={() => setTestament('OT')}
+              >
+                Old Testament
+              </button>
+              <button
+                type="button"
+                className="seg-opt"
+                style={testament === 'NT' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+                onClick={() => setTestament('NT')}
+              >
+                New Testament
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5" style={{ maxHeight: 360, overflowY: 'auto' }}>
+              {books.map((b) => (
+                <button key={b} type="button" className="btn btn-secondary !justify-start" onClick={() => handlePickBook(b)}>
+                  {b}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn btn-ghost self-start !px-0" onClick={() => setPickedBook(null)}>
+              ← Choose a different book
+            </button>
+            {chapterCount === null ? (
+              <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
+                <Loader2 size={14} strokeWidth={2.75} className="animate-spin" /> Loading chapters…
+              </div>
+            ) : (
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5" style={{ maxHeight: 360, overflowY: 'auto' }}>
+                {Array.from({ length: chapterCount }, (_, i) => i + 1).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className="btn btn-secondary !px-0"
+                    style={{ width: 40 }}
+                    onClick={() => onPick(pickedBook, c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function BibleStudy() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [viewMode, setViewMode] = useState('Read')
+
+  const [quickRef, setQuickRef] = useState('')
+  const [refError, setRefError] = useState('')
+  const [book, setBook] = useState('John')
+  const [chapter, setChapter] = useState(3)
+  const [verses, setVerses] = useState(null) // null = loading
+  const [chapterCount, setChapterCount] = useState(null)
+  const [selectedVerses, setSelectedVerses] = useState(new Set())
+  const [pendingSelection, setPendingSelection] = useState(null)
+  const [showPicker, setShowPicker] = useState(false)
+  const [copied, setCopied] = useState('')
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchTestament, setSearchTestament] = useState('')
+  const [searchBook, setSearchBook] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
+  const [searching, setSearching] = useState(false)
+  const searchDebounce = useRef(null)
+
+  // Deep link from global Search: /bible?book=Romans&chapter=8&verse=28
+  const appliedDeepLink = useRef(false)
+  useEffect(() => {
+    if (appliedDeepLink.current) return
+    appliedDeepLink.current = true
+    const qBook = searchParams.get('book')
+    const qChapter = searchParams.get('chapter')
+    const qVerse = searchParams.get('verse')
+    if (qBook && qChapter) {
+      setBook(qBook)
+      setChapter(parseInt(qChapter, 10) || 1)
+      if (qVerse) setPendingSelection(parseInt(qVerse, 10))
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    let cancelled = false
+    setVerses(null)
+    setSelectedVerses(new Set())
+    setRefError('')
+    Promise.all([fetchChapter(book, chapter), fetchChapterCount(book)])
+      .then(([rows, count]) => {
+        if (cancelled) return
+        setVerses(rows)
+        setChapterCount(count)
+        if (pendingSelection) {
+          setSelectedVerses(new Set([pendingSelection]))
+          setPendingSelection(null)
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setVerses([])
+        setRefError('Could not load that chapter — ' + err.message)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book, chapter])
+
+  useEffect(() => {
+    if (viewMode !== 'Search') return
+    if (!searchQuery.trim()) {
+      setSearchResults(null)
+      return
+    }
+    clearTimeout(searchDebounce.current)
+    searchDebounce.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const results = await searchVerses({ query: searchQuery, testament: searchTestament || undefined, bookName: searchBook || undefined })
+        setSearchResults(results)
+      } catch (err) {
+        setRefError(err.message)
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 350)
+    return () => clearTimeout(searchDebounce.current)
+  }, [searchQuery, searchTestament, searchBook, viewMode])
+
+  function goTo(bookName, chapterNum, verseNum) {
+    setBook(bookName)
+    setChapter(chapterNum)
+    if (verseNum) setPendingSelection(verseNum)
+    setViewMode('Read')
+    setShowPicker(false)
+  }
+
+  function handleQuickRef(e) {
+    e.preventDefault()
+    const parsed = parseReference(quickRef)
+    if (!parsed) {
+      setRefError(`Couldn't make sense of "${quickRef}" — try something like "Romans 8:28" or "Ps 23".`)
+      return
+    }
+    setRefError('')
+    goTo(parsed.book, parsed.chapter, parsed.verseStart)
+    if (parsed.verseStart && parsed.verseEnd && parsed.verseEnd !== parsed.verseStart) {
+      const range = new Set()
+      for (let v = parsed.verseStart; v <= parsed.verseEnd; v++) range.add(v)
+      setPendingSelection(null)
+      // applied after load via a one-off effect below
+      setTimeout(() => setSelectedVerses(range), 0)
+    }
+  }
+
+  function toggleVerse(v) {
+    setSelectedVerses((prev) => {
+      const next = new Set(prev)
+      if (next.has(v)) next.delete(v)
+      else next.add(v)
+      return next
+    })
+  }
+
+  const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
+  const selectionRef = selectedSorted.length
+    ? formatReference(book, chapter, selectedSorted[0], selectedSorted[selectedSorted.length - 1])
+    : ''
+  const selectionText = useMemo(
+    () => (verses || []).filter((v) => selectedVerses.has(v.verse)).map((v) => v.text).join(' '),
+    [verses, selectedVerses]
+  )
+
+  function copy(label, text) {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(label)
+      setTimeout(() => setCopied(''), 1500)
+    })
+  }
+
+  function handleCreateEntry() {
+    navigate('/notebook/new', { state: { ref: selectionRef, body: `"${selectionText}"` } })
+  }
+
+  return (
+    <div className="max-w-[900px] mx-auto page">
+      <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+        <div>
+          <div className="card-kicker mb-1">Berean Standard Bible</div>
+          <h2 className="!mb-0">Bible Study</h2>
+        </div>
+        <div className="seg">
+          {VIEW_MODES.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="seg-opt"
+              style={viewMode === v ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+              onClick={() => setViewMode(v)}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {viewMode === 'Read' ? (
+        <>
+          <form onSubmit={handleQuickRef} className="flex gap-2 flex-wrap mb-2">
+            <input
+              className="input flex-1"
+              style={{ minWidth: 220 }}
+              placeholder="Jump to a reference — e.g. Romans 8:28, Jn 3:16-18, Ps 23"
+              value={quickRef}
+              onChange={(e) => setQuickRef(e.target.value)}
+            />
+            <button type="submit" className="btn btn-secondary">
+              Go
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowPicker(true)}>
+              Browse
+            </button>
+          </form>
+          {refError && (
+            <div className="mb-3 text-sm" style={{ color: 'var(--color-accent-800)' }}>
+              {refError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between mb-3">
+            <button type="button" className="btn btn-icon btn-ghost" onClick={() => setChapter((c) => Math.max(1, c - 1))} disabled={chapter <= 1} aria-label="Previous chapter">
+              <ChevronLeft size={18} strokeWidth={2.75} />
+            </button>
+            <h3 className="!mb-0">
+              {book} {chapter}
+            </h3>
+            <button
+              type="button"
+              className="btn btn-icon btn-ghost"
+              onClick={() => setChapter((c) => (chapterCount ? Math.min(chapterCount, c + 1) : c + 1))}
+              disabled={chapterCount != null && chapter >= chapterCount}
+              aria-label="Next chapter"
+            >
+              <ChevronRight size={18} strokeWidth={2.75} />
+            </button>
+          </div>
+
+          <div className="card mb-3" style={{ padding: '22px 26px' }}>
+            {verses === null ? (
+              <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                Loading…
+              </div>
+            ) : verses.length === 0 ? (
+              <div className="text-center py-16" style={{ opacity: 0.5 }}>
+                No text found for that reference.
+              </div>
+            ) : (
+              verses.map((v) => (
+                <p
+                  key={v.id}
+                  onClick={() => toggleVerse(v.verse)}
+                  className="cursor-pointer"
+                  style={{
+                    fontSize: 17,
+                    lineHeight: 1.75,
+                    display: 'inline',
+                    background: selectedVerses.has(v.verse) ? 'var(--color-accent-100)' : 'transparent',
+                    borderRadius: 6,
+                    padding: '2px 3px',
+                  }}
+                >
+                  <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.verse}</sup>
+                  {v.text + ' '}
+                </p>
+              ))
+            )}
+          </div>
+
+          {selectedSorted.length > 0 && (
+            <div className="card" style={{ padding: '14px 18px' }}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="card-title !text-[14px]">{selectionRef}</span>
+                <button type="button" className="btn btn-secondary" onClick={() => copy('text', selectionText)}>
+                  <Copy size={13} strokeWidth={2.75} />
+                  Copy text
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => copy('ref', selectionRef)}>
+                  <Copy size={13} strokeWidth={2.75} />
+                  Copy reference
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleCreateEntry}>
+                  <NotebookPen size={13} strokeWidth={2.75} />
+                  Create Notebook Entry
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => setSelectedVerses(new Set())}>
+                  Clear
+                </button>
+                {copied && <span className="card-meta">Copied!</span>}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 flex-wrap mb-4">
+            <div className="relative flex-1" style={{ minWidth: 220 }}>
+              <SearchIcon size={15} strokeWidth={2.75} className="absolute top-1/2 -translate-y-1/2" style={{ left: 14, opacity: 0.5 }} />
+              <input
+                className="input"
+                style={{ paddingLeft: 36 }}
+                placeholder="Search every verse — e.g. faith, shepherd, born again"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <select
+              className="input"
+              style={{ width: 'auto' }}
+              value={searchTestament}
+              onChange={(e) => {
+                setSearchTestament(e.target.value)
+                setSearchBook('')
+              }}
+            >
+              <option value="">Whole Bible</option>
+              <option value="OT">Old Testament</option>
+              <option value="NT">New Testament</option>
+            </select>
+            <select className="input" style={{ width: 'auto' }} value={searchBook} onChange={(e) => setSearchBook(e.target.value)}>
+              <option value="">Any book</option>
+              {(searchTestament === 'OT' ? OT_BOOKS : searchTestament === 'NT' ? NT_BOOKS : CANONICAL_BOOKS).map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {searching ? (
+            <div className="text-center py-16" style={{ opacity: 0.5 }}>
+              Searching…
+            </div>
+          ) : !searchQuery.trim() ? (
+            <p style={{ opacity: 0.5 }}>Start typing to search the whole Berean Standard Bible.</p>
+          ) : searchResults?.length === 0 ? (
+            <div className="text-center py-16" style={{ opacity: 0.5 }}>
+              No verses match that search.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {(searchResults || []).map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className="card !flex-row items-start gap-3 text-left hover:shadow-sm"
+                  style={{ padding: '12px 16px' }}
+                  onClick={() => goTo(v.book_name, v.chapter, v.verse)}
+                >
+                  <span className="tag tag-accent shrink-0">
+                    {v.book_name} {v.chapter}:{v.verse}
+                  </span>
+                  <span style={{ fontSize: 14, lineHeight: 1.6 }}>{highlightTerms(v.text, searchQuery)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {showPicker && <BookPickerDialog initialBook={book} onPick={goTo} onClose={() => setShowPicker(false)} />}
+    </div>
+  )
+}

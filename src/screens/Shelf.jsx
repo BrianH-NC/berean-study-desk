@@ -5,6 +5,7 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { fetchBookByISBN, searchBookCover, fetchAmazonCoverByISBN } from '../lib/googleBooks'
+import { extractSortLastName } from '../lib/authorSort'
 
 const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
 const VIEW_MODES = ['Category', 'Title', 'Author', 'Recent']
@@ -14,15 +15,18 @@ function firstLetter(str) {
   return /[A-Z]/.test(c) ? c : '#'
 }
 
-// Groups a list by the first letter of `field`, alphabetical with the "#"
-// (no usable letter) bucket last -- used for the Title and Author views.
-function groupByLetter(list, field) {
+// Groups a list by the first letter of whatever keyFn returns, alphabetical
+// with the "#" (no usable letter) bucket last -- used for the Title and
+// Author views. keyFn is a sort key, not necessarily the displayed text --
+// Author uses the surname extracted by extractSortLastName, since authors
+// are stored in natural order ("John Smith"), not "Smith, John".
+function groupByLetter(list, keyFn) {
   const map = {}
   list.forEach((b) => {
-    const key = firstLetter(b[field])
+    const key = firstLetter(keyFn(b))
     ;(map[key] = map[key] || []).push(b)
   })
-  Object.values(map).forEach((arr) => arr.sort((a, b) => (a[field] || '').localeCompare(b[field] || '')))
+  Object.values(map).forEach((arr) => arr.sort((a, b) => keyFn(a).localeCompare(keyFn(b))))
   const letters = Object.keys(map).sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
   return { map, letters }
 }
@@ -218,8 +222,8 @@ export default function Shelf() {
     return names
   }, [byCategory])
 
-  const titleGroups = useMemo(() => groupByLetter(filtered, 'title'), [filtered])
-  const authorGroups = useMemo(() => groupByLetter(filtered, 'author'), [filtered])
+  const titleGroups = useMemo(() => groupByLetter(filtered, (b) => b.title || ''), [filtered])
+  const authorGroups = useMemo(() => groupByLetter(filtered, (b) => extractSortLastName(b.author)), [filtered])
 
   const sortedRecent = useMemo(() => [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), [filtered])
 

@@ -10,17 +10,22 @@ import { fetchVerseRange, formatReference } from '../lib/bsb'
 // and free) in a popover with a link into Bible Study, rather than embedding
 // a third-party script.
 export default function ScriptureText({ text, style }) {
-  const [openMatch, setOpenMatch] = useState(null) // the match object currently showing a popover, or null
+  // Keyed on the match's plain-number index rather than the match object
+  // itself -- findReferences(text) below runs fresh on every render, so a
+  // freshly-built match object is never === the one stored from a previous
+  // render even when it describes the same reference. An index is stable
+  // across renders regardless.
+  const [openIndex, setOpenIndex] = useState(null)
   const containerRef = useRef(null)
 
   useEffect(() => {
-    if (!openMatch) return
+    if (openIndex === null) return
     function handleClickOutside(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setOpenMatch(null)
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpenIndex(null)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [openMatch])
+  }, [openIndex])
 
   if (!text) return null
 
@@ -37,7 +42,7 @@ export default function ScriptureText({ text, style }) {
   let cursor = 0
   matches.forEach((m, i) => {
     if (m.index > cursor) segments.push({ type: 'text', value: text.slice(cursor, m.index) })
-    segments.push({ type: 'ref', match: m, key: i })
+    segments.push({ type: 'ref', match: m, matchIndex: i })
     cursor = m.index + m.length
   })
   if (cursor < text.length) segments.push({ type: 'text', value: text.slice(cursor) })
@@ -51,8 +56,8 @@ export default function ScriptureText({ text, style }) {
           <ReferenceTag
             key={i}
             match={seg.match}
-            isOpen={openMatch === seg.match}
-            onToggle={() => setOpenMatch(openMatch === seg.match ? null : seg.match)}
+            isOpen={openIndex === seg.matchIndex}
+            onToggle={() => setOpenIndex(openIndex === seg.matchIndex ? null : seg.matchIndex)}
           />
         )
       )}

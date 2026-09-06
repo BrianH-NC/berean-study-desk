@@ -43,6 +43,23 @@
   --color-accent-2-700: #56633f;
   --color-accent-2-800: #3d472b;
   --color-accent-2-900: #272e1b;
+
+  /* Doctrine Check verdict colors -- deliberately defined here, outside every
+     [data-theme] block below, so "Sound" is always green, "Caution" always
+     yellow, "Concern" always red, "Distinctive" always blue, and "Unable to
+     Assess" always grey, no matter which of the 6 color themes is active.
+     Only Day/Evening mode (the [data-mode='dark'] block right below) is
+     allowed to adjust them, same as everything else on this page. */
+  --verdict-sound-bg: #e3f3e3;
+  --verdict-sound-text: #1e5f2e;
+  --verdict-caution-bg: #fff4c2;
+  --verdict-caution-text: #7a5b00;
+  --verdict-concern-bg: #fbe3e1;
+  --verdict-concern-text: #8c2f27;
+  --verdict-distinctive-bg: #e1ebfb;
+  --verdict-distinctive-text: #1e4e8c;
+  --verdict-unassessed-bg: #ececec;
+  --verdict-unassessed-text: #4a4a4a;
 }
 
 [data-mode='dark'] {
@@ -82,6 +99,17 @@
   --color-accent-2-700: #ccdbb2;
   --color-accent-2-800: #e1eecc;
   --color-accent-2-900: #f0fae1;
+
+  --verdict-sound-bg: #1b3a22;
+  --verdict-sound-text: #8fe3a0;
+  --verdict-caution-bg: #4a3b00;
+  --verdict-caution-text: #ffd966;
+  --verdict-concern-bg: #4a211d;
+  --verdict-concern-text: #f5a399;
+  --verdict-distinctive-bg: #1b2e4a;
+  --verdict-distinctive-text: #9cc2f5;
+  --verdict-unassessed-bg: #3a3a3a;
+  --verdict-unassessed-text: #c7c7c7;
 }
 
 /* — Theme picker (Settings → Appearance) — each theme below follows the same
@@ -491,7 +519,7 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: theme('fontFamily.body');
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.55;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -520,7 +548,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   /* — buttons — */
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 cursor-pointer no-underline
-           font-heading text-sm leading-tight text-ink bg-transparent border border-transparent
+           font-heading text-base leading-tight text-ink bg-transparent border border-transparent
            rounded-full transition-colors;
     padding: 8.8px 15.84px;
   }
@@ -544,7 +572,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
     color: color-mix(in srgb, var(--color-text) 70%, transparent);
   }
   .input {
-    @apply w-full font-body text-sm text-ink bg-surface border rounded-full;
+    @apply w-full font-body text-base text-ink bg-surface border rounded-full;
     min-height: 36px;
     padding: 6px 14px;
     border-color: var(--color-divider);
@@ -561,7 +589,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   }
   .card-kicker { @apply text-accent uppercase; font-size: 10px; letter-spacing: 0.1em; }
   .card-title { @apply font-heading text-ink; font-size: 17px; line-height: 1.2; }
-  .card-body { @apply flex-1; font-size: 13px; opacity: 0.8; margin: 0; }
+  .card-body { @apply flex-1; font-size: 14.5px; opacity: 0.8; margin: 0; }
   .card-meta {
     @apply flex items-center gap-1.5;
     font-size: 11px;
@@ -587,7 +615,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   }
   .seg-opt {
     @apply inline-flex items-center gap-1.5 cursor-pointer;
-    font-size: 13px;
+    font-size: 14.5px;
     padding: 7px 12px;
   }
   .seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
@@ -595,10 +623,15 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   .seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
   .seg-opt input { @apply absolute opacity-0 w-0 h-0 pointer-events-none; }
 
-  /* — verdict badge (Doctrine Check, Phase 2+; defined now since Shelf shows it too) — */
-  .verdict-sound { @apply text-sage-800 bg-sage-100; }
-  .verdict-caution, .verdict-concern { @apply text-accent-800 bg-accent-100; }
-  .verdict-distinctive, .verdict-unassessed { @apply text-neutral-700 bg-neutral-100; }
+  /* — verdict badge (Doctrine Check, Shelf, Home) — fixed semantic colors
+     (see the --verdict-* tokens near the top of this file), not the theme's
+     accent/sage/neutral ramps, so a verdict reads the same regardless of
+     which of the 6 color themes is active. */
+  .verdict-sound { color: var(--verdict-sound-text); background: var(--verdict-sound-bg); }
+  .verdict-caution { color: var(--verdict-caution-text); background: var(--verdict-caution-bg); }
+  .verdict-concern { color: var(--verdict-concern-text); background: var(--verdict-concern-bg); }
+  .verdict-distinctive { color: var(--verdict-distinctive-text); background: var(--verdict-distinctive-bg); }
+  .verdict-unassessed { color: var(--verdict-unassessed-text); background: var(--verdict-unassessed-bg); }
 
   /* — dialog — */
   .dialog-backdrop {
@@ -613,7 +646,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
     padding: 17.6px;
   }
   .dialog-title { @apply font-heading; font-size: 20px; }
-  .dialog-body { font-size: 14px; opacity: 0.85; }
+  .dialog-body { font-size: 15.5px; opacity: 0.85; }
   .dialog-actions { @apply flex justify-end gap-2; margin-top: 8.8px; }
 }
 

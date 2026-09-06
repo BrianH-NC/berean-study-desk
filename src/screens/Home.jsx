@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { NotebookPen, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
@@ -175,7 +176,10 @@ export default function Home() {
           {feed.map(({ type, item }) =>
             type === 'entry' ? (
               <Link key={item.id} to={`/notebook/${item.id}`} className="card hover:shadow-sm">
-                <div className="card-meta">no. {formatEntryNum(item.number)}</div>
+                <div className="card-meta">
+                  <NotebookPen size={12} strokeWidth={2.75} />
+                  no. {formatEntryNum(item.number)}
+                </div>
                 <div className="card-title">{item.title || 'Untitled'}</div>
                 <p className="card-body">{(item.body || '').slice(0, 140)}</p>
                 {item.tags?.length > 0 && (
@@ -193,7 +197,10 @@ export default function Home() {
                 const VerdictIcon = verdictIcon(item.verdict)
                 return (
                   <Link key={item.id} to={`/checks/${item.id}`} className="card hover:shadow-sm">
-                    <div className="card-meta">Doctrine Check</div>
+                    <div className="card-meta">
+                      <ShieldCheck size={12} strokeWidth={2.75} />
+                      Doctrine Check
+                    </div>
                     <div className="card-title">{item.title || item.name}</div>
                     <span className={`tag ${verdictClass(item.verdict)} flex items-center gap-1 w-fit`}>
                       <VerdictIcon size={12} strokeWidth={2.75} />

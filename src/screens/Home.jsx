@@ -4,6 +4,7 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { formatEntryNum } from '../lib/entries'
+import { fetchVerseOfTheDay } from '../lib/votd'
 
 function greeting() {
   const h = new Date().getHours()
@@ -16,6 +17,21 @@ export default function Home() {
   const user = useAuth()
   const [reading, setReading] = useState(null) // undefined-ish: null = none/not loaded
   const [feed, setFeed] = useState(null) // null = loading
+  const [votd, setVotd] = useState(null) // null = loading, false = error
+
+  useEffect(() => {
+    let cancelled = false
+    fetchVerseOfTheDay()
+      .then((v) => {
+        if (!cancelled) setVotd(v)
+      })
+      .catch(() => {
+        if (!cancelled) setVotd(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -71,6 +87,41 @@ export default function Home() {
             + New entry
           </Link>
         </div>
+      </div>
+
+      <div className="card mb-6" style={{ padding: '18px 20px' }}>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="card-kicker">Verse of the Day</div>
+          {votd && (
+            <Link
+              to={`/bible?book=${encodeURIComponent(votd.book)}&chapter=${votd.chapter}${
+                votd.verseStart ? `&verse=${votd.verseStart}` : ''
+              }${votd.verseEnd && votd.verseEnd !== votd.verseStart ? `&verseEnd=${votd.verseEnd}` : ''}`}
+              className="text-sm hover:underline"
+            >
+              Read in Bible Study →
+            </Link>
+          )}
+        </div>
+        {votd === null ? (
+          <div className="text-sm" style={{ opacity: 0.5 }}>
+            Loading…
+          </div>
+        ) : votd === false ? (
+          <div className="text-sm" style={{ opacity: 0.5 }}>
+            Couldn't load today's verse.
+          </div>
+        ) : (
+          <>
+            <p style={{ fontSize: 18, lineHeight: 1.6, fontStyle: 'italic' }}>&ldquo;{votd.text}&rdquo;</p>
+            <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
+              {votd.reference} (BSB) — daily pick via{' '}
+              <a href="https://www.biblegateway.com" target="_blank" rel="noopener noreferrer">
+                BibleGateway.com
+              </a>
+            </p>
+          </>
+        )}
       </div>
 
       {reading && (

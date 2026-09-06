@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getEntry, getLinksFor, updateEntry, deleteEntry, formatEntryNum } from '../lib/entries'
+import { getEntry, getLinksFor, deleteEntry, formatEntryNum } from '../lib/entries'
 import { fetchEsvPassage } from '../lib/esv'
 import { supabase } from '../lib/supabase'
 import { stanceClass } from '../lib/stance'
+import { useAuth } from '../App'
 import ScriptureText from '../components/ScriptureText'
+import EntryComposerForm from '../components/EntryComposerForm'
 
 export default function Entry() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const user = useAuth()
 
   const [entry, setEntry] = useState(null) // null = loading, false = not found
   const [links, setLinks] = useState({ seeAlso: [], referencedBy: [] })
   const [book, setBook] = useState(null) // the shelf book this note was taken while reading, if any
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState(null)
-  const [saving, setSaving] = useState(false)
   const [passage, setPassage] = useState(null) // null = not loaded, false = load failed
   const [passageLoading, setPassageLoading] = useState(false)
 
@@ -24,7 +25,6 @@ export default function Entry() {
     setEntry(e || false)
     if (e) {
       setLinks(await getLinksFor(id))
-      setForm({ title: e.title || '', body: e.body || '', ref: e.ref || '', tags: (e.tags || []).join(', ') })
       if (e.shelf_book_id) {
         const { data } = await supabase.from('books').select('id, title').eq('id', e.shelf_book_id).maybeSingle()
         setBook(data || null)
@@ -57,24 +57,6 @@ export default function Entry() {
       cancelled = true
     }
   }, [entry?.ref])
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await updateEntry(id, {
-        title: form.title.trim() || null,
-        body: form.body.trim(),
-        ref: form.ref.trim() || null,
-        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      })
-      await load()
-      setEditing(false)
-    } catch (err) {
-      alert('Error saving: ' + err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   async function handleDelete() {
     if (!confirm(`Delete entry no. ${formatEntryNum(entry.number)}? This can't be undone.`)) return
@@ -128,38 +110,16 @@ export default function Entry() {
       <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_300px]">
         <div>
           {editing ? (
-            <div className="card" style={{ padding: '18px 20px' }}>
-              <input
-                className="input !border-none !bg-transparent !text-[23px] font-heading !px-0 mb-2"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Title (optional)"
-              />
-              <textarea
-                className="input !border-none !bg-transparent !px-0"
-                style={{ fontSize: 16.5, lineHeight: 1.65, minHeight: 220 }}
-                value={form.body}
-                onChange={(e) => setForm({ ...form, body: e.target.value })}
-              />
-              <div className="flex gap-3 flex-wrap mt-3">
-                <div className="field" style={{ minWidth: 200 }}>
-                  <label>Scripture reference</label>
-                  <input className="input" value={form.ref} onChange={(e) => setForm({ ...form, ref: e.target.value })} />
-                </div>
-                <div className="field" style={{ minWidth: 200 }}>
-                  <label>Tags</label>
-                  <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
+            <EntryComposerForm
+              userId={user.id}
+              initial={entry}
+              initialRelated={links.seeAlso}
+              onSaved={() => {
+                load()
+                setEditing(false)
+              }}
+              onCancel={() => setEditing(false)}
+            />
           ) : (
             <article>
               <h1 style={{ fontSize: 38, lineHeight: 1.08, maxWidth: '22ch' }}>{entry.title || 'Untitled'}</h1>
@@ -193,6 +153,23 @@ export default function Entry() {
                 </div>
               )}
               <ScriptureText text={entry.body} style={{ fontSize: 17, lineHeight: 1.7 }} />
+              {entry.photos?.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-4">
+                  {entry.photos.map((url) => (
+                    <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={url} alt="" className="rounded-md object-cover" style={{ width: 96, height: 96 }} />
+                    </a>
+                  ))}
+                </div>
+              )}
+              {entry.video_url && (
+                <p className="mt-3">
+                  <a href={entry.video_url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
+                    Watch video →
+                  </a>
+                </p>
+              )}
+              {entry.page && <p className="card-meta mt-2">p. {entry.page}</p>}
               {entry.tags?.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mt-6 pt-4" style={{ borderTop: '1px solid var(--color-divider)' }}>
                   {entry.tags.map((t) => (

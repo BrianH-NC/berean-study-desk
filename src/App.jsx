@@ -11,7 +11,7 @@ import Wishlist from './screens/Wishlist'
 import WishlistAdd from './screens/WishlistAdd'
 import DoctrineCheckIndex from './screens/DoctrineCheckIndex'
 import DoctrineCheckReport from './screens/DoctrineCheckReport'
-import Composer from './screens/Composer'
+import NotebookHome from './screens/NotebookHome'
 import Entry from './screens/Entry'
 import Reading from './screens/Reading'
 import BibleStudy from './screens/BibleStudy'
@@ -36,8 +36,8 @@ function ProtectedLayout() {
           <Route path="/shelf/:id" element={<BookDetail />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />
-          <Route path="/notebook" element={<Navigate to="/notebook/new" replace />} />
-          <Route path="/notebook/new" element={<Composer />} />
+          <Route path="/notebook" element={<NotebookHome />} />
+          <Route path="/notebook/new" element={<NotebookHome />} />
           <Route path="/notebook/:id" element={<Entry />} />
           <Route path="/reading" element={<Reading />} />
           <Route path="/reading/:bookId" element={<Reading />} />

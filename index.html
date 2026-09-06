@@ -2,9 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
-    <meta name="theme-color" content="#c67139" />
+    <!-- Browser tab / installed-app identity stays fixed to Organic regardless
+         of the in-app theme -- favicons cache aggressively and installed
+         home-screen icons don't update anyway, so a favicon that tracked the
+         live theme would just look stale most of the time. The in-app mark
+         (src/components/Logo.jsx) does re-theme live. -->
+    <link rel="icon" href="/branding/themes/organic/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/branding/themes/organic/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/branding/themes/organic/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/branding/themes/organic/apple-touch-icon-180x180.png" />
+    <link rel="manifest" href="/branding/themes/organic/site.webmanifest" />
+    <meta name="theme-color" content="#F5E8CE" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Berean Study Desk</title>
   </head>

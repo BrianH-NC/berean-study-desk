@@ -90,10 +90,14 @@ export default function Sidebar() {
     <>
       {/* Desktop: persistent left rail */}
       <aside className="hidden md:flex shrink-0 h-dvh sticky top-0 flex-col bg-surface" style={{ width: 230 }}>
-        <div className="px-4 pt-6 pb-4 flex items-center gap-2.5">
-          <Logo size={34} />
+        <div className="px-4 pt-6 pb-4 flex items-center gap-2">
+          <Logo size={24} />
           <div>
-            <div className="font-heading whitespace-nowrap" style={{ fontSize: 18 }}>
+            {/* 230px rail minus px-4 padding leaves 198px for icon+gap+text --
+                18px (the old size) doesn't fit next to the icon without
+                clipping; 16px matches the mobile header's size and leaves
+                headroom. */}
+            <div className="font-heading whitespace-nowrap" style={{ fontSize: 16 }}>
               Berean Study Desk
             </div>
             <div className="text-accent uppercase mt-1" style={{ fontSize: 10, letterSpacing: '0.14em' }}>

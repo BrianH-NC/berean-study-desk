@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "Berean Study Desk",
+  "short_name": "Berean",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F8FA",
+  "theme_color": "#F5F8FC",
+  "icons": [
+    {
+      "src": "/branding/themes/clarity/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/branding/themes/clarity/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -31,7 +31,7 @@ function groupByLetter(list, keyFn) {
   return { map, letters }
 }
 
-function BookTable({ books, checksByIsbn, navigate }) {
+function BookTable({ books, checksByIsbn, navigate, hideTags }) {
   return (
     <div className="overflow-x-auto">
       <table className="table w-full" style={{ minWidth: 560 }}>
@@ -50,13 +50,13 @@ function BookTable({ books, checksByIsbn, navigate }) {
               <tr key={b.id} className="cursor-pointer" onClick={() => navigate(`/shelf/${b.id}`)}>
                 <td>
                   <div className="flex items-center gap-2.5">
-                    <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 30, height: 45 }}>
+                    <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 40, height: 60 }}>
                       {b.cover_url && <img src={b.cover_url} alt="" className="w-full h-full object-cover" />}
                     </div>
                     <div>
                       <div className="card-title !text-[14px]">{b.title}</div>
                       <div className="card-meta">{b.author}</div>
-                      {b.tags?.length > 0 && (
+                      {!hideTags && b.tags?.length > 0 && (
                         <div className="flex gap-1 flex-wrap mt-1">
                           {b.tags.map((t) => (
                             <span key={t} className="tag tag-neutral" style={{ fontSize: 10 }}>
@@ -97,7 +97,7 @@ function BookTable({ books, checksByIsbn, navigate }) {
   )
 }
 
-function GroupedSections({ names, groups, checksByIsbn, navigate }) {
+function GroupedSections({ names, groups, checksByIsbn, navigate, hideTags }) {
   return (
     <div className="flex flex-col">
       {names.map((name, i) => (
@@ -108,7 +108,7 @@ function GroupedSections({ names, groups, checksByIsbn, navigate }) {
             </h3>
             <span className="card-meta">{groups[name].length}</span>
           </div>
-          <BookTable books={groups[name]} checksByIsbn={checksByIsbn} navigate={navigate} />
+          <BookTable books={groups[name]} checksByIsbn={checksByIsbn} navigate={navigate} hideTags={hideTags} />
         </div>
       ))}
     </div>
@@ -217,7 +217,7 @@ export default function Shelf() {
 
   const categoryNames = useMemo(() => {
     const names = Object.keys(byCategory).filter((n) => n !== 'Untagged')
-    names.sort((a, b) => byCategory[b].length - byCategory[a].length)
+    names.sort((a, b) => a.localeCompare(b))
     if (byCategory['Untagged']) names.push('Untagged')
     return names
   }, [byCategory])
@@ -243,12 +243,7 @@ export default function Shelf() {
   return (
     <div className="max-w-[1180px] mx-auto page">
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-        <div>
-          <div className="card-kicker mb-1">
-            {books ? `${books.length} books · ${checkedCount} checked` : ' '}
-          </div>
-          <h2 className="!mb-0">The shelf</h2>
-        </div>
+        <h2 className="!mb-0">My Library</h2>
         <div className="flex items-center gap-2 flex-wrap">
           {findingCovers && coverProgress && (
             <span className="text-sm flex items-center gap-1.5" style={{ opacity: 0.7 }}>
@@ -345,14 +340,14 @@ export default function Shelf() {
         </div>
       ) : books.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          No books on the shelf yet.
+          No books in your library yet.
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
           No books match that search.
         </div>
       ) : viewBy === 'Category' ? (
-        <GroupedSections names={categoryNames} groups={byCategory} checksByIsbn={checksByIsbn} navigate={navigate} />
+        <GroupedSections names={categoryNames} groups={byCategory} checksByIsbn={checksByIsbn} navigate={navigate} hideTags />
       ) : viewBy === 'Title' ? (
         <GroupedSections names={titleGroups.letters} groups={titleGroups.map} checksByIsbn={checksByIsbn} navigate={navigate} />
       ) : viewBy === 'Author' ? (
@@ -363,7 +358,7 @@ export default function Shelf() {
 
       {books?.length > 0 && (
         <div className="card-meta mt-3">
-          Showing {filtered.length} of {books.length}
+          Showing {filtered.length} of {books.length} · {checkedCount} checked
         </div>
       )}
     </div>

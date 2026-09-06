@@ -62,7 +62,7 @@ export default function Wishlist() {
       await supabase.from('wishlist').delete().eq('id', item.id)
       setItems((prev) => prev.filter((i) => i.id !== item.id))
     } catch (err) {
-      alert('Error moving to shelf: ' + err.message)
+      alert('Error moving to library: ' + err.message)
     } finally {
       setMovingId(null)
     }
@@ -82,7 +82,7 @@ export default function Wishlist() {
     <div className="max-w-[900px] mx-auto page">
       <div className="card-meta mb-2">
         <Link to="/shelf" className="hover:underline">
-          ← Shelf
+          ← My Library
         </Link>
       </div>
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
@@ -164,7 +164,7 @@ export default function Wishlist() {
                   onClick={() => handleOwnIt(item)}
                   disabled={movingId === item.id}
                 >
-                  {movingId === item.id ? 'Moving…' : 'Own it → move to shelf'}
+                  {movingId === item.id ? 'Moving…' : 'Own it → move to library'}
                 </button>
                 <button type="button" className="btn btn-ghost" style={{ color: 'var(--color-accent-700)' }} onClick={() => handleRemove(item)}>
                   Remove

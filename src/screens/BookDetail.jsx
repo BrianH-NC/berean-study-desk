@@ -158,7 +158,7 @@ export default function BookDetail() {
       <div className="max-w-[1080px] mx-auto page">
         <p>Book not found.</p>
         <Link to="/shelf" className="btn btn-secondary">
-          ← Shelf
+          ← My Library
         </Link>
       </div>
     )
@@ -171,7 +171,7 @@ export default function BookDetail() {
       <div className="flex items-center justify-between mb-4">
         <div className="card-meta">
           <Link to="/shelf" className="hover:underline">
-            Shelf
+            My Library
           </Link>{' '}
           / {book.title}
         </div>

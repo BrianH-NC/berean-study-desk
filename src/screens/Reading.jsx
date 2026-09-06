@@ -118,7 +118,7 @@ export default function Reading() {
           </div>
         ) : candidates.length === 0 ? (
           <div className="text-center py-16" style={{ opacity: 0.5 }}>
-            No books on the shelf yet.{' '}
+            No books in your library yet.{' '}
             <Link to="/shelf/add" className="hover:underline">
               Add one
             </Link>{' '}

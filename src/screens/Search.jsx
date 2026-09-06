@@ -153,7 +153,7 @@ export default function Search() {
 
           {bookMatches.length > 0 && (
             <div>
-              <div className="card-kicker mb-2">Shelf · {bookMatches.length}</div>
+              <div className="card-kicker mb-2">My Library · {bookMatches.length}</div>
               <div className="flex flex-col">
                 {bookMatches.map((b) => (
                   <Link

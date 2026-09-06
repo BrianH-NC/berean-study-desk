@@ -657,12 +657,12 @@ export default function BibleStudy() {
                         })}
                       </div>
                     ) : null}
-                    <div className="card-meta mt-2">
+                    <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
                       {commentaryData?.commentary?.name || 'Commentary'} — via the{' '}
                       <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                         Free Use Bible API
                       </a>
-                    </div>
+                    </p>
                   </div>
                 )}
 
@@ -671,7 +671,7 @@ export default function BibleStudy() {
                     <div className="card-kicker mb-2">Compare Translations</div>
                     {selectedSorted.length === 0 ? (
                       <p className="text-sm" style={{ opacity: 0.6 }}>
-                        Tap a verse above to compare translations.
+                        Tap a verse to compare translations.
                       </p>
                     ) : (
                       <>
@@ -746,7 +746,7 @@ export default function BibleStudy() {
                         </div>
                       </>
                     )}
-                    <div className="card-meta mt-2">
+                    <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
                       ESV® via Crossway; NIV/NLT/CSB via{' '}
                       <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
                         API.Bible
@@ -755,7 +755,7 @@ export default function BibleStudy() {
                       <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                         Free Use Bible API
                       </a>
-                    </div>
+                    </p>
                   </div>
                 )}
               </div>
@@ -767,7 +767,7 @@ export default function BibleStudy() {
               <div className="card-kicker mb-2">Cross References</div>
               {selectedSorted.length === 0 ? (
                 <p className="text-sm" style={{ opacity: 0.6 }}>
-                  Tap a verse above to see related verses.
+                  Tap a verse to see related verses.
                 </p>
               ) : crossRefLoading ? (
                 <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
@@ -811,12 +811,12 @@ export default function BibleStudy() {
                   })}
                 </div>
               ) : null}
-              <div className="card-meta mt-2">
+              <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
                 Cross references from OpenBible.info (CC BY 4.0), via the{' '}
                 <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                   Free Use Bible API
                 </a>
-              </div>
+              </p>
             </div>
           )}
         </>

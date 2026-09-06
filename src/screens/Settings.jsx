@@ -110,6 +110,25 @@ export default function Settings() {
             into the public domain on April 30, 2023 by the Berean Bible Translation Committee. No permission is
             required for its use.
           </div>
+          <div className="card-body mb-2">
+            Scripture quotations marked NIV are taken from the Holy Bible, New International Version®, NIV®.
+            Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission of Biblica, Inc.® All rights
+            reserved worldwide.
+          </div>
+          <div className="card-body mb-2">
+            Scripture quotations marked NLT are taken from the Holy Bible, New Living Translation, copyright © 1996,
+            2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Inc., Carol
+            Stream, Illinois 60188. All rights reserved.
+          </div>
+          <div className="card-body mb-2">
+            Scripture quotations marked CSB have been taken from the Christian Standard Bible®, copyright © 2017 by
+            Holman Bible Publishers. Used by permission. Christian Standard Bible® and CSB® are federally registered
+            trademarks of Holman Bible Publishers. NIV, NLT, and CSB text is served live through{' '}
+            <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
+              API.Bible
+            </a>
+            .
+          </div>
           <div className="card-body">
             Bible commentary and cross-reference data in Bible Study is provided live by the{' '}
             <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">

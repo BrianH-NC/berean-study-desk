@@ -20,16 +20,19 @@ import {
   fetchTranslationChapter,
 } from '../lib/helloao'
 import { fetchEsvChapterVerses } from '../lib/esv'
+import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 
 const VIEW_MODES = ['Read', 'Search']
 
 // Every translation the reading pane and the comparison panel can show, in
-// one list so both stay in sync. BSB is the app's own local copy; ESV is
-// fetched live through the app's esv-passage Edge Function (it's licensed,
-// unlike the rest); everything else comes from the Free Use Bible API.
+// one list so both stay in sync. BSB is the app's own local copy; ESV and
+// the BIBLEPLUS_TRANSLATIONS (NIV/NLT/CSB) are each licensed and fetched
+// live through their own Edge Function; everything else comes from the
+// Free Use Bible API.
 const BSB_OPTION = { id: 'BSB', name: 'Berean Standard Bible', short: 'BSB' }
 const ESV_OPTION = { id: 'ESV', name: 'English Standard Version', short: 'ESV' }
-const ALL_TRANSLATIONS = [BSB_OPTION, ESV_OPTION, ...COMPARISON_TRANSLATIONS]
+const BIBLEPLUS_IDS = new Set(BIBLEPLUS_TRANSLATIONS.map((t) => t.id))
+const ALL_TRANSLATIONS = [BSB_OPTION, ESV_OPTION, ...BIBLEPLUS_TRANSLATIONS, ...COMPARISON_TRANSLATIONS]
 
 // Normalizes every translation source to the same [{ number, text }, ...]
 // shape for one chapter, so the reading pane and comparison panel can treat
@@ -41,6 +44,9 @@ async function fetchChapterVersesFor(translationId, bookName, chapterNum) {
   }
   if (translationId === 'ESV') {
     return fetchEsvChapterVerses(bookName, chapterNum)
+  }
+  if (BIBLEPLUS_IDS.has(translationId)) {
+    return fetchBibleplusChapter(translationId, bookName, chapterNum)
   }
   return fetchTranslationChapter(translationId, bookName, chapterNum)
 }
@@ -741,7 +747,11 @@ export default function BibleStudy() {
                       </>
                     )}
                     <div className="card-meta mt-2">
-                      ESV® via Crossway; other translations via the{' '}
+                      ESV® via Crossway; NIV/NLT/CSB via{' '}
+                      <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
+                        API.Bible
+                      </a>
+                      ; other translations via the{' '}
                       <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
                         Free Use Bible API
                       </a>

@@ -39,23 +39,23 @@ const ALL_TRANSLATIONS = [BSB_OPTION, ESV_OPTION, ...BIBLEPLUS_TRANSLATIONS, ...
 // reading pane and comparison panel can treat them identically regardless of
 // where the text actually comes from. Only the API.Bible-backed translations
 // (BIBLEPLUS_IDS) carry real paragraph boundaries in their source data;
-// everything else marks just the first verse as a paragraph start, which
-// collapses the whole chapter into one continuous run -- the same "flows as
-// one block" look the reader always had before paragraphStart existed.
+// everything else marks every verse as its own paragraph start, giving a
+// one-verse-per-paragraph fallback rather than running the whole chapter
+// together as one undifferentiated block.
 async function fetchChapterVersesFor(translationId, bookName, chapterNum) {
   if (translationId === 'BSB') {
     const rows = await fetchChapter(bookName, chapterNum)
-    return rows.map((r, i) => ({ number: r.verse, text: r.text, paragraphStart: i === 0 }))
+    return rows.map((r) => ({ number: r.verse, text: r.text, paragraphStart: true }))
   }
   if (translationId === 'ESV') {
     const verses = await fetchEsvChapterVerses(bookName, chapterNum)
-    return verses.map((v, i) => ({ ...v, paragraphStart: i === 0 }))
+    return verses.map((v) => ({ ...v, paragraphStart: true }))
   }
   if (BIBLEPLUS_IDS.has(translationId)) {
     return fetchBibleplusChapter(translationId, bookName, chapterNum)
   }
   const verses = await fetchTranslationChapter(translationId, bookName, chapterNum)
-  return verses.map((v, i) => ({ ...v, paragraphStart: i === 0 }))
+  return verses.map((v) => ({ ...v, paragraphStart: true }))
 }
 
 function highlightTerms(text, query) {
@@ -229,15 +229,23 @@ export default function BibleStudy() {
     }
   }, [book])
 
-  // Fetches whenever book/chapter/reading-translation changes. Resets the
-  // verse-range scope to "whole chapter" up front -- a pending range (set by
-  // goTo, below) will re-narrow it once this load finishes, in the effect
-  // after this one.
+  // Fetches whenever book/chapter/reading-translation changes. Only resets
+  // the verse-range scope to "whole chapter" when book or chapter actually
+  // changed -- switching the reading translation while a narrowed range is
+  // showing (e.g. from a "John 3:16" search) should keep that same range
+  // narrowed once the new translation's text loads, not snap back to the
+  // whole chapter. A pending range (set by goTo, below) still re-narrows it
+  // once this load finishes, in the effect after this one.
+  const prevBookChapterRef = useRef({ book, chapter })
   useEffect(() => {
     let cancelled = false
+    const navigated = prevBookChapterRef.current.book !== book || prevBookChapterRef.current.chapter !== chapter
+    prevBookChapterRef.current = { book, chapter }
     setVerses(null)
-    setSelectedVerses(new Set())
-    setVerseRange(null)
+    if (navigated) {
+      setSelectedVerses(new Set())
+      setVerseRange(null)
+    }
     setRefError('')
     fetchChapterVersesFor(readingTranslation, book, chapter)
       .then((rows) => {
@@ -426,13 +434,12 @@ export default function BibleStudy() {
     return verses.filter((v) => v.number >= verseRange.start && v.number <= verseRange.end)
   }, [verses, verseRange])
 
-  // Groups displayedVerses into real paragraphs wherever paragraphStart says
-  // one begins -- for translations without real paragraph data every verse
-  // but the first is paragraphStart:false, so this collapses into a single
-  // group (the whole chapter as one continuous run, same as before this
-  // existed). The first verse of whatever's currently displayed always
-  // starts a group, even mid-chapter, so a narrowed verse range never opens
-  // looking like a paragraph fragment missing its start.
+  // Groups displayedVerses into paragraphs wherever paragraphStart says one
+  // begins -- real USX paragraph boundaries for the API.Bible translations,
+  // or one verse per paragraph as a fallback for sources without that data.
+  // The first verse of whatever's currently displayed always starts a group,
+  // even mid-chapter, so a narrowed verse range never opens looking like a
+  // paragraph fragment missing its start.
   const paragraphs = useMemo(() => {
     if (!displayedVerses) return []
     const groups = []

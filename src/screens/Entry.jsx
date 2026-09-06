@@ -4,6 +4,7 @@ import { getEntry, getLinksFor, updateEntry, deleteEntry, formatEntryNum } from 
 import { fetchEsvPassage } from '../lib/esv'
 import { supabase } from '../lib/supabase'
 import { stanceClass } from '../lib/stance'
+import ScriptureText from '../components/ScriptureText'
 
 export default function Entry() {
   const { id } = useParams()
@@ -191,7 +192,7 @@ export default function Entry() {
                   ) : null}
                 </div>
               )}
-              <p style={{ fontSize: 17, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{entry.body}</p>
+              <ScriptureText text={entry.body} style={{ fontSize: 17, lineHeight: 1.7 }} />
               {entry.tags?.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap mt-6 pt-4" style={{ borderTop: '1px solid var(--color-divider)' }}>
                   {entry.tags.map((t) => (

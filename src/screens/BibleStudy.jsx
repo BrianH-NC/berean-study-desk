@@ -197,7 +197,8 @@ export default function BibleStudy() {
   const [searching, setSearching] = useState(false)
   const searchDebounce = useRef(null)
 
-  // Deep link from global Search: /bible?book=Romans&chapter=8&verse=28
+  // Deep link from global Search or the Notebook reference tagger:
+  // /bible?book=Romans&chapter=8&verse=28 (optionally &verseEnd=30 for a range)
   const appliedDeepLink = useRef(false)
   useEffect(() => {
     if (appliedDeepLink.current) return
@@ -205,12 +206,14 @@ export default function BibleStudy() {
     const qBook = searchParams.get('book')
     const qChapter = searchParams.get('chapter')
     const qVerse = searchParams.get('verse')
+    const qVerseEnd = searchParams.get('verseEnd')
     if (qBook && qChapter) {
       setBook(qBook)
       setChapter(parseInt(qChapter, 10) || 1)
       if (qVerse) {
-        const v = parseInt(qVerse, 10)
-        setPendingRange({ start: v, end: v })
+        const start = parseInt(qVerse, 10)
+        const end = qVerseEnd ? parseInt(qVerseEnd, 10) : start
+        setPendingRange({ start, end })
       }
     }
   }, [searchParams])
@@ -591,7 +594,7 @@ export default function BibleStudy() {
                 ) : (
                   <>
                     {paragraphs.map((group) => (
-                      <p key={group[0].number} style={{ fontSize: 17, lineHeight: 1.75, marginBottom: '1em' }}>
+                      <p key={group[0].number} style={{ fontSize: 17, lineHeight: 1.75, marginBottom: 6 }}>
                         {group.map((v) => (
                           <span
                             key={v.number}

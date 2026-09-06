@@ -37,6 +37,21 @@ export async function fetchChapter(bookName, chapter) {
   return data || []
 }
 
+// Just the requested verses, in order -- for lightweight previews (e.g. the
+// inline reference tagger's popover) that don't need a whole chapter.
+export async function fetchVerseRange(bookName, chapter, verseStart, verseEnd) {
+  const { data, error } = await supabase
+    .from('bsb_verses')
+    .select('*')
+    .eq('book_name', bookName)
+    .eq('chapter', chapter)
+    .gte('verse', verseStart)
+    .lte('verse', verseEnd ?? verseStart)
+    .order('verse')
+  if (error) throw new Error(error.message)
+  return data || []
+}
+
 // How many chapters a book has, for the chapter-picker grid.
 export async function fetchChapterCount(bookName) {
   const { data, error } = await supabase

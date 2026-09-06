@@ -101,6 +101,44 @@ export function resolveBookName(input) {
   return BOOK_ALIASES[key] || null
 }
 
+// Alias keys excluded from bookNamePatterns below -- real book abbreviations
+// (Amos, Obadiah, Revelation, Exodus, Acts, Ruth, Deuteronomy, Numbers,
+// Leviticus, Genesis, Proverbs, Joel, Job) that are also ordinary short
+// English words or word fragments, too risky to auto-detect in arbitrary
+// prose even though they're fine for a dedicated reference-search box where
+// the user is deliberately typing a reference. Longer or digit-prefixed
+// aliases ("jn", "ps", "1cor") aren't real words and stay in.
+const TAGGER_EXCLUDED_ALIASES = new Set(['am', 'ob', 're', 'ex', 'ac', 'ru', 'dt', 'nu', 'le', 'ge', 'pr', 'jl', 'jb'])
+
+// Regex source fragments for spotting a real book name inline in free-flowing
+// prose (used by scriptureTagger.js to auto-link references in Notebook
+// entries) -- built from the same alias table as everything else here rather
+// than a second hand-maintained list.
+let _bookNamePatterns = null
+export function bookNamePatterns() {
+  if (_bookNamePatterns) return _bookNamePatterns
+  const entries = []
+  for (const [key, canonical] of Object.entries(BOOK_ALIASES)) {
+    if (TAGGER_EXCLUDED_ALIASES.has(key)) continue
+    const m = key.match(/^([123])(.+)$/)
+    const pattern = m ? `${m[1]}\\s?${m[2]}` : key
+    entries.push({ pattern, canonical, length: key.length })
+  }
+  // Alias keys have all punctuation/spacing stripped, so multi-word
+  // canonical names ("Song of Solomon") only exist there as one run-together
+  // token that won't match real spaced text -- add the properly spaced form
+  // directly from CANONICAL_BOOKS too.
+  CANONICAL_BOOKS.forEach((name) => {
+    const pattern = name.replace(/^([123]) /, '$1\\s?').replace(/\s+/g, '\\s+')
+    entries.push({ pattern, canonical: name, length: name.length })
+  })
+  // Longest first, so e.g. "Song of Solomon" or "Psalms" is tried before a
+  // shorter overlapping alias further down the alternation could shadow it.
+  entries.sort((a, b) => b.length - a.length)
+  _bookNamePatterns = entries
+  return _bookNamePatterns
+}
+
 export function canonicalIndex(bookName) {
   const i = CANONICAL_BOOKS.indexOf(bookName)
   return i === -1 ? 999 : i

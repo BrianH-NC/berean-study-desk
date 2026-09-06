@@ -34,21 +34,28 @@ const ESV_OPTION = { id: 'ESV', name: 'English Standard Version', short: 'ESV' }
 const BIBLEPLUS_IDS = new Set(BIBLEPLUS_TRANSLATIONS.map((t) => t.id))
 const ALL_TRANSLATIONS = [BSB_OPTION, ESV_OPTION, ...BIBLEPLUS_TRANSLATIONS, ...COMPARISON_TRANSLATIONS]
 
-// Normalizes every translation source to the same [{ number, text }, ...]
-// shape for one chapter, so the reading pane and comparison panel can treat
-// them identically regardless of where the text actually comes from.
+// Normalizes every translation source to the same
+// [{ number, text, paragraphStart }, ...] shape for one chapter, so the
+// reading pane and comparison panel can treat them identically regardless of
+// where the text actually comes from. Only the API.Bible-backed translations
+// (BIBLEPLUS_IDS) carry real paragraph boundaries in their source data;
+// everything else marks just the first verse as a paragraph start, which
+// collapses the whole chapter into one continuous run -- the same "flows as
+// one block" look the reader always had before paragraphStart existed.
 async function fetchChapterVersesFor(translationId, bookName, chapterNum) {
   if (translationId === 'BSB') {
     const rows = await fetchChapter(bookName, chapterNum)
-    return rows.map((r) => ({ number: r.verse, text: r.text }))
+    return rows.map((r, i) => ({ number: r.verse, text: r.text, paragraphStart: i === 0 }))
   }
   if (translationId === 'ESV') {
-    return fetchEsvChapterVerses(bookName, chapterNum)
+    const verses = await fetchEsvChapterVerses(bookName, chapterNum)
+    return verses.map((v, i) => ({ ...v, paragraphStart: i === 0 }))
   }
   if (BIBLEPLUS_IDS.has(translationId)) {
     return fetchBibleplusChapter(translationId, bookName, chapterNum)
   }
-  return fetchTranslationChapter(translationId, bookName, chapterNum)
+  const verses = await fetchTranslationChapter(translationId, bookName, chapterNum)
+  return verses.map((v, i) => ({ ...v, paragraphStart: i === 0 }))
 }
 
 function highlightTerms(text, query) {
@@ -419,6 +426,23 @@ export default function BibleStudy() {
     return verses.filter((v) => v.number >= verseRange.start && v.number <= verseRange.end)
   }, [verses, verseRange])
 
+  // Groups displayedVerses into real paragraphs wherever paragraphStart says
+  // one begins -- for translations without real paragraph data every verse
+  // but the first is paragraphStart:false, so this collapses into a single
+  // group (the whole chapter as one continuous run, same as before this
+  // existed). The first verse of whatever's currently displayed always
+  // starts a group, even mid-chapter, so a narrowed verse range never opens
+  // looking like a paragraph fragment missing its start.
+  const paragraphs = useMemo(() => {
+    if (!displayedVerses) return []
+    const groups = []
+    for (const v of displayedVerses) {
+      if (v.paragraphStart || groups.length === 0) groups.push([v])
+      else groups[groups.length - 1].push(v)
+    }
+    return groups
+  }, [displayedVerses])
+
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
 
   // Scrolls the highlighted commentary block into view -- without this, opening
@@ -559,22 +583,23 @@ export default function BibleStudy() {
                   </div>
                 ) : (
                   <>
-                    {displayedVerses.map((v) => (
-                      <p
-                        key={v.number}
-                        onClick={() => toggleVerse(v.number)}
-                        className="cursor-pointer"
-                        style={{
-                          fontSize: 17,
-                          lineHeight: 1.75,
-                          display: 'inline',
-                          background: selectedVerses.has(v.number) ? 'var(--color-accent-100)' : 'transparent',
-                          borderRadius: 6,
-                          padding: '2px 3px',
-                        }}
-                      >
-                        <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.number}</sup>
-                        {v.text + ' '}
+                    {paragraphs.map((group) => (
+                      <p key={group[0].number} style={{ fontSize: 17, lineHeight: 1.75, marginBottom: '1em' }}>
+                        {group.map((v) => (
+                          <span
+                            key={v.number}
+                            onClick={() => toggleVerse(v.number)}
+                            className="cursor-pointer"
+                            style={{
+                              background: selectedVerses.has(v.number) ? 'var(--color-accent-100)' : 'transparent',
+                              borderRadius: 6,
+                              padding: '2px 3px',
+                            }}
+                          >
+                            <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.number}</sup>
+                            {v.text + ' '}
+                          </span>
+                        ))}
                       </p>
                     ))}
                     {verseRange && (

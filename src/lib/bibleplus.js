@@ -36,8 +36,24 @@ function collectVerseText(node, out) {
   }
 }
 
-// Returns [{ number, text }, ...] for a whole chapter, matching the shape
-// every other translation source in the app already uses.
+// The first verseId found (depth-first) inside a top-level content block --
+// each block is one USX paragraph, and paragraphs only ever break at a verse
+// boundary, so this identifies which verse starts that paragraph.
+function firstVerseNumberIn(node) {
+  if (node.type === 'text') return node.attrs?.verseId || null
+  if (node.type === 'tag' && Array.isArray(node.items)) {
+    for (const child of node.items) {
+      const found = firstVerseNumberIn(child)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Returns [{ number, text, paragraphStart }, ...] for a whole chapter.
+// paragraphStart marks the verses that begin one of the source's real USX
+// paragraphs, letting the reader render actual paragraph breaks instead of
+// one continuous run of verses.
 export async function fetchBibleplusChapter(bibleplusId, bookName, chapter) {
   const meta = BIBLEPLUS_TRANSLATIONS.find((t) => t.id === bibleplusId)
   if (!meta) throw new Error(`Unknown translation "${bibleplusId}"`)
@@ -55,11 +71,17 @@ export async function fetchBibleplusChapter(bibleplusId, bookName, chapter) {
   }
 
   const byVerse = {}
-  data.content.forEach((block) => collectVerseText(block, byVerse))
+  const paragraphStarts = new Set()
+  data.content.forEach((block) => {
+    collectVerseText(block, byVerse)
+    const firstId = firstVerseNumberIn(block)
+    if (firstId) paragraphStarts.add(parseInt(firstId.split('.').pop(), 10))
+  })
   return Object.entries(byVerse)
     .map(([number, text]) => ({
       number: parseInt(number, 10),
       text: text.replace(/#/g, '').trim().replace(/\s+/g, ' '),
+      paragraphStart: paragraphStarts.has(parseInt(number, 10)),
     }))
     .sort((a, b) => a.number - b.number)
 }

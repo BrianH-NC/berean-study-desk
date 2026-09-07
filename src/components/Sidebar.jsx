@@ -103,32 +103,25 @@ export default function Sidebar() {
     })
   }
 
-  // Reserve the small icon-only width in the page's actual layout at all
-  // times while collapsed, so hovering to peek the full rail overlays the
-  // page (sliding out on top of it) instead of shoving content sideways.
+  // Hovering the collapsed rail temporarily widens it back to full size.
+  // This reflows the page (the rail's real layout width changes) rather
+  // than floating an overlay on top of it -- an overlay that doesn't push
+  // content aside just covers whatever was already sitting in that space,
+  // clipping it in half instead of cleanly hiding it.
   const expanded = !collapsed || hovering
 
   return (
     <>
       {/* Desktop: persistent left rail */}
       <aside
-        className="hidden md:block shrink-0 h-dvh sticky top-0"
-        style={{ width: collapsed ? RAIL_WIDTH_COLLAPSED : RAIL_WIDTH }}
+        className="hidden md:block shrink-0 h-dvh sticky top-0 flex flex-col bg-surface"
+        style={{
+          width: expanded ? RAIL_WIDTH : RAIL_WIDTH_COLLAPSED,
+          transition: 'width 0.15s ease',
+        }}
+        onMouseEnter={() => collapsed && setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
       >
-        <div
-          className="flex flex-col h-full bg-surface"
-          style={{
-            width: expanded ? RAIL_WIDTH : RAIL_WIDTH_COLLAPSED,
-            position: collapsed && hovering ? 'absolute' : 'relative',
-            top: 0,
-            left: 0,
-            zIndex: 30,
-            boxShadow: collapsed && hovering ? '4px 0 20px rgba(0,0,0,0.18)' : 'none',
-            transition: 'width 0.15s ease',
-          }}
-          onMouseEnter={() => collapsed && setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
-        >
           <div className="px-4 pt-6 pb-4 flex items-center gap-2" style={{ justifyContent: expanded ? 'flex-start' : 'center' }}>
             <Logo size={24} />
             {expanded && (
@@ -225,7 +218,6 @@ export default function Sidebar() {
               {expanded && (collapsed ? 'Expand' : 'Collapse')}
             </button>
           </div>
-        </div>
       </aside>
 
       {/* Mobile: compact top bar + fixed bottom tab bar */}

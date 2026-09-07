@@ -149,6 +149,14 @@ export default function DoctrineCheckReport() {
             )}
           </div>
         </div>
+        <p className="mt-3" style={{ fontSize: 12.5, opacity: 0.75, lineHeight: 1.5 }}>
+          <b>AI-assisted assessment:</b> this evaluation is a study aid, not a final theological authority. AI can make
+          mistakes or miss important context — examine its conclusions in light of Scripture, prayerfully seeking the
+          guidance of the Holy Spirit.{' '}
+          <span style={{ fontStyle: 'italic' }}>
+            "Examining the Scriptures daily to see if these things were so." — Acts 17:11
+          </span>
+        </p>
       </div>
 
       <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_296px]">

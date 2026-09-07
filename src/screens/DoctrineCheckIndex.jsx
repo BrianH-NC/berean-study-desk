@@ -214,6 +214,26 @@ export default function DoctrineCheckIndex() {
       <div className="card-kicker mb-1">Measured against the Baptist Faith &amp; Message 2000</div>
       <h2 className="!mb-4">Doctrine Check</h2>
 
+      <div className="card mb-5" style={{ padding: '16px 20px', borderLeft: '3px solid var(--color-accent)' }}>
+        <div className="card-title mb-1">A Note on Theological Assessments</div>
+        <div className="card-body mb-1">
+          The theological assessments in Berean Study Desk are generated with the assistance of artificial
+          intelligence. They are intended to support careful study, comparison, and reflection — not to serve as an
+          infallible judgment on a book, teacher, doctrine, or theological position.
+        </div>
+        <div className="card-body mb-1">
+          AI can misunderstand context, overlook nuance, or reach conclusions that deserve further examination. For
+          that reason, every assessment should be weighed carefully against Scripture. As the Bereans did, "they
+          received the word with all eagerness, examining the Scriptures daily to see if these things were so" (Acts
+          17:11).
+        </div>
+        <div className="card-body">
+          <b>Scripture is the final authority.</b> Confessions, commentaries, teachers, and the tools in BSD can help
+          us understand the faith, but they remain subordinate to the Word of God. Study prayerfully, seek wise
+          counsel when appropriate, and depend on the Holy Spirit to lead into truth.
+        </div>
+      </div>
+
       {/* New check card */}
       <div className="card mb-5" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">

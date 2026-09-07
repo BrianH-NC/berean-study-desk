@@ -114,8 +114,6 @@ export default function Sidebar() {
       <aside
         className="hidden md:block shrink-0 h-dvh sticky top-0"
         style={{ width: collapsed ? RAIL_WIDTH_COLLAPSED : RAIL_WIDTH }}
-        onMouseEnter={() => collapsed && setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
       >
         <div
           className="flex flex-col h-full bg-surface"
@@ -128,6 +126,8 @@ export default function Sidebar() {
             boxShadow: collapsed && hovering ? '4px 0 20px rgba(0,0,0,0.18)' : 'none',
             transition: 'width 0.15s ease',
           }}
+          onMouseEnter={() => collapsed && setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
         >
           <div className="px-4 pt-6 pb-4 flex items-center gap-2" style={{ justifyContent: expanded ? 'flex-start' : 'center' }}>
             <Logo size={24} />

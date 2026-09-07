@@ -559,7 +559,7 @@ export default function BibleStudy() {
             >
               {ALL_TRANSLATIONS.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {t.short}
                 </option>
               ))}
             </select>

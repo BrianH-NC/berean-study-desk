@@ -181,26 +181,41 @@ export default function Sidebar() {
               </div>
             )}
 
-            <div className="seg self-start" style={expanded ? undefined : { alignSelf: 'center' }}>
+            {expanded ? (
+              <div className="seg self-start">
+                <button
+                  type="button"
+                  className="seg-opt"
+                  style={mode === 'light' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+                  onClick={() => setMode('light')}
+                  aria-label="Day mode"
+                >
+                  <Sun size={14} strokeWidth={2.75} />
+                </button>
+                <button
+                  type="button"
+                  className="seg-opt"
+                  style={mode === 'dark' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
+                  onClick={() => setMode('dark')}
+                  aria-label="Evening mode"
+                >
+                  <Moon size={14} strokeWidth={2.75} />
+                </button>
+              </div>
+            ) : (
+              // The two-button pill is too wide for the icon-only rail --
+              // collapse it to a single toggle, matching the mobile header.
               <button
                 type="button"
-                className="seg-opt"
-                style={mode === 'light' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-                onClick={() => setMode('light')}
-                aria-label="Day mode"
+                className="btn btn-ghost self-center !px-0"
+                style={{ padding: 0 }}
+                onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
+                aria-label="Toggle Day/Evening mode"
+                title={mode === 'light' ? 'Switch to Evening mode' : 'Switch to Day mode'}
               >
-                <Sun size={14} strokeWidth={2.75} />
+                {mode === 'light' ? <Sun size={15} strokeWidth={2.75} /> : <Moon size={15} strokeWidth={2.75} />}
               </button>
-              <button
-                type="button"
-                className="seg-opt"
-                style={mode === 'dark' ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-                onClick={() => setMode('dark')}
-                aria-label="Evening mode"
-              >
-                <Moon size={14} strokeWidth={2.75} />
-              </button>
-            </div>
+            )}
 
             <NavLink to="/settings" className="btn btn-ghost self-start !px-0" style={expanded ? undefined : { alignSelf: 'center', padding: 0 }} title={expanded ? undefined : 'Settings'}>
               <SettingsIcon size={15} strokeWidth={2.75} />

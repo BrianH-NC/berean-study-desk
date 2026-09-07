@@ -8,18 +8,19 @@ import { CANONICAL_BOOKS, resolveBookName } from './entries'
 export const OT_BOOKS = CANONICAL_BOOKS.slice(0, 39)
 export const NT_BOOKS = CANONICAL_BOOKS.slice(39)
 
-// Parses free text like "Romans 8:28", "Jn 3:16-18", "Ps 23", or "1 cor 13"
+// Parses free text like "Romans 8:28", "Jn 3:16-18", "Ps 23", "1 cor 13", or
+// just a bare book name/abbreviation like "1 Peter" (chapter defaults to 1)
 // into { book, chapter, verseStart, verseEnd } (verseStart/verseEnd null for
 // a whole-chapter reference). Returns null if it can't make sense of it.
 export function parseReference(input) {
   const trimmed = (input || '').trim()
   if (!trimmed) return null
-  const m = trimmed.match(/^([1-3]?\s*[A-Za-z][A-Za-z. ]*?)\.?\s+(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/)
+  const m = trimmed.match(/^([1-3]?\s*[A-Za-z][A-Za-z. ]*?)\.?(?:\s+(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?)?$/)
   if (!m) return null
   const [, bookRaw, chapterStr, verseStartStr, verseEndStr] = m
   const book = resolveBookName(bookRaw.trim())
   if (!book) return null
-  const chapter = parseInt(chapterStr, 10)
+  const chapter = chapterStr ? parseInt(chapterStr, 10) : 1
   const verseStart = verseStartStr ? parseInt(verseStartStr, 10) : null
   const verseEnd = verseEndStr ? parseInt(verseEndStr, 10) : verseStart
   return { book, chapter, verseStart, verseEnd }

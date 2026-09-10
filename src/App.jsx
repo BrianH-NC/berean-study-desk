@@ -25,8 +25,9 @@ export const useAuth = () => useContext(AuthContext)
 function ProtectedLayout() {
   return (
     <div className="flex flex-col md:flex-row min-h-dvh">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar />
-      <main className="flex-1 min-w-0">
+      <main id="main-content" tabIndex={-1} className="app-main flex-1 min-w-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />
@@ -45,6 +46,7 @@ function ProtectedLayout() {
           <Route path="/search" element={<Search />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/profile" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

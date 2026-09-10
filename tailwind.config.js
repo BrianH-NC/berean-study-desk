@@ -1,10 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
-  darkMode: ['selector', '[data-mode="dark"]'],
   theme: {
     extend: {
       colors: {
+        forest: 'var(--bsd-forest)',
+        gold: 'var(--bsd-gold)',
+        muted: 'var(--bsd-muted)',
         bg: 'var(--color-bg)',
         surface: 'var(--color-surface)',
         ink: 'var(--color-text)',
@@ -46,27 +48,29 @@ export default {
         },
       },
       fontFamily: {
-        heading: ['Caprasimo', 'system-ui', 'sans-serif'],
-        body: ['Figtree', 'system-ui', 'sans-serif'],
+        heading: ['Cinzel', 'Georgia', 'serif'],
+        ui: ['Inter', 'system-ui', 'sans-serif'],
+        scripture: ['EB Garamond', 'Georgia', 'serif'],
+        body: ['Lora', 'Georgia', 'serif'],
       },
       spacing: {
-        ds1: '4.4px',
-        ds2: '8.8px',
-        ds3: '13.2px',
-        ds4: '17.6px',
-        ds6: '26.4px',
-        ds8: '35.2px',
+        ds1: '4px',
+        ds2: '8px',
+        ds3: '12px',
+        ds4: '16px',
+        ds6: '24px',
+        ds8: '32px',
       },
       borderRadius: {
-        sm: '8px',
-        md: '16px',
-        lg: '28px',
-        card: '32px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        card: '12px',
       },
       boxShadow: {
-        sm: '0 1px 2px rgba(46,43,37,0.14)',
-        md: '0 3px 10px rgba(46,43,37,0.16)',
-        lg: '0 12px 32px rgba(46,43,37,0.22)',
+        sm: '0 2px 8px rgba(46,42,38,0.06)',
+        md: '0 8px 24px rgba(46,42,38,0.14)',
+        lg: '0 8px 24px rgba(46,42,38,0.14)',
       },
     },
   },

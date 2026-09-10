@@ -1,605 +1,106 @@
-@import url('https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=EB+Garamond:wght@400;500&family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Organic design tokens — Day mode (default). Evening mode re-declares every
-   step below under [data-mode="dark"], never just the ends, since deep ramp
-   steps (e.g. accent-700) are used as text color on light ramp-step fills. */
+/* Modern Heritage: a single light baseline. Legacy aliases keep existing
+   screens on the same system without changing their data or behavior. */
 :root {
-  --color-bg: #f5ead8;
-  --color-surface: #ebddc5;
-  --color-text: #201e1d;
-  --color-accent: #c67139;
-  --color-accent-2: #7a8a5e;
-  --color-divider: rgba(32, 30, 29, 0.16);
-
-  --color-neutral-100: #f9f4ed;
-  --color-neutral-200: #eee7db;
-  --color-neutral-300: #dcd3c4;
-  --color-neutral-400: #c0b6a5;
-  --color-neutral-500: #a19786;
-  --color-neutral-600: #82796a;
-  --color-neutral-700: #645c50;
-  --color-neutral-800: #474238;
-  --color-neutral-900: #2e2b25;
-
-  --color-accent-100: #fff2eb;
-  --color-accent-200: #ffe1d0;
-  --color-accent-300: #ffc6a5;
-  --color-accent-400: #f6a06b;
-  --color-accent-500: #d67f48;
-  --color-accent-600: #b2622d;
-  --color-accent-700: #8c491a;
-  --color-accent-800: #643312;
-  --color-accent-900: #402310;
-
-  --color-accent-2-100: #f0fae1;
-  --color-accent-2-200: #e1eecc;
-  --color-accent-2-300: #ccdbb2;
-  --color-accent-2-400: #aebf92;
-  --color-accent-2-500: #8fa073;
-  --color-accent-2-600: #728157;
-  --color-accent-2-700: #56633f;
-  --color-accent-2-800: #3d472b;
-  --color-accent-2-900: #272e1b;
-
-  /* Doctrine Check verdict colors -- deliberately defined here, outside every
-     [data-theme] block below, so "Sound" is always green, "Caution" always
-     yellow, "Concern" always red, "Distinctive" always blue, and "Unable to
-     Assess" always grey, no matter which of the 6 color themes is active.
-     Only Day/Evening mode (the [data-mode='dark'] block right below) is
-     allowed to adjust them, same as everything else on this page. */
-  --verdict-sound-bg: #e3f3e3;
-  --verdict-sound-text: #1e5f2e;
-  --verdict-caution-bg: #fff4c2;
-  --verdict-caution-text: #7a5b00;
-  --verdict-concern-bg: #fbe3e1;
-  --verdict-concern-text: #8c2f27;
-  --verdict-distinctive-bg: #e1ebfb;
-  --verdict-distinctive-text: #1e4e8c;
-  --verdict-unassessed-bg: #ececec;
-  --verdict-unassessed-text: #4a4a4a;
+  color-scheme: light;
+  --bsd-forest: #0F3D2E;
+  --bsd-gold: #D4AF37;
+  --bsd-parchment: #F8F3E7;
+  --bsd-charcoal: #2E2A26;
+  --bsd-surface: #FFFCF6;
+  --bsd-muted: #655F56;
+  --bsd-border: #DCD5C7;
+  --bsd-control-border: #857D70;
+  --bsd-primary-hover: #0B3024;
+  --bsd-selected: #E6EEE8;
+  --color-bg: var(--bsd-parchment);
+  --color-surface: var(--bsd-surface);
+  --color-text: var(--bsd-charcoal);
+  --color-accent: var(--bsd-forest);
+  --color-accent-2: var(--bsd-forest);
+  --color-divider: var(--bsd-border);
+  --color-neutral-100: #FFFCF6;
+  --color-neutral-200: #EEEAE2;
+  --color-neutral-300: #DCD5C7;
+  --color-neutral-400: #857D70;
+  --color-neutral-500: #756D62;
+  --color-neutral-600: #655F56;
+  --color-neutral-700: #554E45;
+  --color-neutral-800: #423C35;
+  --color-neutral-900: #2E2A26;
+  --color-accent-100: #E6EEE8;
+  --color-accent-200: #D1E1D6;
+  --color-accent-300: #AAC6B4;
+  --color-accent-400: #648D74;
+  --color-accent-500: #32634A;
+  --color-accent-600: #0B3024;
+  --color-accent-700: #0F3D2E;
+  --color-accent-800: #092A20;
+  --color-accent-900: #061F17;
+  --color-accent-2-100: var(--color-accent-100);
+  --color-accent-2-200: var(--color-accent-200);
+  --color-accent-2-300: var(--color-accent-300);
+  --color-accent-2-400: var(--color-accent-400);
+  --color-accent-2-500: var(--color-accent-500);
+  --color-accent-2-600: var(--color-accent-600);
+  --color-accent-2-700: var(--color-accent-700);
+  --color-accent-2-800: var(--color-accent-800);
+  --color-accent-2-900: var(--color-accent-900);
+  --verdict-sound-bg: #E6EEE8;
+  --verdict-sound-text: #0F3D2E;
+  --verdict-caution-bg: #FBF0CD;
+  --verdict-caution-text: #71520B;
+  --verdict-concern-bg: #F7E8E4;
+  --verdict-concern-text: #8B302B;
+  --verdict-distinctive-bg: #E1EBFB;
+  --verdict-distinctive-text: #1E4E8C;
+  --verdict-unassessed-bg: #EEEAE2;
+  --verdict-unassessed-text: #655F56;
 }
 
-[data-mode='dark'] {
-  --color-bg: #201e1d;
-  --color-surface: #2e2b25;
-  --color-text: #f5ead8;
-  --color-accent: #f6a06b;
-  --color-accent-2: #aebf92;
-  --color-divider: rgba(245, 234, 216, 0.18);
-
-  --color-neutral-100: #2e2b25;
-  --color-neutral-200: #3a352e;
-  --color-neutral-300: #474238;
-  --color-neutral-400: #645c50;
-  --color-neutral-500: #82796a;
-  --color-neutral-600: #a19786;
-  --color-neutral-700: #c0b6a5;
-  --color-neutral-800: #dcd3c4;
-  --color-neutral-900: #f9f4ed;
-
-  --color-accent-100: #402310;
-  --color-accent-200: #643312;
-  --color-accent-300: #8c491a;
-  --color-accent-400: #b2622d;
-  --color-accent-500: #d67f48;
-  --color-accent-600: #f6a06b;
-  --color-accent-700: #ffc6a5;
-  --color-accent-800: #ffe1d0;
-  --color-accent-900: #fff2eb;
-
-  --color-accent-2-100: #272e1b;
-  --color-accent-2-200: #3d472b;
-  --color-accent-2-300: #56633f;
-  --color-accent-2-400: #728157;
-  --color-accent-2-500: #8fa073;
-  --color-accent-2-600: #aebf92;
-  --color-accent-2-700: #ccdbb2;
-  --color-accent-2-800: #e1eecc;
-  --color-accent-2-900: #f0fae1;
-
-  --verdict-sound-bg: #1b3a22;
-  --verdict-sound-text: #8fe3a0;
-  --verdict-caution-bg: #4a3b00;
-  --verdict-caution-text: #ffd966;
-  --verdict-concern-bg: #4a211d;
-  --verdict-concern-text: #f5a399;
-  --verdict-distinctive-bg: #1b2e4a;
-  --verdict-distinctive-text: #9cc2f5;
-  --verdict-unassessed-bg: #3a3a3a;
-  --verdict-unassessed-text: #c7c7c7;
+@layer base {
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bsd-parchment); color: var(--bsd-charcoal); font-family: theme('fontFamily.body'); font-size: 1rem; line-height: 1.625; }
+  h1, h2, h3, h4, h5, h6 { font-family: theme('fontFamily.heading'); font-weight: 600; line-height: 1.3; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+  h1, h2 { font-size: 1.75rem; line-height: 2.25rem; }
+  h3 { font-size: 1.375rem; } h4 { font-size: 1.125rem; }
+  h5, h6 { font-size: 1rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--bsd-forest); text-underline-offset: 3px; }
+  p a { text-decoration: underline; }
+  button, input, select, textarea, label, nav { font-family: theme('fontFamily.ui'); }
+  :focus-visible { outline: 2px solid var(--bsd-forest); outline-offset: 2px; }
+  ::selection { background: var(--bsd-selected); color: var(--bsd-forest); }
+  @media (min-width: 768px) { body { font-size: 1.0625rem; line-height: 1.75rem; } }
 }
-
-/* — Theme picker (Settings → Appearance) — each theme below follows the same
-   derivation Organic's own dark mode already uses: dark bg = light text,
-   dark surface = light neutral-900, dark text = light bg, every ramp read
-   back-to-front, and the plain --color-accent/-2 pulled from the 400 step
-   (dark) vs the 500 step (light) of that same ramp. Selected via
-   [data-theme="…"] on <html>; omitting the attribute (or "organic") falls
-   back to the bare :root/[data-mode="dark"] blocks above untouched. — */
-
-[data-theme='vellum'] {
-  --color-bg: #f3f1ea;
-  --color-surface: #e7e2d5;
-  --color-text: #201f1c;
-  --color-accent: #566ba0;
-  --color-accent-2: #ab8a3e;
-  --color-divider: rgba(32, 31, 28, 0.16);
-
-  --color-neutral-100: #f8f6f0;
-  --color-neutral-200: #eeebe1;
-  --color-neutral-300: #d9d4c4;
-  --color-neutral-400: #bcb6a1;
-  --color-neutral-500: #9c9581;
-  --color-neutral-600: #7c7562;
-  --color-neutral-700: #5d574a;
-  --color-neutral-800: #413d33;
-  --color-neutral-900: #27241e;
-
-  --color-accent-100: #eef1f7;
-  --color-accent-200: #d6ddec;
-  --color-accent-300: #aebbd8;
-  --color-accent-400: #7d8fbd;
-  --color-accent-500: #566ba0;
-  --color-accent-600: #3f5384;
-  --color-accent-700: #2f3f66;
-  --color-accent-800: #212d49;
-  --color-accent-900: #151d2f;
-
-  --color-accent-2-100: #faf3df;
-  --color-accent-2-200: #f1e0b0;
-  --color-accent-2-300: #e3c67c;
-  --color-accent-2-400: #cfa955;
-  --color-accent-2-500: #ab8a3e;
-  --color-accent-2-600: #866c30;
-  --color-accent-2-700: #645123;
-  --color-accent-2-800: #443718;
-  --color-accent-2-900: #29220e;
-}
-
-[data-theme='vellum'][data-mode='dark'] {
-  --color-bg: #201f1c;
-  --color-surface: #27241e;
-  --color-text: #f3f1ea;
-  --color-accent: #7d8fbd;
-  --color-accent-2: #cfa955;
-  --color-divider: rgba(243, 241, 234, 0.18);
-
-  --color-neutral-100: #27241e;
-  --color-neutral-200: #413d33;
-  --color-neutral-300: #5d574a;
-  --color-neutral-400: #7c7562;
-  --color-neutral-500: #9c9581;
-  --color-neutral-600: #bcb6a1;
-  --color-neutral-700: #d9d4c4;
-  --color-neutral-800: #eeebe1;
-  --color-neutral-900: #f8f6f0;
-
-  --color-accent-100: #151d2f;
-  --color-accent-200: #212d49;
-  --color-accent-300: #2f3f66;
-  --color-accent-400: #3f5384;
-  --color-accent-500: #566ba0;
-  --color-accent-600: #7d8fbd;
-  --color-accent-700: #aebbd8;
-  --color-accent-800: #d6ddec;
-  --color-accent-900: #eef1f7;
-
-  --color-accent-2-100: #29220e;
-  --color-accent-2-200: #443718;
-  --color-accent-2-300: #645123;
-  --color-accent-2-400: #866c30;
-  --color-accent-2-500: #ab8a3e;
-  --color-accent-2-600: #cfa955;
-  --color-accent-2-700: #e3c67c;
-  --color-accent-2-800: #f1e0b0;
-  --color-accent-2-900: #faf3df;
-}
-
-[data-theme='illuminated'] {
-  --color-bg: #f5e9dd;
-  --color-surface: #ecd9c7;
-  --color-text: #241813;
-  --color-accent: #a84a49;
-  --color-accent-2: #a3812f;
-  --color-divider: rgba(36, 24, 19, 0.16);
-
-  --color-neutral-100: #faf3ea;
-  --color-neutral-200: #f0e3d2;
-  --color-neutral-300: #ddc4a8;
-  --color-neutral-400: #c2a17c;
-  --color-neutral-500: #a37f5c;
-  --color-neutral-600: #826345;
-  --color-neutral-700: #634b34;
-  --color-neutral-800: #453424;
-  --color-neutral-900: #2a2015;
-
-  --color-accent-100: #fbecec;
-  --color-accent-200: #f3d1d1;
-  --color-accent-300: #e2a4a4;
-  --color-accent-400: #c87271;
-  --color-accent-500: #a84a49;
-  --color-accent-600: #883334;
-  --color-accent-700: #6b2528;
-  --color-accent-800: #4c1a1c;
-  --color-accent-900: #2f1112;
-
-  --color-accent-2-100: #faf2df;
-  --color-accent-2-200: #f0dfae;
-  --color-accent-2-300: #dfc078;
-  --color-accent-2-400: #c8a352;
-  --color-accent-2-500: #a3812f;
-  --color-accent-2-600: #816323;
-  --color-accent-2-700: #614a1a;
-  --color-accent-2-800: #423212;
-  --color-accent-2-900: #29200b;
-}
-
-[data-theme='illuminated'][data-mode='dark'] {
-  --color-bg: #241813;
-  --color-surface: #2a2015;
-  --color-text: #f5e9dd;
-  --color-accent: #c87271;
-  --color-accent-2: #c8a352;
-  --color-divider: rgba(245, 233, 221, 0.18);
-
-  --color-neutral-100: #2a2015;
-  --color-neutral-200: #453424;
-  --color-neutral-300: #634b34;
-  --color-neutral-400: #826345;
-  --color-neutral-500: #a37f5c;
-  --color-neutral-600: #c2a17c;
-  --color-neutral-700: #ddc4a8;
-  --color-neutral-800: #f0e3d2;
-  --color-neutral-900: #faf3ea;
-
-  --color-accent-100: #2f1112;
-  --color-accent-200: #4c1a1c;
-  --color-accent-300: #6b2528;
-  --color-accent-400: #883334;
-  --color-accent-500: #a84a49;
-  --color-accent-600: #c87271;
-  --color-accent-700: #e2a4a4;
-  --color-accent-800: #f3d1d1;
-  --color-accent-900: #fbecec;
-
-  --color-accent-2-100: #29200b;
-  --color-accent-2-200: #423212;
-  --color-accent-2-300: #614a1a;
-  --color-accent-2-400: #816323;
-  --color-accent-2-500: #a3812f;
-  --color-accent-2-600: #c8a352;
-  --color-accent-2-700: #dfc078;
-  --color-accent-2-800: #f0dfae;
-  --color-accent-2-900: #faf2df;
-}
-
-[data-theme='grove'] {
-  --color-bg: #eef1e8;
-  --color-surface: #e2e8d8;
-  --color-text: #1e231b;
-  --color-accent: #5a8355;
-  --color-accent-2: #a97654;
-  --color-divider: rgba(30, 35, 27, 0.16);
-
-  --color-neutral-100: #f6f8f2;
-  --color-neutral-200: #eaeee1;
-  --color-neutral-300: #d4dac4;
-  --color-neutral-400: #b7c0a3;
-  --color-neutral-500: #98a382;
-  --color-neutral-600: #798467;
-  --color-neutral-700: #5c664e;
-  --color-neutral-800: #414938;
-  --color-neutral-900: #272b22;
-
-  --color-accent-100: #eef4ec;
-  --color-accent-200: #d5e4d2;
-  --color-accent-300: #adc8a8;
-  --color-accent-400: #7fa579;
-  --color-accent-500: #5a8355;
-  --color-accent-600: #45683f;
-  --color-accent-700: #345031;
-  --color-accent-800: #253a22;
-  --color-accent-900: #172515;
-
-  --color-accent-2-100: #f8ede3;
-  --color-accent-2-200: #eed7bf;
-  --color-accent-2-300: #ddb490;
-  --color-accent-2-400: #c68f63;
-  --color-accent-2-500: #a97654;
-  --color-accent-2-600: #855b3f;
-  --color-accent-2-700: #654530;
-  --color-accent-2-800: #462f21;
-  --color-accent-2-900: #2b1d14;
-}
-
-[data-theme='grove'][data-mode='dark'] {
-  --color-bg: #1e231b;
-  --color-surface: #272b22;
-  --color-text: #eef1e8;
-  --color-accent: #7fa579;
-  --color-accent-2: #c68f63;
-  --color-divider: rgba(238, 241, 232, 0.18);
-
-  --color-neutral-100: #272b22;
-  --color-neutral-200: #414938;
-  --color-neutral-300: #5c664e;
-  --color-neutral-400: #798467;
-  --color-neutral-500: #98a382;
-  --color-neutral-600: #b7c0a3;
-  --color-neutral-700: #d4dac4;
-  --color-neutral-800: #eaeee1;
-  --color-neutral-900: #f6f8f2;
-
-  --color-accent-100: #172515;
-  --color-accent-200: #253a22;
-  --color-accent-300: #345031;
-  --color-accent-400: #45683f;
-  --color-accent-500: #5a8355;
-  --color-accent-600: #7fa579;
-  --color-accent-700: #adc8a8;
-  --color-accent-800: #d5e4d2;
-  --color-accent-900: #eef4ec;
-
-  --color-accent-2-100: #2b1d14;
-  --color-accent-2-200: #462f21;
-  --color-accent-2-300: #654530;
-  --color-accent-2-400: #855b3f;
-  --color-accent-2-500: #a97654;
-  --color-accent-2-600: #c68f63;
-  --color-accent-2-700: #ddb490;
-  --color-accent-2-800: #eed7bf;
-  --color-accent-2-900: #f8ede3;
-}
-
-[data-theme='slate'] {
-  --color-bg: #f4f4f1;
-  --color-surface: #e7e8e3;
-  --color-text: #1d211f;
-  --color-accent: #3f8f87;
-  --color-accent-2: #5c6a89;
-  --color-divider: rgba(29, 33, 31, 0.16);
-
-  --color-neutral-100: #f8f8f6;
-  --color-neutral-200: #eeefeb;
-  --color-neutral-300: #dadcd5;
-  --color-neutral-400: #bfc2b8;
-  --color-neutral-500: #a1a599;
-  --color-neutral-600: #84887a;
-  --color-neutral-700: #676b5d;
-  --color-neutral-800: #4a4d42;
-  --color-neutral-900: #2e3029;
-
-  --color-accent-100: #eaf5f4;
-  --color-accent-200: #cbe6e3;
-  --color-accent-300: #99cdc7;
-  --color-accent-400: #63aea6;
-  --color-accent-500: #3f8f87;
-  --color-accent-600: #2f6f6b;
-  --color-accent-700: #235452;
-  --color-accent-800: #193c3b;
-  --color-accent-900: #0f2524;
-
-  --color-accent-2-100: #eef0f4;
-  --color-accent-2-200: #d3d8e2;
-  --color-accent-2-300: #aab3c7;
-  --color-accent-2-400: #7c88a4;
-  --color-accent-2-500: #5c6a89;
-  --color-accent-2-600: #47536d;
-  --color-accent-2-700: #363f54;
-  --color-accent-2-800: #262c3c;
-  --color-accent-2-900: #171a25;
-}
-
-[data-theme='slate'][data-mode='dark'] {
-  --color-bg: #1d211f;
-  --color-surface: #2e3029;
-  --color-text: #f4f4f1;
-  --color-accent: #63aea6;
-  --color-accent-2: #7c88a4;
-  --color-divider: rgba(244, 244, 241, 0.18);
-
-  --color-neutral-100: #2e3029;
-  --color-neutral-200: #4a4d42;
-  --color-neutral-300: #676b5d;
-  --color-neutral-400: #84887a;
-  --color-neutral-500: #a1a599;
-  --color-neutral-600: #bfc2b8;
-  --color-neutral-700: #dadcd5;
-  --color-neutral-800: #eeefeb;
-  --color-neutral-900: #f8f8f6;
-
-  --color-accent-100: #0f2524;
-  --color-accent-200: #193c3b;
-  --color-accent-300: #235452;
-  --color-accent-400: #2f6f6b;
-  --color-accent-500: #3f8f87;
-  --color-accent-600: #63aea6;
-  --color-accent-700: #99cdc7;
-  --color-accent-800: #cbe6e3;
-  --color-accent-900: #eaf5f4;
-
-  --color-accent-2-100: #171a25;
-  --color-accent-2-200: #262c3c;
-  --color-accent-2-300: #363f54;
-  --color-accent-2-400: #47536d;
-  --color-accent-2-500: #5c6a89;
-  --color-accent-2-600: #7c88a4;
-  --color-accent-2-700: #aab3c7;
-  --color-accent-2-800: #d3d8e2;
-  --color-accent-2-900: #eef0f4;
-}
-
-[data-theme='clarity'] {
-  --color-bg: #f6f8fa;
-  --color-surface: #eaeef2;
-  --color-text: #182029;
-  --color-accent: #3993d3;
-  --color-accent-2: #e0743a;
-  --color-divider: rgba(24, 32, 41, 0.16);
-
-  --color-neutral-100: #fafbfc;
-  --color-neutral-200: #eef1f4;
-  --color-neutral-300: #dde2e8;
-  --color-neutral-400: #c2c9d1;
-  --color-neutral-500: #a3abb6;
-  --color-neutral-600: #848d99;
-  --color-neutral-700: #666f7c;
-  --color-neutral-800: #4a525e;
-  --color-neutral-900: #2e343d;
-
-  --color-accent-100: #eaf3fc;
-  --color-accent-200: #cfe4f7;
-  --color-accent-300: #9ecdef;
-  --color-accent-400: #66b0e3;
-  --color-accent-500: #3993d3;
-  --color-accent-600: #2677b3;
-  --color-accent-700: #1c5c8c;
-  --color-accent-800: #164566;
-  --color-accent-900: #0f2d43;
-
-  --color-accent-2-100: #fff1e8;
-  --color-accent-2-200: #ffdcc4;
-  --color-accent-2-300: #ffbb8f;
-  --color-accent-2-400: #f6935a;
-  --color-accent-2-500: #e0743a;
-  --color-accent-2-600: #b85a2a;
-  --color-accent-2-700: #8f451f;
-  --color-accent-2-800: #663116;
-  --color-accent-2-900: #3f1e0d;
-}
-
-[data-theme='clarity'][data-mode='dark'] {
-  --color-bg: #182029;
-  --color-surface: #2e343d;
-  --color-text: #f6f8fa;
-  --color-accent: #66b0e3;
-  --color-accent-2: #f6935a;
-  --color-divider: rgba(246, 248, 250, 0.18);
-
-  --color-neutral-100: #2e343d;
-  --color-neutral-200: #4a525e;
-  --color-neutral-300: #666f7c;
-  --color-neutral-400: #848d99;
-  --color-neutral-500: #a3abb6;
-  --color-neutral-600: #c2c9d1;
-  --color-neutral-700: #dde2e8;
-  --color-neutral-800: #eef1f4;
-  --color-neutral-900: #fafbfc;
-
-  --color-accent-100: #0f2d43;
-  --color-accent-200: #164566;
-  --color-accent-300: #1c5c8c;
-  --color-accent-400: #2677b3;
-  --color-accent-500: #3993d3;
-  --color-accent-600: #66b0e3;
-  --color-accent-700: #9ecdef;
-  --color-accent-800: #cfe4f7;
-  --color-accent-900: #eaf3fc;
-
-  --color-accent-2-100: #3f1e0d;
-  --color-accent-2-200: #663116;
-  --color-accent-2-300: #8f451f;
-  --color-accent-2-400: #b85a2a;
-  --color-accent-2-500: #e0743a;
-  --color-accent-2-600: #f6935a;
-  --color-accent-2-700: #ffbb8f;
-  --color-accent-2-800: #ffdcc4;
-  --color-accent-2-900: #fff1e8;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: theme('fontFamily.body');
-  font-size: 17px;
-  line-height: 1.55;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: theme('fontFamily.heading');
-  font-weight: 400;
-  line-height: 1.12;
-  letter-spacing: -0.015em;
-  margin: 0 0 8.8px;
-}
-h1 { font-size: 42px; }
-h2 { font-size: 32px; }
-h3 { font-size: 25px; }
-h4 { font-size: 20px; }
-h5 { font-size: 16px; }
-h6 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
-p { margin: 0 0 13.2px; }
-a { color: var(--color-accent); text-underline-offset: 3px; }
-
-:focus { outline: none; }
-:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
 
 @layer components {
-  /* — buttons — */
-  .btn {
-    @apply inline-flex items-center justify-center gap-1.5 cursor-pointer no-underline
-           font-heading text-base leading-tight text-ink bg-transparent border border-transparent
-           rounded-full transition-colors;
-    padding: 8.8px 15.84px;
-  }
+  .btn { @apply inline-flex items-center justify-center gap-2 cursor-pointer no-underline font-ui text-sm font-semibold text-accent bg-transparent border border-transparent rounded-md transition-colors; min-height: 44px; padding: 8px 16px; line-height: 1.25rem; }
   .btn:disabled { @apply opacity-45 cursor-not-allowed; }
   .btn-primary { @apply bg-accent text-bg; }
-  .btn-primary:hover { background: var(--color-accent-600); }
-  .btn-primary:active { background: var(--color-accent-700); }
-  .btn-secondary { border-color: var(--color-divider); }
-  .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
-  .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
-  .btn-ghost { @apply text-accent px-1; }
-  .btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-  .btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
-  .btn-icon { @apply w-9 h-9 p-0; }
+  .btn-primary:hover, .btn-primary:active { background: var(--bsd-primary-hover); }
+  .btn-secondary { border-color: var(--bsd-control-border); }
+  .btn-secondary:hover, .btn-ghost:hover { background: var(--bsd-selected); }
+  .btn-ghost { @apply text-accent; }
+  .btn-icon { @apply p-0; width: 44px; height: 44px; }
   .btn-block { @apply w-full mt-2; }
-
-  /* — forms — */
-  .field > label {
-    @apply block mb-1;
-    font-size: 12px;
-    color: color-mix(in srgb, var(--color-text) 70%, transparent);
-  }
-  .input {
-    @apply w-full font-body text-base text-ink bg-surface border rounded-full;
-    min-height: 36px;
-    padding: 6px 14px;
-    border-color: var(--color-divider);
-    caret-color: var(--color-accent);
-  }
-  .input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
-  .input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
-  textarea.input { min-height: 90px; resize: vertical; border-radius: 16px; }
-
-  /* — cards — */
-  .card {
-    @apply flex flex-col gap-2 bg-surface rounded-card;
-    padding: 13.2px;
-  }
-  .card-kicker { @apply text-accent uppercase; font-size: 10px; letter-spacing: 0.1em; }
-  .card-title { @apply font-heading text-ink; font-size: 17px; line-height: 1.2; }
-  .card-body { @apply flex-1; font-size: 14.5px; opacity: 0.8; margin: 0; }
-  .card-meta {
-    @apply flex items-center gap-1.5;
-    font-size: 11px;
-    color: color-mix(in srgb, var(--color-text) 50%, transparent);
-  }
-
+  .field > label { @apply block mb-1 font-ui text-sm; color: var(--bsd-muted); }
+  .input { @apply w-full font-ui text-base text-ink bg-surface border rounded-md; min-height: 44px; padding: 8px 12px; border-color: var(--bsd-control-border); caret-color: var(--bsd-forest); }
+  .input:hover, .input:focus-visible { border-color: var(--bsd-forest); }
+  textarea.input { min-height: 96px; resize: vertical; }
+  .card { @apply flex flex-col gap-2 bg-surface rounded-card border border-divider; padding: 16px; min-width: 0; }
+  .card-kicker { @apply font-ui text-accent uppercase; font-size: .75rem; letter-spacing: .1em; line-height: 1.125rem; }
+  .card-title { @apply font-heading text-ink; font-size: 1.125rem; line-height: 1.5; }
+  .card-body { @apply flex-1 font-body; color: var(--bsd-muted); margin: 0; }
+  .card-meta { @apply flex items-center gap-2 font-ui; font-size: .75rem; line-height: 1.125rem; color: var(--bsd-muted); }
   /* — tags — */
   .tag {
     @apply inline-flex items-center rounded-full;
-    font-size: 11px;
+    font-size: .75rem;
     letter-spacing: 0.02em;
     padding: 3px 10px;
   }
@@ -610,23 +111,20 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 
   /* — segmented control — */
   .seg {
-    @apply inline-flex overflow-hidden rounded-full border;
+    @apply inline-flex overflow-hidden rounded-md border;
     border-color: var(--color-divider);
   }
   .seg-opt {
     @apply inline-flex items-center gap-1.5 cursor-pointer;
-    font-size: 14.5px;
-    padding: 7px 12px;
+    font-size: .875rem;
+    min-height: 44px; padding: 8px 12px;
   }
   .seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
   .seg-opt:has(input:checked) { @apply bg-accent text-bg; }
   .seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
   .seg-opt input { @apply absolute opacity-0 w-0 h-0 pointer-events-none; }
 
-  /* — verdict badge (Doctrine Check, Shelf, Home) — fixed semantic colors
-     (see the --verdict-* tokens near the top of this file), not the theme's
-     accent/sage/neutral ramps, so a verdict reads the same regardless of
-     which of the 6 color themes is active. */
+  /* Shared semantic verdict colors, including existing stored outcomes. */
   .verdict-sound { color: var(--verdict-sound-text); background: var(--verdict-sound-bg); }
   .verdict-caution { color: var(--verdict-caution-text); background: var(--verdict-caution-bg); }
   .verdict-concern { color: var(--verdict-concern-text); background: var(--verdict-concern-bg); }
@@ -636,25 +134,60 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   /* — dialog — */
   .dialog-backdrop {
     @apply fixed inset-0 grid place-items-center;
-    padding: 17.6px;
+    padding: 24px;
     background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
     z-index: 100;
   }
   .dialog {
     width: min(440px, 100%);
     @apply flex flex-col gap-3 bg-surface rounded-card shadow-lg;
-    padding: 17.6px;
+    padding: 24px;
   }
   .dialog-title { @apply font-heading; font-size: 20px; }
   .dialog-body { font-size: 15.5px; opacity: 0.85; }
-  .dialog-actions { @apply flex justify-end gap-2; margin-top: 8.8px; }
+  .dialog-actions { @apply flex justify-end gap-2; margin-top: 8px; }
 }
 
-.washed { filter: saturate(0.6) contrast(0.85) brightness(1.1) opacity(0.94); }
 
-/* Shared screen padding: tight on phones, the design system's real values
-   from md (768px) up. Used by every top-level screen instead of each
-   hand-rolling its own responsive padding. */
-.page { padding: 16px 16px 84px; }
-@media (min-width: 768px) { .page { padding: 30px 40px 70px; } }
-
+.page { width: 100%; max-width: 1440px; padding: 24px 16px; margin-inline: auto; }
+.app-main { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+.scripture-text { font-family: theme('fontFamily.scripture'); font-size: 1.25rem; line-height: 1.55; max-width: 70ch; }
+.scripture-block { border-left: 3px solid var(--bsd-forest); padding-left: 16px; }
+.skip-link { position: fixed; top: -100px; left: 16px; z-index: 200; padding: 12px; background: var(--bsd-surface); }
+.skip-link:focus { top: 8px; }
+.heritage-sidebar { display: none; }
+.brand-wordmark { font-family: theme('fontFamily.heading'); font-weight: 600; line-height: 1.2; }
+.brand-wordmark strong { display: block; font-size: 1.375rem; letter-spacing: .08em; }
+.brand-wordmark span { display: block; font-size: .75rem; letter-spacing: .22em; margin-top: 4px; }
+.heritage-header { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--bsd-forest); color: var(--bsd-parchment); }
+.heritage-bottom { position: fixed; bottom: 0; inset-inline: 0; z-index: 20; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); background: var(--bsd-surface); border-top: 1px solid var(--bsd-border); padding-bottom: env(safe-area-inset-bottom,0px); }
+.heritage-bottom > a, .heritage-bottom > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; font: 500 .75rem/1.125rem theme('fontFamily.ui'); color: var(--bsd-muted); border-top: 3px solid transparent; padding: 4px 0; }
+.heritage-bottom [aria-current='page'], .heritage-bottom .is-active { color: var(--bsd-forest); background: var(--bsd-selected); border-top-color: var(--bsd-forest); }
+.nav-sheet { width: min(420px,calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 12px; padding: 24px; background: var(--bsd-surface); color: var(--bsd-charcoal); box-shadow: 0 8px 24px rgba(46,42,38,.14); }
+.nav-sheet::backdrop { background: rgba(46,42,38,.45); }
+.nav-item { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; font: 500 .875rem/1.25rem theme('fontFamily.ui'); }
+.nav-item svg { flex-shrink: 0; }
+.nav-item[aria-current='page'] { background: var(--bsd-selected); color: var(--bsd-forest); }
+@media (min-width: 768px) {
+  .page { padding: 32px 24px; }
+  .app-main { padding-bottom: 0; }
+  .card { padding: 24px; }
+  .scripture-text { font-size: 1.375rem; }
+  .heritage-header, .heritage-bottom { display: none; }
+  .heritage-sidebar { display: flex; flex-direction: column; flex-shrink: 0; width: 72px; height: 100dvh; position: sticky; top: 0; background: var(--bsd-forest); color: var(--bsd-parchment); padding: 24px 12px; gap: 24px; overflow-y: auto; transition: width 180ms ease-out; }
+  .heritage-sidebar .nav-item { color: var(--bsd-parchment); justify-content: center; }
+  .heritage-sidebar .nav-item[aria-current='page'] { color: var(--bsd-forest); }
+  .heritage-sidebar .nav-item:hover { background: var(--bsd-selected); color: var(--bsd-forest); }
+  .heritage-sidebar :focus-visible { outline-color: var(--bsd-parchment); }
+  .heritage-sidebar .nav-label, .heritage-sidebar .brand-detail { display: none; }
+  .heritage-sidebar.is-expanded { width: 240px; }
+  .heritage-sidebar.is-expanded .nav-label, .heritage-sidebar.is-expanded .brand-detail { display: block; }
+  .heritage-sidebar.is-expanded .nav-item { justify-content: flex-start; }
+}
+@media (min-width: 1280px) {
+  .page { padding-inline: 32px; }
+  .heritage-sidebar:not(.is-collapsed) { width: 240px; }
+  .heritage-sidebar:not(.is-collapsed) .nav-label, .heritage-sidebar:not(.is-collapsed) .brand-detail { display: block; }
+  .heritage-sidebar:not(.is-collapsed) .nav-item { justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; } }

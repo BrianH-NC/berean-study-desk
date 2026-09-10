@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import Logo from './Logo'
+import Logo, { BrandLockup } from './Logo'
 
 export default function Auth() {
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -49,14 +49,16 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-bg">
-      <div className="w-full max-w-[360px] px-6">
+    <div className="min-h-dvh flex items-center justify-center bg-bg py-8">
+      <div className="card w-full max-w-[400px] mx-4">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <Logo size={56} />
           </div>
-          <h1 className="text-[28px] mb-1">Berean Study Desk</h1>
-          <div className="text-accent uppercase" style={{ fontSize: 10, letterSpacing: '0.14em' }}>
+          <h1 className="sr-only">Sign in to Berean Study Desk</h1>
+          <BrandLockup />
+          <p className="font-body mt-4 mb-2">Search. Study. Discern.</p>
+          <div className="text-accent uppercase" style={{ fontSize: 12, letterSpacing: '0.14em' }}>
             Acts 17:11
           </div>
         </div>

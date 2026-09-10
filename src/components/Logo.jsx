@@ -1,40 +1,9 @@
-import { useEffect, useState } from 'react'
-
-// The BSD mark -- a manuscript-style capital B with a scroll and quill --
-// from the approved brand asset pack (see public/branding/themes). Unlike
-// the old inline-SVG attempt, this is a raster image per theme, so it can't
-// re-theme via CSS custom properties alone; it re-renders the <img> src when
-// the theme attribute changes instead.
-const THEME_SLUGS = {
-  organic: 'organic',
-  vellum: 'vellum-and-ink',
-  illuminated: 'illuminated',
-  grove: 'quiet-grove',
-  slate: 'slate-study',
-  clarity: 'clarity',
-}
-
-function currentThemeSlug() {
-  const id = document.documentElement.getAttribute('data-theme')
-  return THEME_SLUGS[id] || 'organic'
-}
-
+// Preserve the supplied manuscript B silhouette. Final detailed scroll/quill
+// artwork remains an asset handoff; this is the existing simplified vector.
 export default function Logo({ size = 32 }) {
-  const [slug, setSlug] = useState(currentThemeSlug)
+  return <img src="/branding/modern-heritage/mark.svg" width={size} height={size} alt="" className="shrink-0" />
+}
 
-  useEffect(() => {
-    const observer = new MutationObserver(() => setSlug(currentThemeSlug()))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
-    return () => observer.disconnect()
-  }, [])
-
-  return (
-    <img
-      src={`/branding/themes/${slug}/icon-192x192.png`}
-      width={size}
-      height={size}
-      alt=""
-      style={{ flexShrink: 0, borderRadius: '22%' }}
-    />
-  )
+export function BrandLockup() {
+  return <div className="brand-wordmark" aria-label="Berean Study Desk"><strong>BEREAN</strong><span>STUDY DESK</span></div>
 }

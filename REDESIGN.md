@@ -45,7 +45,7 @@ rules and direct-to-main workflow are superseded on this branch.
 | `/` | Home | Initial hierarchy; landscape asset and richer resume layout pending |
 | `/search` | Search | Shared styling and Scripture excerpt typography; study-panel architecture pending |
 | `/bible` | Bible Study | Reading typography, responsive pane widths and keyboard verse selection; full mobile tool sequence pending |
-| `/shelf`, `/shelf/:id` | Library, Book Detail | Shared foundation only; Shelf/Grid/List and seven-column record contract pending |
+| `/shelf`, `/shelf/:id` | Library, Book Detail | Shelf/Grid/List, seven-column responsive records, filtering and sorting; six Book Detail sections |
 | `/shelf/add`, `/shelf/wishlist`, `/shelf/wishlist/add` | Collection utilities | Existing behavior, shared foundation |
 | `/notebook`, `/notebook/new`, `/notebook/:id` | Notes | Initial reading pass; full list/editor/context architecture pending |
 | `/checks`, `/checks/:id` | Doctrine Check | Shared tokens; full screen pass pending |
@@ -91,3 +91,47 @@ Local preview uses test-only configuration; production credentials were not read
 or used. Live Google OAuth testing has the limitation described in HANDOFF.md.
 This is the beginning of the redesign, not a claim that the full specification or
 its privacy/release gates are complete. Do not merge to main without Brian's request.
+
+## Collection chunk
+
+Library now shares a single filtered/sorted result set across Shelf, Grid and List.
+The seven List columns are Title, Author, Category, Verdict, Status, Progress and
+Actions; narrow layouts turn rows into labeled records. No Rating or Date Added
+appears in the primary Library. The existing first tag supplies primary Category,
+so multi-tag books no longer appear more than once in the collection.
+
+Search, category, reading status, tradition, verdict, sort direction, view and the
+visible-item limit live in URL state. The selected view also persists per user in
+browser storage. Book links carry the collection URL back to the Library. Load
+more reveals 24 additional records. Data loading still uses the existing full
+collection query; server-side pagination remains a later performance task.
+
+AssessmentBadge is shared by Library and Book Detail and links to the newest
+existing ISBN-matched assessment. This preserves the current schema's matching
+contract; edition-level applicability and assessment history need later backend
+work. Failed assessment reads display Unavailable rather than Not Assessed.
+BookCover handles missing/failed covers using a typographic fallback without
+cropping actual covers.
+
+Book Detail places the verdict under title/author and adds URL-backed sections:
+Overview, My Notes, Highlights, Related Scripture, Doctrine Check, Details.
+My Notes includes existing book notes and linked Notebook entries. Related
+Scripture comes only from those entries' references. Highlights explains the
+existing reading-note alternative; no unsupported highlight feature is simulated.
+The metadata editor and existing read/status/assessment/removal actions remain.
+All editor fields have accessible names; no schema or production data was changed.
+
+Progress is unavailable (—): the existing app has no percentage tracking.
+Favorites/collections, richer action menus, recoverable note deletion semantics,
+edition-aware assessments, and dedicated highlights are not implemented here.
+The Actions column currently opens Book Detail, where management actions reside.
+
+Validation for this chunk: build passes with the bundle-size warning; lint exits
+successfully with fewer warnings than the baseline and no warnings in new modules.
+All 26 tests pass (22 existing author-sort cases plus 4 collection cases).
+Browser checks use 30 isolated sample books: List has seven headers, one search
+result remains consistent between List and Grid, the return link restores query
+and view, related Scripture opens the expected passage URL, and a sample metadata
+save succeeds. Populated List and long-title Book Detail reflow at 320, 390, 768,
+1024, 1280 and 1440 px without horizontal page overflow. The phone editor has no
+unnamed fields or horizontal overflow. This is not a production save/auth test.

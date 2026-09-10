@@ -1,150 +1,62 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search as SearchIcon, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
-import { verdictClass, verdictIcon } from '../lib/verdict'
 import { fetchBookByISBN, searchBookCover, fetchAmazonCoverByISBN } from '../lib/googleBooks'
-import { extractSortLastName } from '../lib/authorSort'
+import { primaryCategory, readingStatus, sortLibrary } from '../lib/libraryPresentation'
+import LibraryCollection from '../components/LibraryCollection'
 
-const STATUS_FILTERS = ['All', 'Reading', 'Unread', 'Read']
-const VIEW_MODES = ['Category', 'Title', 'Author', 'Recent']
-
-function firstLetter(str) {
-  const c = (str || '').trim().charAt(0).toUpperCase()
-  return /[A-Z]/.test(c) ? c : '#'
-}
-
-// Groups a list by the first letter of whatever keyFn returns, alphabetical
-// with the "#" (no usable letter) bucket last -- used for the Title and
-// Author views. keyFn is a sort key, not necessarily the displayed text --
-// Author uses the surname extracted by extractSortLastName, since authors
-// are stored in natural order ("John Smith"), not "Smith, John".
-function groupByLetter(list, keyFn) {
-  const map = {}
-  list.forEach((b) => {
-    const key = firstLetter(keyFn(b))
-    ;(map[key] = map[key] || []).push(b)
-  })
-  Object.values(map).forEach((arr) => arr.sort((a, b) => keyFn(a).localeCompare(keyFn(b))))
-  const letters = Object.keys(map).sort((a, b) => (a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)))
-  return { map, letters }
-}
-
-function BookTable({ books, checksByIsbn, navigate, hideTags }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="table w-full" style={{ minWidth: 560 }}>
-        <thead>
-          <tr>
-            <th style={{ width: '58%' }}>Book</th>
-            <th style={{ width: '21%' }}>Verdict</th>
-            <th style={{ width: '21%' }}>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {books.map((b) => {
-            const verdict = b.isbn ? checksByIsbn[b.isbn] : null
-            const VerdictIcon = verdictIcon(verdict)
-            return (
-              <tr key={b.id} className="cursor-pointer" onClick={() => navigate(`/shelf/${b.id}`)}>
-                <td>
-                  <div className="flex items-center gap-2.5">
-                    <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 40, height: 60 }}>
-                      {b.cover_url && <img src={b.cover_url} alt="" className="w-full h-full object-cover" />}
-                    </div>
-                    <div>
-                      <div className="card-title !text-[14px]">{b.title}</div>
-                      <div className="card-meta">{b.author}</div>
-                      {!hideTags && b.tags?.length > 0 && (
-                        <div className="flex gap-1 flex-wrap mt-1">
-                          {b.tags.map((t) => (
-                            <span key={t} className="tag tag-neutral" style={{ fontSize: 10 }}>
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  {verdict ? (
-                    <span className={`tag ${verdictClass(verdict)} flex items-center gap-1 w-fit`}>
-                      <VerdictIcon size={12} strokeWidth={2.75} />
-                      {verdict}
-                    </span>
-                  ) : (
-                    <span style={{ opacity: 0.4, fontSize: 12 }}>not checked</span>
-                  )}
-                </td>
-                <td>
-                  {b.reading_status === 'in-progress' ? (
-                    <span className="tag tag-accent">Reading</span>
-                  ) : b.reading_status === 'read' ? (
-                    <span className="tag tag-accent-2">Read</span>
-                  ) : (
-                    <span className="tag tag-neutral">Unread</span>
-                  )}
-                  {b.location && <span className="card-meta ml-1">{b.location}</span>}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function GroupedSections({ names, groups, checksByIsbn, navigate, hideTags }) {
-  return (
-    <div className="flex flex-col">
-      {names.map((name, i) => (
-        <div key={name} className="pt-6 mt-6 first:pt-0 first:mt-0" style={i > 0 ? { borderTop: '1px solid var(--color-divider)' } : undefined}>
-          <div className="flex items-baseline gap-2 mb-3">
-            <h3 className="font-heading !mb-0" style={{ fontSize: 19 }}>
-              {name}
-            </h3>
-            <span className="card-meta">{groups[name].length}</span>
-          </div>
-          <BookTable books={groups[name]} checksByIsbn={checksByIsbn} navigate={navigate} hideTags={hideTags} />
-        </div>
-      ))}
-    </div>
-  )
+const VIEWS = ['shelf', 'grid', 'list']
+function storedView(userId) {
+  try { const value = localStorage.getItem(`bsd-library-view:${userId}`); return VIEWS.includes(value) ? value : 'shelf' } catch { return 'shelf' }
 }
 
 export default function Shelf() {
   const user = useAuth()
-  const navigate = useNavigate()
-
-  const [books, setBooks] = useState(null) // null = loading
+  const location = useLocation()
+  const [params, setParams] = useSearchParams()
+  const [books, setBooks] = useState(null)
   const [checksByIsbn, setChecksByIsbn] = useState({})
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [tradition, setTradition] = useState(null)
-  const [viewBy, setViewBy] = useState('Category')
+  const [loadError, setLoadError] = useState('')
+  const [assessmentError, setAssessmentError] = useState(false)
   const [findingCovers, setFindingCovers] = useState(false)
-  const [coverProgress, setCoverProgress] = useState(null) // { done, total }
+  const [coverProgress, setCoverProgress] = useState(null)
+  const query = params.get('q') || ''
+  const category = params.get('category') || ''
+  const status = params.get('status') || ''
+  const tradition = params.get('tradition') || ''
+  const verdict = params.get('verdict') || ''
+  const view = VIEWS.includes(params.get('view')) ? params.get('view') : storedView(user.id)
+  const sort = ['title','author','category','recent'].includes(params.get('sort')) ? params.get('sort') : 'title'
+  const direction = params.get('direction') === 'desc' ? 'desc' : 'asc'
+  const limit = Math.max(24, Math.min(10000, Number(params.get('limit')) || 24))
 
-  async function loadBooks() {
-    const [{ data: bookRows }, { data: checkRows }] = await Promise.all([
-      supabase.from('books').select('*').eq('user_id', user.id).order('title'),
-      supabase.from('theology_checks').select('isbn, verdict').eq('kind', 'book').not('isbn', 'is', null),
-    ])
-    setBooks(bookRows || [])
-
-    const map = {}
-    ;(checkRows || []).forEach((c) => {
-      if (c.isbn) map[c.isbn] = c.verdict
-    })
-    setChecksByIsbn(map)
+  function update(values) {
+    const next = new URLSearchParams(params)
+    for (const [key,value] of Object.entries(values)) { if (value) next.set(key,value); else next.delete(key) }
+    if (!Object.hasOwn(values, 'limit')) next.delete('limit')
+    setParams(next, {replace:true})
   }
-
-  useEffect(() => {
-    loadBooks()
-  }, [user.id])
+  function setView(value) {
+    update({view:value})
+    try { localStorage.setItem(`bsd-library-view:${user.id}`,value) } catch { /* URL state still works. */ }
+  }
+  const loadBooks = useCallback(async () => {
+    setLoadError('')
+    try {
+      const [bookResult, checkResult] = await Promise.all([
+        supabase.from('books').select('*').eq('user_id',user.id).order('title'),
+        supabase.from('theology_checks').select('id, isbn, verdict, created_at').eq('kind','book').not('isbn','is',null).order('created_at',{ascending:false}),
+      ])
+      if (bookResult.error) throw bookResult.error
+      setBooks(bookResult.data || [])
+      setAssessmentError(!!checkResult.error)
+      const map = {}
+      for (const check of checkResult.data || []) { if (check.isbn && !map[check.isbn]) map[check.isbn] = check }
+      if (!checkResult.error) setChecksByIsbn(map)
+    } catch { setLoadError('Your Library could not be loaded. Please try again.') }
+  },[user.id])
+  useEffect(() => { void loadBooks() },[loadBooks])
 
   // Sequential, not parallel -- these are free Google Books/Open Library
   // lookups (no cost concern), but running them one at a time keeps the
@@ -175,58 +87,6 @@ export default function Shelf() {
     }
   }
 
-  const traditions = useMemo(() => {
-    if (!books) return []
-    const counts = {}
-    books.forEach((b) => {
-      if (b.tradition) counts[b.tradition] = (counts[b.tradition] || 0) + 1
-    })
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])
-  }, [books])
-
-  const filtered = useMemo(() => {
-    if (!books) return []
-    let list = books
-
-    if (statusFilter === 'Reading') list = list.filter((b) => b.reading_status === 'in-progress')
-    else if (statusFilter === 'Unread') list = list.filter((b) => b.reading_status === 'unread')
-    else if (statusFilter === 'Read') list = list.filter((b) => b.reading_status === 'read')
-
-    if (tradition) list = list.filter((b) => b.tradition === tradition)
-
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
-      list = list.filter((b) => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q))
-    }
-
-    return list
-  }, [books, statusFilter, tradition, query])
-
-  // Category view: group by each book's tags, same "a book can appear under
-  // more than one heading" pattern Topics uses for Notebook entries. Books
-  // with no tags fall into a catch-all "Untagged" group, shown last.
-  const byCategory = useMemo(() => {
-    const map = {}
-    filtered.forEach((b) => {
-      const cats = b.tags?.length ? b.tags : ['Untagged']
-      cats.forEach((c) => (map[c] = map[c] || []).push(b))
-    })
-    Object.values(map).forEach((list) => list.sort((a, b) => (a.title || '').localeCompare(b.title || '')))
-    return map
-  }, [filtered])
-
-  const categoryNames = useMemo(() => {
-    const names = Object.keys(byCategory).filter((n) => n !== 'Untagged')
-    names.sort((a, b) => a.localeCompare(b))
-    if (byCategory['Untagged']) names.push('Untagged')
-    return names
-  }, [byCategory])
-
-  const titleGroups = useMemo(() => groupByLetter(filtered, (b) => b.title || ''), [filtered])
-  const authorGroups = useMemo(() => groupByLetter(filtered, (b) => extractSortLastName(b.author)), [filtered])
-
-  const sortedRecent = useMemo(() => [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), [filtered])
-
   function handleExport() {
     const blob = new Blob([JSON.stringify(books, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -237,130 +97,56 @@ export default function Shelf() {
     URL.revokeObjectURL(url)
   }
 
-  const checkedCount = books ? books.filter((b) => b.isbn && checksByIsbn[b.isbn]).length : 0
-  const missingCoverCount = books ? books.filter((b) => !b.cover_url).length : 0
 
-  return (
-    <div className="max-w-[1180px] mx-auto page">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-        <h2 className="!mb-0">My Library</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {findingCovers && coverProgress && (
-            <span className="text-sm flex items-center gap-1.5" style={{ opacity: 0.7 }}>
-              <Loader2 size={13} strokeWidth={2.75} className="animate-spin" />
-              Finding covers… {coverProgress.done} of {coverProgress.total}
-            </span>
-          )}
-          {missingCoverCount > 0 && (
-            <button type="button" className="btn btn-secondary" onClick={handleFindCovers} disabled={findingCovers}>
-              Find missing covers ({missingCoverCount})
-            </button>
-          )}
-          <button type="button" className="btn btn-primary" onClick={() => navigate('/shelf/add')}>
-            Add books
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/shelf/wishlist')}>
-            Wishlist
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={handleExport} disabled={!books?.length}>
-            Export
-          </button>
-        </div>
+  const categories = useMemo(() => [...new Set((books || []).map(primaryCategory))].sort(),[books])
+  const traditions = useMemo(() => [...new Set((books || []).map(book => book.tradition).filter(Boolean))].sort(),[books])
+  const verdicts = useMemo(() => [...new Set(Object.values(checksByIsbn).map(check => check.verdict).filter(Boolean))].sort(),[checksByIsbn])
+  const filtered = useMemo(() => sortLibrary((books || []).filter(book =>
+    (!query.trim() || `${book.title} ${book.author}`.toLowerCase().includes(query.trim().toLowerCase())) &&
+    (!category || primaryCategory(book) === category) &&
+    (!status || readingStatus(book) === status) &&
+    (!tradition || book.tradition === tradition) &&
+    (!verdict || assessmentError || (verdict === 'not-assessed' ? !checksByIsbn[book.isbn] : checksByIsbn[book.isbn]?.verdict === verdict))
+  ),sort,direction),[books,query,category,status,tradition,verdict,checksByIsbn,sort,direction,assessmentError])
+  const missingCoverCount = (books || []).filter(book => !book.cover_url).length
+  const hasFilters = query || category || status || tradition || verdict
+  function clearFilters() { update({q:'',category:'',status:'',tradition:'',verdict:''}) }
+  function toggleSort(key) { update({sort:key,direction:sort === key && direction === 'asc' ? 'desc' : 'asc'}) }
+
+  return <div className="page library-page">
+    <header className="flex items-start justify-between gap-4 flex-wrap mb-6">
+      <div><p className="card-kicker mb-2">Your personal collection</p><h1>Library</h1><p className="text-muted mb-0">Books to read, return to, and study alongside Scripture.</p></div>
+      <div className="flex gap-2 flex-wrap"><Link to="/shelf/add" className="btn btn-primary">Add books</Link><Link to="/shelf/wishlist" className="btn btn-secondary">Wishlist</Link></div>
+    </header>
+    <section className="card mb-6" aria-label="Library controls">
+      <div className="library-toolbar">
+        <div className="field flex-1 min-w-0"><label htmlFor="library-search">Search Library</label><input id="library-search" type="search" className="input" placeholder="Title or author" value={query} onChange={e=>update({q:e.target.value})} /></div>
+        <div><span id="library-view-label" className="font-ui text-sm block mb-1">View</span><div className="seg" role="group" aria-labelledby="library-view-label">{VIEWS.map(value=><button key={value} type="button" className="seg-opt" aria-pressed={view === value} onClick={()=>setView(value)}>{value[0].toUpperCase()+value.slice(1)}</button>)}</div></div>
+        <div className="field"><label htmlFor="library-sort">Sort by</label><select id="library-sort" className="input" value={sort} onChange={e=>update({sort:e.target.value})}><option value="title">Title</option><option value="author">Author</option><option value="category">Category</option><option value="recent">Recently added</option></select></div>
+        <button type="button" className="btn btn-secondary" onClick={()=>update({direction:direction === 'asc' ? 'desc':'asc'})} aria-label="Reverse sort order">{direction === 'asc' ? '↑ Ascending' : '↓ Descending'}</button>
       </div>
-
-      <div className="flex items-center gap-3 flex-wrap mb-3">
-        <div className="relative" style={{ width: 280 }}>
-          <SearchIcon
-            size={15}
-            strokeWidth={2.75}
-            className="absolute top-1/2 -translate-y-1/2"
-            style={{ left: 14, opacity: 0.5 }}
-          />
-          <input
-            className="input"
-            style={{ paddingLeft: 36 }}
-            placeholder="Search title or author…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="seg">
-          {STATUS_FILTERS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="seg-opt"
-              style={statusFilter === s ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="seg ml-auto">
-          {VIEW_MODES.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="seg-opt"
-              style={viewBy === v ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-              onClick={() => setViewBy(v)}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
+      <details className="library-filter-disclosure">
+      <summary>Filters and collection actions{hasFilters ? ' · Filters active' : ''}</summary>
+      <div className="library-filters">
+        <div className="field"><label htmlFor="library-category">Category</label><select id="library-category" className="input" value={category} onChange={e=>update({category:e.target.value})}><option value="">All categories</option>{categories.map(value=><option key={value}>{value}</option>)}</select></div>
+        <div className="field"><label htmlFor="library-status">Reading status</label><select id="library-status" className="input" value={status} onChange={e=>update({status:e.target.value})}><option value="">All statuses</option>{['Not Started','Reading','Completed','Paused'].map(value=><option key={value}>{value}</option>)}</select></div>
+        <div className="field"><label htmlFor="library-verdict">Verdict</label><select id="library-verdict" className="input" value={verdict} disabled={assessmentError} onChange={e=>update({verdict:e.target.value})}><option value="">All verdicts</option><option value="not-assessed">Not Assessed</option>{verdicts.map(value=><option key={value}>{value}</option>)}</select></div>
+        <div className="field"><label htmlFor="library-tradition">Tradition</label><select id="library-tradition" className="input" value={tradition} onChange={e=>update({tradition:e.target.value})}><option value="">All traditions</option>{traditions.map(value=><option key={value}>{value}</option>)}</select></div>
       </div>
-
-      {traditions.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-4">
-          {traditions.map(([name, count]) => (
-            <button
-              key={name}
-              type="button"
-              className={`tag ${tradition === name ? 'tag-accent' : 'tag-outline'}`}
-              onClick={() => setTradition(tradition === name ? null : name)}
-            >
-              {name} · {count}
-            </button>
-          ))}
-          {tradition && (
-            <button type="button" className="tag" onClick={() => setTradition(null)}>
-              &times; clear
-            </button>
-          )}
-        </div>
-      )}
-
-      {books === null ? (
-        <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
-      ) : books.length === 0 ? (
-        <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          No books in your library yet.
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          No books match that search.
-        </div>
-      ) : viewBy === 'Category' ? (
-        <GroupedSections names={categoryNames} groups={byCategory} checksByIsbn={checksByIsbn} navigate={navigate} hideTags />
-      ) : viewBy === 'Title' ? (
-        <GroupedSections names={titleGroups.letters} groups={titleGroups.map} checksByIsbn={checksByIsbn} navigate={navigate} />
-      ) : viewBy === 'Author' ? (
-        <GroupedSections names={authorGroups.letters} groups={authorGroups.map} checksByIsbn={checksByIsbn} navigate={navigate} />
-      ) : (
-        <BookTable books={sortedRecent} checksByIsbn={checksByIsbn} navigate={navigate} />
-      )}
-
-      {books?.length > 0 && (
-        <div className="card-meta mt-3">
-          Showing {filtered.length} of {books.length} · {checkedCount} checked
-        </div>
-      )}
-    </div>
-  )
+      <div className="flex items-center gap-2 flex-wrap">
+        {hasFilters && <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>}
+        <button type="button" className="btn btn-ghost" onClick={handleExport} disabled={!books?.length}>Export Library</button>
+        {missingCoverCount>0 && <button type="button" className="btn btn-ghost" onClick={handleFindCovers} disabled={findingCovers}>Find missing covers ({missingCoverCount})</button>}
+        {coverProgress && <span className="card-meta" role="status">Finding covers… {coverProgress.done} of {coverProgress.total}</span>}
+      </div>
+      </details>
+    </section>
+    {loadError && <div role="alert" className="card mb-4"><p>{loadError}</p><button className="btn btn-secondary self-start" onClick={loadBooks}>Retry</button></div>}
+    {assessmentError && <div role="alert" className="card mb-4"><p>Assessment information could not be loaded. Your books are still available.</p><button className="btn btn-secondary self-start" onClick={loadBooks}>Retry assessments</button></div>}
+    {books === null ? !loadError && <p role="status">Loading your Library…</p> : books.length === 0 ? <section className="card"><h2>Your Library starts here</h2><p>Add a book to keep its details, notes, and assessments together.</p><Link to="/shelf/add" className="btn btn-primary self-start">Add your first book</Link></section> : filtered.length === 0 ? <section className="card"><h2>No books match these filters</h2><button className="btn btn-secondary self-start" onClick={clearFilters}>Clear filters</button></section> : <>
+      <p className="card-meta mb-4" role="status">{filtered.length} {filtered.length === 1 ? 'book' : 'books'}{hasFilters ? ` of ${books.length}` : ''}</p>
+      <LibraryCollection books={filtered.slice(0,limit)} assessments={checksByIsbn} assessmentsUnavailable={assessmentError} view={view} sort={sort} direction={direction} onSort={toggleSort} libraryFrom={location.pathname+location.search} />
+      {filtered.length>limit && <button className="btn btn-secondary mt-6" onClick={()=>update({limit:String(limit+24)})}>Load more books ({filtered.length-limit} remaining)</button>}
+    </>}
+  </div>
 }

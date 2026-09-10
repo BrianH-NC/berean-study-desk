@@ -235,7 +235,7 @@ export default function Reading() {
         <div>
           <div className="card-kicker mb-2">Note stream{notes ? ` · ${notes.length}` : ''}</div>
 
-          <form onSubmit={handleAddNote} className="card mb-5" style={{ padding: '16px 18px' }}>
+          <form id="reading-note" onSubmit={handleAddNote} className="card mb-5" style={{ padding: '16px 18px' }}>
             <textarea
               className="input !border-none !bg-transparent !px-0"
               style={{ fontSize: 15.5, lineHeight: 1.6, minHeight: 80 }}

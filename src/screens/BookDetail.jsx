@@ -1,44 +1,51 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Star } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { verdictClass, verdictIcon } from '../lib/verdict'
+import AssessmentBadge from '../components/AssessmentBadge'
+import BookCover from '../components/BookCover'
+import { primaryCategory, readingStatus } from '../lib/libraryPresentation'
+import { parseReference } from '../lib/bsb'
 import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
 import ChangeCoverDialog from '../components/ChangeCoverDialog'
 
 const STATUSES = ['unread', 'in-progress', 'read']
 
-function StarRow({ rating }) {
-  return (
-    <div className="flex items-center gap-0.5 mb-3">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          size={14}
-          strokeWidth={2.5}
-          style={{ color: 'var(--color-accent)' }}
-          fill={n <= rating ? 'currentColor' : 'none'}
-        />
-      ))}
-    </div>
-  )
+const TABS = [['overview','Overview'],['notes','My Notes'],['highlights','Highlights'],['scripture','Related Scripture'],['doctrine','Doctrine Check'],['details','Details']]
+
+function scriptureUrl(reference) {
+  const parsed = parseReference(reference)
+  if (!parsed) return null
+  const query = new URLSearchParams({book:parsed.book,chapter:String(parsed.chapter)})
+  if (parsed.verseStart) query.set('verse',String(parsed.verseStart))
+  if (parsed.verseEnd) query.set('verseEnd',String(parsed.verseEnd))
+  return `/bible?${query}`
 }
 
 export default function BookDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [params, setParams] = useSearchParams()
+  const tab = TABS.some(([key]) => key === params.get('tab')) ? params.get('tab') : 'overview'
+  const libraryFrom = typeof location.state?.libraryFrom === 'string' && /^\/shelf(?:\?|$)/.test(location.state.libraryFrom) ? location.state.libraryFrom : '/shelf'
+  function chooseTab(key) { const next = new URLSearchParams(params); next.set('tab',key); setParams(next,{replace:true,state:location.state}) }
+
 
   const [book, setBook] = useState(null) // null = loading, false = not found
   const [check, setCheck] = useState(null) // null = not loaded/none
-  const [noteCount, setNoteCount] = useState(null)
+  const [notes, setNotes] = useState([])
+  const [loadError, setLoadError] = useState('')
+  const [contextError, setContextError] = useState(false)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [checking, setChecking] = useState(false)
   const [showCoverPicker, setShowCoverPicker] = useState(false)
 
-  async function load() {
-    const { data } = await supabase.from('books').select('*').eq('id', id).single()
+  const load = useCallback(async () => {
+    setLoadError('')
+    const { data, error } = await supabase.from('books').select('*').eq('id', id).single()
+    if (error) { setLoadError('This book could not be loaded. Please try again.'); return }
     setBook(data || false)
     if (data) {
       setForm({
@@ -57,22 +64,22 @@ export default function BookDetail() {
         notes: data.notes || '',
         tags: (data.tags || []).join(', '),
       })
-      if (data.isbn) {
-        const { data: c } = await supabase.from('theology_checks').select('*').eq('isbn', data.isbn).eq('kind', 'book').maybeSingle()
-        setCheck(c || null)
-      }
-      const { count } = await supabase.from('entries').select('id', { count: 'exact', head: true }).eq('shelf_book_id', id)
-      setNoteCount(count ?? 0)
+      const [checkResult, noteResult] = await Promise.all([
+        data.isbn ? supabase.from('theology_checks').select('*').eq('isbn',data.isbn).eq('kind','book').order('created_at',{ascending:false}).limit(1).maybeSingle() : Promise.resolve({data:null}),
+        supabase.from('entries').select('id, title, body, ref, created_at').eq('shelf_book_id',id).order('created_at',{ascending:false}),
+      ])
+      setContextError(!!(checkResult.error || noteResult.error))
+      setCheck(checkResult.data || null)
+      setNotes(noteResult.data || [])
     }
-  }
+  },[id])
 
-  useEffect(() => {
-    load()
-  }, [id])
+  useEffect(() => { void load() },[load])
 
   async function handleQuickStatus(status) {
     const { error } = await supabase.from('books').update({ reading_status: status }).eq('id', id)
-    if (!error) setBook((prev) => ({ ...prev, reading_status: status }))
+    if (error) alert('Error saving status: ' + error.message)
+    else setBook((prev) => ({ ...prev, reading_status: status }))
   }
 
   async function handleSave() {
@@ -115,7 +122,7 @@ export default function BookDetail() {
       alert('Error deleting: ' + error.message)
       return
     }
-    navigate('/shelf')
+    navigate(libraryFrom)
   }
 
   async function handleCheck() {
@@ -146,6 +153,7 @@ export default function BookDetail() {
     }
   }
 
+  if (loadError) return <div className="page"><div className="card" role="alert"><p>{loadError}</p><button className="btn btn-secondary self-start" onClick={load}>Retry</button><Link to={libraryFrom}>Back to Library</Link></div></div>
   if (book === null) {
     return (
       <div className="max-w-[1080px] mx-auto text-center py-24 page" style={{ opacity: 0.5 }}>
@@ -164,51 +172,33 @@ export default function BookDetail() {
     )
   }
 
-  const VerdictIcon = check ? verdictIcon(check.verdict) : null
 
   return (
-    <div className="max-w-[1080px] mx-auto page">
-      <div className="flex items-center justify-between mb-4">
-        <div className="card-meta">
-          <Link to="/shelf" className="hover:underline">
-            My Library
-          </Link>{' '}
-          / {book.title}
+    <div className="page book-detail-page">
+      <nav aria-label="Breadcrumb" className="font-ui text-sm mb-6"><Link to={libraryFrom} className="underline">Library</Link><span aria-hidden="true"> / </span><span>{book.title}</span></nav>
+      <header className="book-identity mb-6">
+        <BookCover book={book} />
+        <div className="min-w-0">
+          <p className="card-kicker">{primaryCategory(book)}</p>
+          <h1>{book.title}</h1>
+          <p className="text-muted">{book.author || 'Unknown author'}</p>
+          <div className="mb-3">{contextError ? <p className="card-meta">Assessment information unavailable</p> : <AssessmentBadge assessment={check} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={location.state} />}</div>
+          <p className="font-ui text-sm text-muted">{readingStatus(book)} · Progress <span aria-label="Progress not recorded">—</span></p>
+          <div className="flex gap-2 flex-wrap">
+            <Link to={`/reading/${book.id}`} className="btn btn-primary">{book.reading_status === 'in-progress' ? 'Continue reading session' : 'Start reading session'}</Link>
+            <Link to={`/reading/${book.id}#reading-note`} className="btn btn-secondary">Add note</Link>
+            {!editing && <button className="btn btn-secondary" onClick={()=>setEditing(true)}>Edit metadata</button>}
+          </div>
         </div>
-        <div className="flex gap-2">
-          {!editing && (
-            <button type="button" className="btn btn-secondary" onClick={() => setEditing(true)}>
-              Edit
-            </button>
-          )}
-          <button type="button" className="btn btn-ghost" style={{ color: 'var(--color-accent-700)' }} onClick={handleDelete}>
-            Delete
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[160px_1fr]">
-        <div className="rounded-sm overflow-hidden bg-neutral-200 shrink-0" style={{ width: 160, aspectRatio: '2/3' }}>
-          {book.cover_url && <img src={book.cover_url} alt="" className="w-full h-full object-cover" />}
-        </div>
-
-        <div>
-          {!editing && (
-            <>
-              <h2 className="!mb-1">{book.title}</h2>
-              <div className="card-meta mb-1">{book.author}</div>
-              <div className="card-meta mb-4">
-                {[book.publisher, book.pub_date, book.pages ? `${book.pages} pages` : null, book.isbn].filter(Boolean).join(' · ')}
-              </div>
-            </>
-          )}
-
-          {editing ? (
+      </header>
+      {contextError && <div className="card mb-4" role="alert"><p>Some notes or assessment information could not be loaded.</p><button className="btn btn-secondary self-start" onClick={load}>Retry</button></div>}
+      {editing ? (
             <div className="card mb-5" style={{ padding: '18px 20px' }}>
               <input
                 className="input !border-none !bg-transparent !text-[23px] font-heading !px-0 mb-1"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
+                aria-label="Title"
                 placeholder="Title"
                 required
               />
@@ -216,25 +206,26 @@ export default function BookDetail() {
                 className="input !border-none !bg-transparent !px-0 mb-3"
                 value={form.author}
                 onChange={(e) => setForm({ ...form, author: e.target.value })}
+                aria-label="Author"
                 placeholder="Author"
               />
 
               <div className="flex gap-3 flex-wrap mb-3">
                 <div className="field" style={{ minWidth: 160 }}>
-                  <label>ISBN</label>
-                  <input className="input" value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} />
+                  <label htmlFor="book-isbn">ISBN</label>
+                  <input id="book-isbn" className="input" value={form.isbn} onChange={(e) => setForm({ ...form, isbn: e.target.value })} />
                 </div>
                 <div className="field" style={{ minWidth: 180 }}>
-                  <label>Publisher</label>
-                  <input className="input" value={form.publisher} onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
+                  <label htmlFor="book-publisher">Publisher</label>
+                  <input id="book-publisher" className="input" value={form.publisher} onChange={(e) => setForm({ ...form, publisher: e.target.value })} />
                 </div>
                 <div className="field" style={{ minWidth: 130 }}>
-                  <label>Published</label>
-                  <input className="input" value={form.pub_date} onChange={(e) => setForm({ ...form, pub_date: e.target.value })} />
+                  <label htmlFor="book-published">Published</label>
+                  <input id="book-published" className="input" value={form.pub_date} onChange={(e) => setForm({ ...form, pub_date: e.target.value })} />
                 </div>
                 <div className="field" style={{ minWidth: 90 }}>
-                  <label>Pages</label>
-                  <input
+                  <label htmlFor="book-pages">Pages</label>
+                  <input id="book-pages"
                     className="input"
                     type="number"
                     min="0"
@@ -245,9 +236,9 @@ export default function BookDetail() {
               </div>
 
               <div className="field mb-3">
-                <label>Cover image URL</label>
-                <div className="flex gap-2">
-                  <input
+                <label htmlFor="book-cover-image-url">Cover image URL</label>
+                <div className="flex gap-2 flex-wrap">
+                  <input id="book-cover-image-url"
                     className="input flex-1"
                     value={form.cover_url}
                     onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
@@ -260,32 +251,32 @@ export default function BookDetail() {
               </div>
 
               <div className="field mb-3">
-                <label>Summary</label>
-                <textarea className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <label htmlFor="book-summary">Summary</label>
+                <textarea id="book-summary" className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
 
               <div className="flex gap-3 flex-wrap mb-3">
                 <div className="field" style={{ minWidth: 180 }}>
-                  <label>Tradition</label>
-                  <input className="input" value={form.tradition} onChange={(e) => setForm({ ...form, tradition: e.target.value })} />
+                  <label htmlFor="book-tradition">Tradition</label>
+                  <input id="book-tradition" className="input" value={form.tradition} onChange={(e) => setForm({ ...form, tradition: e.target.value })} />
                 </div>
                 <div className="field" style={{ minWidth: 160 }}>
-                  <label>Status</label>
-                  <select className="input" value={form.reading_status} onChange={(e) => setForm({ ...form, reading_status: e.target.value })}>
+                  <label htmlFor="book-status">Status</label>
+                  <select id="book-status" className="input" value={form.reading_status} onChange={(e) => setForm({ ...form, reading_status: e.target.value })}>
                     {STATUSES.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {readingStatus({reading_status:s})}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="field" style={{ minWidth: 160 }}>
-                  <label>Location</label>
-                  <input className="input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                  <label htmlFor="book-location">Location</label>
+                  <input id="book-location" className="input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
                 </div>
                 <div className="field" style={{ minWidth: 130 }}>
-                  <label>Rating</label>
-                  <select className="input" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })}>
+                  <label htmlFor="book-rating">Rating</label>
+                  <select id="book-rating" className="input" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })}>
                     <option value="">No rating</option>
                     {[1, 2, 3, 4, 5].map((n) => (
                       <option key={n} value={n}>
@@ -295,108 +286,37 @@ export default function BookDetail() {
                   </select>
                 </div>
                 <div className="field" style={{ minWidth: 200 }}>
-                  <label>Tags</label>
-                  <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+                  <label htmlFor="book-tags">Tags</label>
+                  <input id="book-tags" className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
                 </div>
               </div>
 
               <div className="field mb-3">
-                <label>Your notes</label>
-                <textarea className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                <label htmlFor="book-your-notes">Your notes</label>
+                <textarea id="book-your-notes" className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || !form.title.trim()}>
                   {saving ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setEditing(false); void load() }}>
                   Cancel
                 </button>
               </div>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                {book.tradition && <span className="tag tag-neutral">{book.tradition}</span>}
-                {book.reading_status === 'in-progress' ? (
-                  <span className="tag tag-accent">Reading</span>
-                ) : book.reading_status === 'read' ? (
-                  <span className="tag tag-accent-2">Read</span>
-                ) : (
-                  <span className="tag tag-neutral">Unread</span>
-                )}
-                {book.reading_status !== 'in-progress' && (
-                  <button type="button" className="btn btn-ghost !px-1" style={{ fontSize: 12 }} onClick={() => handleQuickStatus('in-progress')}>
-                    I'm reading this →
-                  </button>
-                )}
-                {book.reading_status === 'in-progress' && (
-                  <button type="button" className="btn btn-ghost !px-1" style={{ fontSize: 12 }} onClick={() => handleQuickStatus('read')}>
-                    Mark as read
-                  </button>
-                )}
-                {book.location && <span className="tag tag-neutral">{book.location}</span>}
-                {(book.tags || []).map((t) => (
-                  <span key={t} className="tag tag-neutral">
-                    {t}
-                  </span>
-                ))}
-              </div>
-              {book.rating && <StarRow rating={book.rating} />}
-              {book.description && <p className="mb-3" style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.description}</p>}
-              {book.notes && (
-                <div className="card mb-3" style={{ padding: '14px 16px' }}>
-                  <div className="card-kicker mb-1">Your notes</div>
-                  <p style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{book.notes}</p>
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="card mt-5" style={{ padding: '18px 20px' }}>
-            <div className="card-kicker mb-2">Reading</div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <Link to={`/reading/${book.id}`} className="btn btn-secondary">
-                {book.reading_status === 'unread' ? 'Start reading session →' : 'Continue reading session →'}
-              </Link>
-              {noteCount > 0 && (
-                <span className="card-meta">
-                  {noteCount} note{noteCount === 1 ? '' : 's'} so far
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="card mt-5" style={{ padding: '18px 20px' }}>
-            <div className="card-kicker mb-2">Doctrine Check</div>
-            {check ? (
-              <Link to={`/checks/${check.id}`} className="flex items-center gap-2">
-                <span className={`tag ${verdictClass(check.verdict)} flex items-center gap-1 w-fit`}>
-                  <VerdictIcon size={12} strokeWidth={2.75} />
-                  {check.verdict || 'Unable to Assess'}
-                </span>
-                <span className="text-sm hover:underline">Full report →</span>
-              </Link>
-            ) : (
-              <button type="button" className="btn btn-secondary" onClick={handleCheck} disabled={checking}>
-                {checking ? 'Checking…' : 'Check this book'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {showCoverPicker && (
-        <ChangeCoverDialog
-          isbn={form.isbn.trim()}
-          currentUrl={form.cover_url}
-          onSelect={(url) => {
-            setForm({ ...form, cover_url: url })
-            setShowCoverPicker(false)
-          }}
-          onClose={() => setShowCoverPicker(false)}
-        />
-      )}
+      ) : <>
+        <nav className="book-tabs" aria-label="Book sections">{TABS.map(([key,label])=><button type="button" key={key} aria-current={tab===key ? 'page':undefined} onClick={()=>chooseTab(key)}>{label}</button>)}</nav>
+        <section className="card book-section" aria-label={TABS.find(([key])=>key===tab)[1]}>
+          {tab==='overview' && <><h2>Overview</h2><p className="whitespace-pre-wrap reading-prose">{book.description || 'No summary has been added for this book.'}</p><div className="flex gap-2 flex-wrap">{(book.tags || []).map(tag=><span className="tag tag-neutral" key={tag}>{tag}</span>)}</div><div className="flex gap-2 flex-wrap mt-4">{book.reading_status!=='in-progress' && <button className="btn btn-secondary" onClick={()=>handleQuickStatus('in-progress')}>Mark as Reading</button>}{book.reading_status==='in-progress' && <button className="btn btn-secondary" onClick={()=>handleQuickStatus('read')}>Mark as Completed</button>}</div></>}
+          {tab==='notes' && <><h2>My Notes</h2>{book.notes && <p className="reading-prose whitespace-pre-wrap">{book.notes}</p>}{notes.map(note=><Link key={note.id} to={`/notebook/${note.id}`} className="card"><h3 className="card-title">{note.title || 'Untitled note'}</h3><p className="card-body">{note.body?.slice(0,240)}</p></Link>)}{!notes.length && !book.notes && <p>No notes linked to this book yet.</p>}<Link to={`/reading/${book.id}#reading-note`} className="btn btn-secondary self-start">Add a reading note</Link></>}
+          {tab==='highlights' && <><h2>Highlights</h2><p>Dedicated highlights are not available yet. You can save an excerpt in a reading note.</p><Link to={`/reading/${book.id}#reading-note`} className="btn btn-secondary self-start">Save an excerpt as a note</Link></>}
+          {tab==='scripture' && <><h2>Related Scripture</h2><p className="text-muted">References from your linked reading notes.</p>{notes.filter(note=>note.ref).map(note=><div key={note.id} className="flex flex-col gap-2 py-3">{scriptureUrl(note.ref) ? <Link to={scriptureUrl(note.ref)} className="underline">{note.ref}</Link> : <span>{note.ref}</span>}<Link to={`/notebook/${note.id}`} className="font-ui text-sm underline">From {note.title || 'Untitled note'}</Link></div>)}{!notes.some(note=>note.ref) && <p>No Scripture references have been linked through your notes yet.</p>}</>}
+          {tab==='doctrine' && <><h2>Doctrine Check</h2><p className="reading-prose">This is an AI-generated assessment. Scripture and the leading of the Holy Spirit are the final authority.</p>{check ? <><AssessmentBadge assessment={check} title={book.title} state={location.state} /><p className="reading-prose">{check.summary}</p><Link to={`/checks/${check.id}`} className="btn btn-secondary self-start">Read the full assessment</Link>{check.created_at && <p className="card-meta">Assessed {new Date(check.created_at).toLocaleDateString()}</p>}</> : contextError ? <p>Retry loading assessment information before running another check.</p> : <><p>This book has not been assessed.</p><button className="btn btn-secondary self-start" onClick={handleCheck} disabled={checking}>{checking ? 'Checking…':'Check this book'}</button></>}</>}
+          {tab==='details' && <><h2>Details</h2><dl className="book-facts">{[['Publisher',book.publisher],['Published',book.pub_date],['ISBN',book.isbn],['Pages',book.pages],['Category',primaryCategory(book)],['Tradition',book.tradition],['Location',book.location],['Date Added',book.created_at ? new Date(book.created_at).toLocaleDateString() : null]].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value ?? '—'}</dd></div>)}</dl><button className="btn btn-secondary self-start mt-4" onClick={()=>setEditing(true)}>Edit metadata</button><button className="btn btn-ghost self-start" onClick={handleDelete}>Remove from Library</button></>}
+        </section>
+      </>}
+      {showCoverPicker && <ChangeCoverDialog isbn={form.isbn.trim()} currentUrl={form.cover_url} onSelect={url=>{setForm({...form,cover_url:url});setShowCoverPicker(false)}} onClose={()=>setShowCoverPicker(false)} />}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { NotebookPen, ShieldCheck } from 'lucide-react'
+import { NotebookPen, ShieldCheck, Search, LibraryBig } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
@@ -70,27 +70,33 @@ export default function Home() {
 
   return (
     <div className="max-w-[1180px] mx-auto page">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+      <div className="home-welcome mb-6">
         <div>
           <div className="card-kicker mb-1">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
           <h2 className="!mb-0">
             {greeting()}, {user.user_metadata?.display_name || user.email.split('@')[0]}
           </h2>
         </div>
-        <div className="flex gap-2">
-          <Link to="/shelf/add" className="btn btn-secondary">
-            Add a book
-          </Link>
-          <Link to="/checks" className="btn btn-secondary">
-            Run a check
-          </Link>
-          <Link to="/notebook/new" className="btn btn-primary">
-            + New entry
-          </Link>
-        </div>
+        <p className="mt-3 mb-0 max-w-[65ch]">Search the Scriptures. Keep your notes close. Make room for deliberate study.</p>
       </div>
 
-      <div className="card mb-6" style={{ padding: '18px 20px' }}>
+      <section className="card mb-6 scripture-block" aria-labelledby="focus-title">
+        <div className="card-kicker">Today’s Focus</div>
+        <h2 id="focus-title" className="text-xl">Examine the Scriptures</h2>
+        <p className="card-body">Begin with Acts 17:10–12 and the Bereans’ example of receiving the word and examining the Scriptures.</p>
+        <Link to="/bible?book=Acts&chapter=17&verse=10&verseEnd=12" className="btn btn-primary self-start mt-2">Open study</Link>
+      </section>
+      <section className="mb-6" aria-labelledby="quick-actions-title">
+        <h2 id="quick-actions-title" className="card-kicker mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          <Link to="/search" className="card home-action"><Search aria-hidden="true" /><span>Search Scripture</span></Link>
+          <Link to="/shelf" className="card home-action"><LibraryBig aria-hidden="true" /><span>Open Library</span></Link>
+          <Link to="/notebook/new" className="card home-action"><NotebookPen aria-hidden="true" /><span>New Note</span></Link>
+          <Link to="/checks" className="card home-action"><ShieldCheck aria-hidden="true" /><span>Doctrine Check</span></Link>
+        </div>
+      </section>
+
+      <div className="card mb-6" >
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="card-kicker">Verse of the Day</div>
           {votd && (
@@ -114,8 +120,8 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 18, lineHeight: 1.6, fontStyle: 'italic' }}>&ldquo;{votd.text}&rdquo;</p>
-            <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
+            <p className="scripture-text scripture-block">&ldquo;{votd.text}&rdquo;</p>
+            <p className="mt-2" style={{ fontSize: ".75rem", color: "var(--bsd-muted)" }}>
               {votd.reference} (BSB) — daily pick via{' '}
               <a href="https://www.biblegateway.com" target="_blank" rel="noopener noreferrer">
                 BibleGateway.com
@@ -126,14 +132,14 @@ export default function Home() {
       </div>
 
       {reading && (
-        <div className="card mb-6" style={{ padding: '18px 20px' }}>
+        <div className="card mb-6" >
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="card-kicker">Currently reading</div>
             <Link to={`/reading/${reading.id}`} className="text-sm hover:underline">
               Continue reading →
             </Link>
           </div>
-          <div className="grid gap-4 md:gap-6 items-center grid-cols-1 md:grid-cols-[80px_1fr_246px]">
+          <div className="grid gap-4 md:gap-6 items-center grid-cols-1 xl:grid-cols-[80px_1fr_246px]">
             <div className="rounded-sm overflow-hidden bg-neutral-200" style={{ width: 80, aspectRatio: '2/3' }}>
               {reading.cover_url && <img src={reading.cover_url} alt="" className="w-full h-full object-cover" />}
             </div>
@@ -162,15 +168,13 @@ export default function Home() {
         </div>
       )}
 
-      <div className="card-kicker mb-2">Recent notes &amp; checks</div>
+      <div className="card-kicker mb-2">Recent Activity</div>
       {feed === null ? (
         <div className="text-center py-16" style={{ opacity: 0.5 }}>
           Loading…
         </div>
       ) : feed.length === 0 ? (
-        <div className="text-center py-16" style={{ opacity: 0.5 }}>
-          Nothing yet — write your first entry or run your first check.
-        </div>
+        <div className="card"><p className="card-body">Your notes and assessments will appear here as you study.</p><Link to="/notebook/new" className="btn btn-secondary self-start">Write your first note</Link></div>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {feed.map(({ type, item }) =>

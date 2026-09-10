@@ -216,7 +216,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
             id="entry-body"
             ref={bodyRef}
             className="input !border-none !bg-transparent !px-0"
-            style={{ fontSize: 16.5, lineHeight: 1.65, minHeight: 220 }}
+            style={{ fontFamily: "Lora, Georgia, serif", fontSize: "1.0625rem", lineHeight: 1.65, minHeight: 220 }}
             placeholder="Write it out…"
             value={body}
             onChange={(e) => setBody(e.target.value)}

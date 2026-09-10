@@ -140,7 +140,7 @@ function ReferenceTag({ match, isOpen, onToggle }) {
               Couldn't load that reference.
             </span>
           ) : verses ? (
-            <span style={{ fontSize: 14, lineHeight: 1.6, display: 'block' }}>
+            <span className="scripture-text block">
               {verses.map((v) => v.text).join(' ')}
             </span>
           ) : null}

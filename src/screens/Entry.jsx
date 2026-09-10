@@ -107,7 +107,7 @@ export default function Entry() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_300px]">
+      <div className="grid gap-6 md:gap-9 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div>
           {editing ? (
             <EntryComposerForm
@@ -122,7 +122,7 @@ export default function Entry() {
             />
           ) : (
             <article>
-              <h1 style={{ fontSize: 38, lineHeight: 1.08, maxWidth: '22ch' }}>{entry.title || 'Untitled'}</h1>
+              <h1 className="text-[1.75rem] leading-tight max-w-[30ch]">{entry.title || 'Untitled'}</h1>
               <div className="flex items-center gap-2 flex-wrap mb-4">
                 <div className="card-meta">{new Date(entry.created_at).toLocaleDateString()}</div>
                 {book && (
@@ -146,13 +146,13 @@ export default function Entry() {
                       Couldn't look up that reference.
                     </div>
                   ) : passage ? (
-                    <p className="mt-1" style={{ fontSize: 15.5, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
+                    <p className="scripture-text whitespace-pre-wrap mt-1">
                       {passage.text}
                     </p>
                   ) : null}
                 </div>
               )}
-              <ScriptureText text={entry.body} style={{ fontSize: 17, lineHeight: 1.7 }} />
+              <ScriptureText text={entry.body} style={{ fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "70ch" }} />
               {entry.photos?.length > 0 && (
                 <div className="flex gap-2 flex-wrap mt-4">
                   {entry.photos.map((url) => (

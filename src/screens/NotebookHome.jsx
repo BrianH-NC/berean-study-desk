@@ -47,7 +47,7 @@ export default function NotebookHome() {
         </div>
       ) : (
         <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
-          <h2 className="!mb-0">Notebook</h2>
+          <h2 className="!mb-0">Notes</h2>
           <button type="button" className="btn btn-primary" onClick={() => setComposing(true)}>
             <Plus size={15} strokeWidth={2.75} />
             New entry

@@ -139,7 +139,7 @@ export default function Search() {
               ) : (
                 <>
                   <div className="card-title !text-[14px] mb-1">{passage.canonical || scriptureRef}</div>
-                  <p style={{ fontSize: 15, lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{passage.text}</p>
+                  <p className="scripture-text scripture-block whitespace-pre-wrap">{passage.text}</p>
                 </>
               )}
             </div>

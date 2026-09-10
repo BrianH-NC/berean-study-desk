@@ -514,6 +514,7 @@ export default function BibleStudy() {
             <input
               className="input flex-1"
               style={{ minWidth: 220 }}
+              aria-label="Passage reference"
               placeholder="Jump to a reference — e.g. Romans 8:28, Jn 3:16-18, Ps 23"
               value={quickRef}
               onChange={(e) => setQuickRef(e.target.value)}
@@ -576,9 +577,9 @@ export default function BibleStudy() {
             </div>
           </div>
 
-          <div className="flex gap-4 items-start flex-wrap lg:flex-nowrap">
-            <div className={sidePanelOpen ? 'flex-1 min-w-[280px]' : 'w-full max-w-[720px] mx-auto'}>
-              <div className="card mb-3" style={{ padding: '22px 26px' }}>
+          <div className="study-workspace">
+            <div className="study-passage">
+              <div className="card mb-3 scripture-block" aria-label={`${book} ${chapter}, ${readingMeta.name}`}>
                 {verses === null ? (
                   <div className="text-center py-16" style={{ opacity: 0.5 }}>
                     Loading…
@@ -594,10 +595,20 @@ export default function BibleStudy() {
                 ) : (
                   <>
                     {paragraphs.map((group) => (
-                      <p key={group[0].number} style={{ fontSize: 17, lineHeight: 1.75, marginBottom: 6 }}>
+                      <p key={group[0].number} className="scripture-text mb-4">
                         {group.map((v) => (
                           <span
                             key={v.number}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={selectedVerses.has(v.number)}
+                            aria-label={`Select verse ${v.number}: ${v.text}`}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                toggleVerse(v.number)
+                              }
+                            }}
                             onClick={() => toggleVerse(v.number)}
                             className="cursor-pointer"
                             style={{
@@ -637,7 +648,7 @@ export default function BibleStudy() {
                     </button>
                     <button type="button" className="btn btn-primary" onClick={handleCreateEntry}>
                       <NotebookPen size={13} strokeWidth={2.75} />
-                      Create Notebook Entry
+                      Create Note
                     </button>
                     <button type="button" className="btn btn-ghost" onClick={() => setSelectedVerses(new Set())}>
                       Clear
@@ -649,7 +660,7 @@ export default function BibleStudy() {
             </div>
 
             {sidePanelOpen && (
-              <div className="flex flex-col gap-3 w-full" style={{ maxWidth: 380 }}>
+              <div className="study-tools flex flex-col gap-3">
                 {showCommentary && (
                   <div className="card" style={{ padding: '16px 20px' }}>
                     <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -737,7 +748,7 @@ export default function BibleStudy() {
                             <div className="card-meta mb-1">
                               {readingMeta.short} — {readingMeta.name}
                             </div>
-                            <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                            <p className="scripture-text">
                               {(verses || [])
                                 .filter((v) => selectedVerses.has(v.number))
                                 .map((v) => `${v.number} ${v.text}`)
@@ -767,7 +778,7 @@ export default function BibleStudy() {
                                       {entry.message ? ` — ${entry.message}` : '.'}
                                     </p>
                                   ) : (
-                                    <p style={{ fontSize: 14, lineHeight: 1.6 }}>
+                                    <p className="scripture-text">
                                       {entry.verses
                                         .filter((v) => selectedVerses.has(v.number))
                                         .map((v) => `${v.number} ${v.text}`)
@@ -908,14 +919,14 @@ export default function BibleStudy() {
                 <button
                   key={v.id}
                   type="button"
-                  className="card !flex-row items-start gap-3 text-left hover:shadow-sm"
+                  className="card sm:!flex-row items-start gap-3 text-left hover:shadow-sm"
                   style={{ padding: '12px 16px' }}
                   onClick={() => goTo(v.book_name, v.chapter, v.verse)}
                 >
                   <span className="tag tag-accent shrink-0">
                     {v.book_name} {v.chapter}:{v.verse}
                   </span>
-                  <span style={{ fontSize: 14, lineHeight: 1.6 }}>{highlightTerms(v.text, searchQuery)}</span>
+                  <span className="scripture-text">{highlightTerms(v.text, searchQuery)}</span>
                 </button>
               ))}
             </div>

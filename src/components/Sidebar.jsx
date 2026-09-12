@@ -32,9 +32,9 @@ export default function Sidebar() {
   const { pathname } = useLocation()
   const dialog = useRef(null)
   const trigger = useRef(null)
-  const [expanded, setExpanded] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
-  const [hovering, setHovering] = useState(false)
+  const [railExpanded, setRailExpanded] = useState(null)
+  const expanded = railExpanded === true
+  const collapsed = railExpanded === false
   const [menuOpen, setMenuOpen] = useState(false)
   const moreActive = [...SECONDARY, ...ACCOUNT].some(item => pathname.startsWith(item.to.split('#')[0]))
 
@@ -49,13 +49,11 @@ export default function Sidebar() {
     trigger.current?.focus()
   }
   function toggleRail() {
-    if (window.matchMedia('(min-width: 1280px)').matches) setCollapsed(value => !value)
-    else setExpanded(value => !value)
+    setRailExpanded(value => !(value ?? window.matchMedia('(min-width: 1280px)').matches))
   }
 
   return <>
-    <aside className={`heritage-sidebar ${collapsed ? 'is-collapsed' : ''} ${expanded || hovering ? 'is-expanded' : ''}`}
-      onMouseEnter={() => collapsed && setHovering(true)} onMouseLeave={() => setHovering(false)} aria-label="Study desk sidebar">
+    <aside className={`heritage-sidebar ${collapsed ? 'is-collapsed' : ''} ${expanded ? 'is-expanded' : ''}`} aria-label="Study desk sidebar">
       <div className="flex flex-col items-center gap-3">
         <Logo size={40} />
         <div className="brand-detail text-center"><BrandLockup /><p className="font-ui text-xs mt-3 mb-0 text-gold">Search. Study. Discern.</p><p className="font-ui text-xs mb-0">Acts 17:11</p></div>
@@ -65,7 +63,7 @@ export default function Sidebar() {
       </nav>
       <div className="flex flex-col gap-1">
         {ACCOUNT.map(item => <NavigationLink key={item.to} item={item} />)}
-        <button type="button" className="nav-item" aria-label="Expand or collapse navigation" onClick={toggleRail}>
+        <button type="button" className="nav-item" title="Resize navigation" aria-label="Expand or collapse navigation" onClick={toggleRail}>
           <PanelLeft size={22} aria-hidden="true" /><span className="nav-label">Resize navigation</span>
         </button>
       </div>

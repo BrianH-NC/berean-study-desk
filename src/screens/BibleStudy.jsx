@@ -526,7 +526,7 @@ export default function BibleStudy() {
         <div className="card bible-reader-card">
           <div className="bible-reader-heading"><h2>{passageRef}</h2><div><button className="btn btn-icon" onClick={()=>copy('passage',`${passageRef} (${readingMeta.short})\n${(displayedVerses||[]).map(v=>`${v.number} ${v.text}`).join('\n')}`)} aria-label="Copy passage"><Copy size={17}/></button><button className="btn btn-icon" onClick={()=>draftNote()} aria-label="Create study note"><NotebookPen size={17}/></button></div></div>
           {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}
-          <div className={`bible-parallel ${showCompare?'':'is-single'}`}>
+          <div className={`bible-parallel ${showCompare?'':'is-single'}`} tabIndex={0} role="region" aria-label="Bible translation text">
             {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0):<p>No text is available for this passage.</p>}</article>)}
           </div>
           <div className="bible-reader-footer"><span>Select verses in {readingMeta.short} to study or save them.</span>{verseRange && <button className="btn btn-ghost" onClick={()=>setVerseRange(null)}>Show whole chapter</button>}</div>

@@ -105,8 +105,8 @@ export default function SearchWorkspace(){
   const loading=localLoading||bible.loading||resources.loading
   const relatedTopics=[...new Set(library.notes.filter(n=>matchesSearch([n.title,n.body,...(n.tags||[])],query)).flatMap(n=>n.tags||[]))].slice(0,6)
   function choose(row){lastResult.current=document.activeElement;setSelectedId(row.id);setPreviewOpen(true);requestAnimationFrame(()=>{if(window.matchMedia('(max-width:767px)').matches){previewRef.current?.focus();previewRef.current?.scrollIntoView({block:'start',behavior:'instant'})}})}
-  const filters=(group)=><>
-    <h2>Filters</h2><fieldset><legend>Content type</legend>{['All',...SEARCH_TYPES].map(value=><label className="search-filter-choice" key={value}><input type="radio" name={group} checked={type===value} onChange={()=>update({type:value==='All'?'':value})}/>{value} ({value==='All'?rows.length:rows.filter(r=>r.type===value).length})</label>)}</fieldset>
+  const filters=()=><>
+    <h2>Filters</h2>
     <label className="field">Bible version<select className="input" value="BSB" disabled><option>BSB</option></select></label>
     <label className="field">Testament<select className="input" value={testament} onChange={e=>update({testament:e.target.value,book:''})}><option value="">Both testaments</option><option value="OT">Old Testament</option><option value="NT">New Testament</option></select></label>
     <label className="field">Bible book<select className="input" value={book} onChange={e=>update({book:e.target.value})}><option value="">All Bible books</option>{CANONICAL_BOOKS.filter((_,i)=>!testament||(testament==='OT'?i<39:i>=39)).map(name=><option key={name}>{name}</option>)}</select></label>

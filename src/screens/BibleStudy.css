@@ -26,12 +26,12 @@
 .bible-reader-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .bible-reader-heading>div { display:flex; }
 .bible-desk h2 { font:600 21px/1.4 Lora,serif; margin:0; }
-.bible-parallel { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(160px,1fr); gap:6px; overflow-x:auto; align-items:start; padding-bottom:6px; }
+.bible-parallel { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(160px,1fr); gap:6px; overflow:auto; max-height:calc(100dvh - 220px); align-items:start; padding-bottom:6px; }
 .bible-parallel.is-single { grid-auto-columns:100%; }
 .bible-swipe-hint { display:none; }
 @media(max-width:767px) { .bible-swipe-hint { display:block; font:11px/1.5 Inter,sans-serif; color:var(--bsd-muted); margin:0; } }
-.bible-translation { min-width:0; border:1px solid #ebe5da; border-radius:4px; overflow:hidden; }
-.bible-translation h3 { background:#edf2e8; padding:8px; font:600 14px/1.3 Lora,serif; margin:0; }
+.bible-translation { min-width:0; border:1px solid #ebe5da; border-radius:4px; }
+.bible-translation h3 { position:sticky; top:0; z-index:2; background:#edf2e8; padding:8px; font:600 14px/1.3 Lora,serif; margin:0; }
 .bible-translation:nth-child(2) h3 { background:#edf1f4; }
 .bible-translation:nth-child(3) h3 { background:#eef3f8; }
 .bible-translation:nth-child(4) h3 { background:#f6edef; }
@@ -54,6 +54,7 @@
 .bible-reading:fullscreen { display:block; width:100%; height:100%; overflow:auto; padding:16px; background:var(--bsd-parchment); }
 .bible-reading:fullscreen .bible-toolbar { position:sticky; top:0; z-index:30; margin-bottom:12px; background:var(--bsd-surface); }
 .bible-reading:fullscreen .bible-parallel { grid-auto-columns:minmax(220px,1fr); }
+.bible-reading:fullscreen .bible-parallel { max-height:calc(100dvh - 180px); }
 .bible-reading:fullscreen .bible-parallel.is-single { grid-auto-columns:100%; }
 @media(min-width:1100px) and (max-width:1399px) { .bible-tool-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .bible-tool-grid>button,.bible-tool-grid>a { min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; text-align:center; padding:10px 3px; border:1px solid #e7e4db; border-radius:4px; background:linear-gradient(var(--bsd-surface),#eef2ec); font:11px/1.25 Inter,sans-serif; overflow-wrap:anywhere; }

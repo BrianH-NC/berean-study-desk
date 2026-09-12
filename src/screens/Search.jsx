@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, User, BookOpen, BookText, Loader2 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
@@ -16,7 +16,8 @@ function matches(haystacks, q) {
 export default function Search() {
   const user = useAuth()
 
-  const [query, setQuery] = useState('')
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(() => searchParams.get('q') || '')
   const [books, setBooks] = useState(null)
   const [checks, setChecks] = useState(null)
   const [entries, setEntries] = useState(null)

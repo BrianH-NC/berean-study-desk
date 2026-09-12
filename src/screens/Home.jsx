@@ -1,222 +1,94 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { NotebookPen, ShieldCheck, Search, LibraryBig } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, BookOpen, LibraryBig, NotebookPen, Search, ShieldCheck, Tags, BookMarked } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
-import { verdictClass, verdictIcon } from '../lib/verdict'
-import { formatEntryNum } from '../lib/entries'
 import { fetchVerseOfTheDay } from '../lib/votd'
+import BookCover from '../components/BookCover'
+import { dailyHero } from '../lib/dailyHero'
 
-function greeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
-}
+const shortcuts = [
+  {label:'Search',text:'Find Scripture, books, and your notes.',to:'/search',icon:Search},
+  {label:'Bible Study',text:'Study passages in context.',to:'/bible',icon:BookOpen},
+  {label:'Library',text:'Your personal theological library.',to:'/shelf',icon:LibraryBig},
+  {label:'Doctrine Check',text:'Evaluate with confessional clarity.',to:'/checks',icon:ShieldCheck},
+  {label:'Notes',text:'Capture and grow your insights.',to:'/notebook',icon:NotebookPen},
+  {label:'Topics',text:'Explore connections in your study.',to:'/topics',icon:Tags},
+  {label:'Reading',text:'Return to the books you are reading.',to:'/reading',icon:BookMarked},
+]
+function PanelTitle({children,to}) { return <div className="desk-panel-title"><h2>{children}</h2>{to && <Link to={to}>See all <ArrowRight size={13} aria-hidden="true" /></Link>}</div> }
 
 export default function Home() {
   const user = useAuth()
-  const [reading, setReading] = useState(null) // undefined-ish: null = none/not loaded
-  const [feed, setFeed] = useState(null) // null = loading
-  const [votd, setVotd] = useState(null) // null = loading, false = error
-
-  useEffect(() => {
-    let cancelled = false
-    fetchVerseOfTheDay()
-      .then((v) => {
-        if (!cancelled) setVotd(v)
-      })
-      .catch(() => {
-        if (!cancelled) setVotd(false)
-      })
-    return () => {
-      cancelled = true
+  const navigate = useNavigate()
+  const [query,setQuery] = useState('')
+  const [data,setData] = useState(null)
+  const [error,setError] = useState(false)
+  const [reload,setReload] = useState(0)
+  const [votd,setVotd] = useState(null)
+  const [hero,setHero] = useState(()=>dailyHero())
+  useEffect(()=>{
+    const refresh=()=>setHero(dailyHero())
+    const timer=setInterval(refresh,30000)
+    window.addEventListener('focus',refresh)
+    return ()=>{clearInterval(timer);window.removeEventListener('focus',refresh)}
+  },[])
+  useEffect(()=>{
+    let active=true
+    fetchVerseOfTheDay().then(v=>{if(active)setVotd(v)}).catch(()=>{if(active)setVotd(false)})
+    return ()=>{active=false}
+  },[])
+  useEffect(()=>{
+    let active=true
+    async function load(){
+      try {
+        const results=await Promise.all([
+          supabase.from('books').select('id,title,author,cover_url,reading_status,updated_at').eq('user_id',user.id).eq('reading_status','in-progress').order('updated_at',{ascending:false}).limit(3),
+          supabase.from('entries').select('id,title,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(4),
+          supabase.from('theology_checks').select('id,title,name,created_at').order('created_at',{ascending:false}).limit(4),
+          supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('reading_status','read'),
+          supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id),
+          supabase.from('entries').select('id',{count:'exact',head:true}).eq('user_id',user.id),
+        ])
+        if(results.some(r=>r.error))throw new Error('Could not load activity')
+        if(!active)return
+        const [books,notes,checks,completed,total,noteCount]=results
+        setData({reading:books.data||[],feed:[...(notes.data||[]).map(n=>({...n,kind:'Note',to:`/notebook/${n.id}`})),...(checks.data||[]).map(c=>({...c,kind:'Doctrine Check',to:`/checks/${c.id}`}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,4),completed:completed.count,total:total.count,notes:noteCount.count})
+        setError(false)
+      }catch{if(active)setError(true)}
     }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      const [{ data: readingBooks }, { data: recentEntries }, { data: recentChecks }] = await Promise.all([
-        supabase.from('books').select('*').eq('user_id', user.id).eq('reading_status', 'in-progress').order('updated_at', { ascending: false }).limit(1),
-        supabase.from('entries').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(6),
-        supabase.from('theology_checks').select('*').order('created_at', { ascending: false }).limit(6),
-      ])
-      if (cancelled) return
-
-      const book = readingBooks?.[0] || null
-      if (book?.isbn) {
-        const { data: check } = await supabase.from('theology_checks').select('verdict, summary').eq('isbn', book.isbn).eq('kind', 'book').maybeSingle()
-        setReading({ ...book, verdict: check?.verdict, verdictSummary: check?.summary })
-      } else {
-        setReading(book)
-      }
-
-      const combined = [
-        ...(recentEntries || []).map((e) => ({ type: 'entry', date: e.created_at, item: e })),
-        ...(recentChecks || []).map((c) => ({ type: 'check', date: c.created_at, item: c })),
-      ]
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 8)
-      setFeed(combined)
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [user.id])
-
-  return (
-    <div className="max-w-[1180px] mx-auto page">
-      <div className="home-welcome mb-6">
-        <div>
-          <div className="card-kicker mb-1">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-          <h2 className="!mb-0">
-            {greeting()}, {user.user_metadata?.display_name || user.email.split('@')[0]}
-          </h2>
+    void load()
+    return ()=>{active=false}
+  },[user.id,reload])
+  const name=user.user_metadata?.display_name || user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Reader'
+  const verseTo=votd ? `/bible?book=${encodeURIComponent(votd.book)}&chapter=${votd.chapter}${votd.verseStart?`&verse=${votd.verseStart}`:''}${votd.verseEnd?`&verseEnd=${votd.verseEnd}`:''}` : '/bible'
+  return <div className="page desk-home" style={{'--daily-hero':`url("${hero}")`}}>
+    <header className="desk-topbar">
+      <form className="desk-search" role="search" onSubmit={e=>{e.preventDefault();if(query.trim())navigate(`/search?q=${encodeURIComponent(query.trim())}`)}}>
+        <Search size={21} aria-hidden="true"/><label className="sr-only" htmlFor="home-search">Search Scripture, books, and notes</label><input id="home-search" type="search" placeholder="Search Scripture, books, topics, or questions…" value={query} onChange={e=>setQuery(e.target.value)} required/><button className="btn btn-primary" type="submit">Search</button>
+      </form>
+      <Link to="/settings/profile" className="desk-profile"><span aria-hidden="true">{name.slice(0,2).toUpperCase()}</span><span>{name}</span></Link>
+      <p className="desk-motto">Search diligently<br/>and with discernment.<small>Inspired by Acts 17:11</small></p>
+    </header>
+    {error && <div className="card" role="alert">Study activity could not be loaded.<button className="btn btn-secondary" onClick={()=>setReload(n=>n+1)}>Retry</button></div>}
+    <div className="desk-layout">
+      <div className="desk-primary">
+        <section className="desk-hero" aria-labelledby="home-heading">
+          <div className="desk-hero-copy"><h1 id="home-heading">Search. Study. Discern.</h1><p>A deeper place for a deeper faith.</p></div>
+          <blockquote>“Your word is a lamp<br/>to my feet and a light<br/>to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
+        </section>
+        <nav className="desk-shortcuts" aria-label="Study shortcuts">{shortcuts.map(({label,text,to,icon:Icon})=><Link key={to} to={to}><Icon size={29} strokeWidth={1.8} aria-hidden="true"/><h2>{label}</h2><p>{text}</p><ArrowRight size={15} aria-hidden="true"/></Link>)}</nav>
+        <div className="desk-bottom">
+          <section className="card desk-verse"><PanelTitle>Verse of the Day</PanelTitle>{votd ? <><p className="scripture-text">“{votd.text}”</p><Link to={verseTo}>{votd.reference} · BSB <ArrowRight size={13} aria-hidden="true"/></Link><small>Daily pick via <a href="https://www.biblegateway.com" target="_blank" rel="noopener noreferrer">BibleGateway</a></small></> : <p>{votd===false?'Today’s verse is unavailable. Open Bible Study to choose a passage.':'Loading today’s verse…'}</p>}</section>
+          <section className="card desk-thought"><PanelTitle>A Thought for Today</PanelTitle><p>A deeper understanding of God’s Word is not an end in itself, but a means to a deeper love for God and a clearer walk in His will.</p><span aria-hidden="true">—</span><Link to="/notebook/new">Reflect in a note <ArrowRight size={13} aria-hidden="true"/></Link></section>
+          <section className="card desk-progress"><PanelTitle>Your Progress</PanelTitle><p className="card-meta">All time</p>{data ? <><div><BookOpen size={18} aria-hidden="true"/><span>Books completed</span><strong>{data.completed ?? '—'} / {data.total ?? '—'}</strong></div>{data.total>0 && <progress aria-label="Books completed" max={data.total} value={data.completed||0}/>}<div><NotebookPen size={18} aria-hidden="true"/><span>Notes created</span><strong>{data.notes ?? '—'}</strong></div><Link to="/reading">Continue your reading <ArrowRight size={13} aria-hidden="true"/></Link></> : <p>{error?'Activity unavailable.':'Loading progress…'}</p>}</section>
         </div>
-        <p className="mt-3 mb-0 max-w-[65ch]">Search the Scriptures. Keep your notes close. Make room for deliberate study.</p>
       </div>
-
-      <section className="card mb-6 scripture-block" aria-labelledby="focus-title">
-        <div className="card-kicker">Today’s Focus</div>
-        <h2 id="focus-title" className="text-xl">Examine the Scriptures</h2>
-        <p className="card-body">Begin with Acts 17:10–12 and the Bereans’ example of receiving the word and examining the Scriptures.</p>
-        <Link to="/bible?book=Acts&chapter=17&verse=10&verseEnd=12" className="btn btn-primary self-start mt-2">Open study</Link>
-      </section>
-      <section className="mb-6" aria-labelledby="quick-actions-title">
-        <h2 id="quick-actions-title" className="card-kicker mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <Link to="/search" className="card home-action"><Search aria-hidden="true" /><span>Search Scripture</span></Link>
-          <Link to="/shelf" className="card home-action"><LibraryBig aria-hidden="true" /><span>Open Library</span></Link>
-          <Link to="/notebook/new" className="card home-action"><NotebookPen aria-hidden="true" /><span>New Note</span></Link>
-          <Link to="/checks" className="card home-action"><ShieldCheck aria-hidden="true" /><span>Doctrine Check</span></Link>
-        </div>
-      </section>
-
-      <div className="card mb-6" >
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="card-kicker">Verse of the Day</div>
-          {votd && (
-            <Link
-              to={`/bible?book=${encodeURIComponent(votd.book)}&chapter=${votd.chapter}${
-                votd.verseStart ? `&verse=${votd.verseStart}` : ''
-              }${votd.verseEnd && votd.verseEnd !== votd.verseStart ? `&verseEnd=${votd.verseEnd}` : ''}`}
-              className="text-sm hover:underline"
-            >
-              Read in Bible Study →
-            </Link>
-          )}
-        </div>
-        {votd === null ? (
-          <div className="text-sm" style={{ opacity: 0.5 }}>
-            Loading…
-          </div>
-        ) : votd === false ? (
-          <div className="text-sm" style={{ opacity: 0.5 }}>
-            Couldn't load today's verse.
-          </div>
-        ) : (
-          <>
-            <p className="scripture-text scripture-block">&ldquo;{votd.text}&rdquo;</p>
-            <p className="mt-2" style={{ fontSize: ".75rem", color: "var(--bsd-muted)" }}>
-              {votd.reference} (BSB) — daily pick via{' '}
-              <a href="https://www.biblegateway.com" target="_blank" rel="noopener noreferrer">
-                BibleGateway.com
-              </a>
-            </p>
-          </>
-        )}
-      </div>
-
-      {reading && (
-        <div className="card mb-6" >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="card-kicker">Currently reading</div>
-            <Link to={`/reading/${reading.id}`} className="text-sm hover:underline">
-              Continue reading →
-            </Link>
-          </div>
-          <div className="grid gap-4 md:gap-6 items-center grid-cols-1 xl:grid-cols-[80px_1fr_246px]">
-            <div className="rounded-sm overflow-hidden bg-neutral-200" style={{ width: 80, aspectRatio: '2/3' }}>
-              {reading.cover_url && <img src={reading.cover_url} alt="" className="w-full h-full object-cover" />}
-            </div>
-            <div>
-              <h3 className="!mb-1">{reading.title}</h3>
-              <div className="card-meta">{reading.author}</div>
-              {reading.tradition && <span className="tag tag-neutral mt-2 inline-block">{reading.tradition}</span>}
-            </div>
-            {reading.verdict && (
-              <div className="pl-6" style={{ borderLeft: '1px solid var(--color-divider)' }}>
-                {(() => {
-                  const VerdictIcon = verdictIcon(reading.verdict)
-                  return (
-                    <span className={`tag ${verdictClass(reading.verdict)} flex items-center gap-1 w-fit mb-2`}>
-                      <VerdictIcon size={12} strokeWidth={2.75} />
-                      {reading.verdict}
-                    </span>
-                  )
-                })()}
-                <p className="text-sm" style={{ opacity: 0.75, lineHeight: 1.5 }}>
-                  {reading.verdictSummary}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="card-kicker mb-2">Recent Activity</div>
-      {feed === null ? (
-        <div className="text-center py-16" style={{ opacity: 0.5 }}>
-          Loading…
-        </div>
-      ) : feed.length === 0 ? (
-        <div className="card"><p className="card-body">Your notes and assessments will appear here as you study.</p><Link to="/notebook/new" className="btn btn-secondary self-start">Write your first note</Link></div>
-      ) : (
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          {feed.map(({ type, item }) =>
-            type === 'entry' ? (
-              <Link key={item.id} to={`/notebook/${item.id}`} className="card hover:shadow-sm">
-                <div className="card-meta">
-                  <NotebookPen size={12} strokeWidth={2.75} />
-                  no. {formatEntryNum(item.number)}
-                </div>
-                <div className="card-title">{item.title || 'Untitled'}</div>
-                <p className="card-body">{(item.body || '').slice(0, 140)}</p>
-                {item.tags?.length > 0 && (
-                  <div className="flex gap-1 flex-wrap mt-1">
-                    {item.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="tag tag-neutral">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </Link>
-            ) : (
-              (() => {
-                const VerdictIcon = verdictIcon(item.verdict)
-                return (
-                  <Link key={item.id} to={`/checks/${item.id}`} className="card hover:shadow-sm">
-                    <div className="card-meta">
-                      <ShieldCheck size={12} strokeWidth={2.75} />
-                      Doctrine Check
-                    </div>
-                    <div className="card-title">{item.title || item.name}</div>
-                    <span className={`tag ${verdictClass(item.verdict)} flex items-center gap-1 w-fit`}>
-                      <VerdictIcon size={12} strokeWidth={2.75} />
-                      {item.verdict || 'Unable to Assess'}
-                    </span>
-                  </Link>
-                )
-              })()
-            )
-          )}
-        </div>
-      )}
+      <aside className="desk-activity" aria-label="Personal study activity">
+        <section className="card"><PanelTitle to="/reading">Continue Studying</PanelTitle>{data ? data.reading.length ? data.reading.map(book=><Link className="desk-activity-row" to={`/reading/${book.id}`} key={book.id}><BookCover book={book} compact/><span><strong>{book.title}</strong><small>{book.author || 'Currently reading'}</small></span></Link>) : <p>Start a book in your <Link to="/shelf">Library</Link> to pick up your reading here.</p> : <p>{error?'Activity unavailable.':'Loading your books…'}</p>}</section>
+        <section className="card"><PanelTitle>Recent Items</PanelTitle>{data ? data.feed.length ? data.feed.map(item=><Link className="desk-activity-row" to={item.to} key={item.to}><span className="desk-item-icon">{item.kind==='Note'?<NotebookPen size={22}/>:<ShieldCheck size={22}/>}</span><span><strong>{item.title||item.name||'Untitled'}</strong><small>{item.kind} · {new Date(item.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></span></Link>) : <p>Your notes and doctrine checks will appear here.</p> : <p>{error?'Activity unavailable.':'Loading recent items…'}</p>}</section>
+        <Link className="desk-closing" to="/bible?book=Romans&chapter=10&verse=15"><span>“How beautiful are the feet<br/>of those who bring good news!”</span><small>Romans 10:15 · BSB</small></Link>
+      </aside>
     </div>
-  )
+  </div>
 }

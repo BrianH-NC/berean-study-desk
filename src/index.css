@@ -266,3 +266,53 @@
   .library-table th:nth-child(6) { width: 8%; }
   .library-table th:nth-child(7) { width: 10%; }
 }
+/* Reference-inspired homepage: scenic focus, compact study destinations. */
+.desk-home { max-width:1680px; margin:auto; }
+.desk-topbar { display:flex; align-items:center; gap:24px; margin-bottom:18px; }
+.desk-search { display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding-left:14px; background:var(--bsd-surface,#fffcf6); border:1px solid #dcd5c7; border-radius:5px; }
+.desk-search input { width:100%; min-width:0; border:0; background:transparent; padding:12px 0; font:14px Inter,sans-serif; color:#2e2a26; }
+.desk-search .btn { margin:-1px; border-radius:0 5px 5px 0; }
+.desk-profile { display:flex; align-items:center; gap:10px; font:14px Inter,sans-serif; max-width:180px; overflow-wrap:anywhere; }
+.desk-profile>span:first-child { display:grid; place-items:center; flex:none; width:40px; height:40px; border-radius:50%; background:#0f3d2e; color:#fff; }
+.desk-motto { margin:0; text-align:center; font-style:italic; font-size:15px; }
+.desk-motto small { display:block; font-size:11px; font-style:normal; margin-top:4px; }
+.desk-layout { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:16px; }
+.desk-primary,.desk-activity { min-width:0; }
+.desk-hero { min-height:320px; position:relative; overflow:hidden; border-radius:6px; background-image:linear-gradient(90deg,rgba(0,20,13,.2),rgba(0,20,13,.4)),var(--daily-hero); background-size:cover; background-position:center; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:40px 24px 20px; }
+.desk-hero h1 { color:#fff; font-family:Lora,serif; font-size:clamp(25px,2.7vw,42px); font-weight:500; margin:0 0 8px; text-shadow:0 2px 8px #000; }
+.desk-hero-copy { text-align:center; }
+.desk-hero-copy p { font-size:clamp(17px,1.7vw,24px); margin:0; text-shadow:0 2px 7px #000; }
+.desk-hero blockquote { align-self:flex-end; margin:22px 0 0; background:#13291bbd; border:1px solid #ffffff70; padding:14px 20px; border-radius:6px; text-align:center; font:italic 20px/1.3 'EB Garamond',serif; }
+.desk-hero cite { display:block; font-size:15px; font-style:normal; margin-top:6px; }
+.desk-shortcuts { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:7px; margin:12px 0; }
+.desk-shortcuts>a { display:flex; flex-direction:column; align-items:center; text-align:center; padding:18px 8px 12px; border:1px solid #dcd5c7; background:#fffcf6; border-radius:5px; color:#0f3d2e; transition:background .15s; }
+.desk-shortcuts>a:hover { background:#e6eee8; }
+.desk-shortcuts h2 { font-family:Lora,serif; font-size:14px; margin:12px 0 6px; }
+.desk-shortcuts p { font:12px/1.5 Inter,sans-serif; color:#655f56; flex:1; margin:0 0 8px; }
+.desk-bottom { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.desk-home .card { padding:16px; gap:0; border-radius:5px; box-shadow:none; }
+.desk-panel-title { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+.desk-panel-title h2 { font:600 17px/1.3 Lora,serif; margin:0; }
+.desk-panel-title>a { font:11px Inter,sans-serif; white-space:nowrap; }
+.desk-home a>svg { display:inline-block; vertical-align:middle; }
+.desk-bottom p,.desk-activity p { font-size:14px; line-height:1.65; }
+.desk-verse .scripture-text { font:italic 20px/1.4 'EB Garamond',serif; margin:0 0 10px; }
+.desk-verse>a,.desk-thought>a,.desk-progress>a { font:12px/1.5 Inter,sans-serif; }
+.desk-verse small { display:block; margin-top:8px; font-size:10px; color:#655f56; }
+.desk-thought>span { color:#ad8435; margin-bottom:12px; }
+.desk-progress>div:not(.desk-panel-title) { display:flex; align-items:center; gap:8px; font:12px Inter,sans-serif; margin:12px 0; }
+.desk-progress strong { margin-left:auto; white-space:nowrap; }
+.desk-progress progress { width:100%; height:8px; accent-color:#0f3d2e; }
+.desk-progress>a { margin-top:15px; }
+.desk-activity { display:flex; flex-direction:column; gap:12px; }
+.desk-activity-row { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid #e7e0d4; min-width:0; }
+.desk-activity-row:last-child { border-bottom:0; }
+.desk-activity-row>span:last-child { min-width:0; }
+.desk-activity-row strong { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font:600 13px/1.45 Lora,serif; }
+.desk-activity-row small { display:block; color:#655f56; font:11px/1.5 Inter,sans-serif; margin-top:4px; }
+.desk-activity-row .book-cover { width:40px; height:52px; flex:none; }
+.desk-item-icon { width:40px; height:44px; flex:none; display:grid; place-items:center; background:#eee7d6; color:#0f3d2e; border-radius:3px; }
+.desk-closing { display:flex; flex-direction:column; justify-content:center; text-align:center; min-height:154px; border-radius:5px; padding:22px 12px; background:linear-gradient(#07271ac2,#07271a9c),var(--daily-hero) center/cover; color:white; font:italic 21px/1.3 'EB Garamond',serif; }
+.desk-closing small { font:14px Lora,serif; margin-top:10px; }
+@media(max-width:1199px) { .desk-layout { grid-template-columns:1fr; } .desk-activity { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); } .desk-motto { display:none; } }
+@media(max-width:767px) { .desk-home { padding:12px; } .desk-topbar { gap:8px; margin-bottom:12px; } .desk-profile { display:none; } .desk-search { gap:7px; } .desk-search input { font-size:16px; } .desk-search .btn { padding-inline:12px; } .desk-hero { min-height:235px; padding:30px 12px 16px; background-position:45% center; } .desk-hero blockquote { font-size:17px; margin-top:18px; padding:9px 13px; } .desk-hero blockquote br { display:none; } .desk-hero blockquote { align-self:center; max-width:240px; } .desk-shortcuts { grid-template-columns:repeat(3,minmax(0,1fr)); } .desk-shortcuts>a { padding:12px 4px; } .desk-shortcuts>a:last-child { grid-column:1/-1; flex-direction:row; justify-content:center; gap:12px; } .desk-shortcuts h2 { font-size:12px; margin:8px 0 0; } .desk-shortcuts>a:last-child h2 { margin:0; } .desk-shortcuts p,.desk-shortcuts>a>svg:last-child { display:none; } .desk-bottom,.desk-activity { grid-template-columns:1fr; } .desk-bottom { gap:12px; } .desk-layout { gap:12px; } }

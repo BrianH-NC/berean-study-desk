@@ -135,3 +135,10 @@ and view, related Scripture opens the expected passage URL, and a sample metadat
 save succeeds. Populated List and long-title Book Detail reflow at 320, 390, 768,
 1024, 1280 and 1440 px without horizontal page overflow. The phone editor has no
 unnamed fields or horizontal overflow. This is not a production save/auth test.
+# Homepage reference pass — September 11, 2026
+
+Homepage now follows the supplied desktop/tablet/phone reference: scenic hero, prominent search, seven feature shortcuts, Continue Studying, Recent Items, daily Scripture, reflection, and actual collection counts. Topics and Reading occupy the reference's Resources/Tools positions because those are existing implemented destinations. No fictional weekly targets or notification controls were added. Search forwards the typed query to the existing search screen.
+
+Three generated study scenes rotate by local calendar day, remain stable within the day, and refresh on focus or within 30 seconds after midnight. Optimized assets: `public/images/study-{mountains,lake,olive-grove}.webp`. Built-in image generation prompts requested panoramic photorealistic open-Bible study desks with mountain sunrise, misty forest lake, and olive-grove hills; forest green/parchment/gold palette, space for headline, no logos or text. Original generated PNGs remain outside the repository.
+
+Validation: production build and lint pass; 28 unit tests pass including daily stability and rotation. Browser visual validation could not run because the browser tool timed out twice. Existing bundle-size warning remains. No auth, schema, or production-branch changes.

@@ -62,12 +62,30 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    if (action === "setHidden") {
+      const { id, hidden } = body;
+      if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || typeof hidden !== "boolean") {
+        return json({ error: "A valid check id and hidden flag are required." }, 400);
+      }
+      const table = admin.from("hidden_doctrine_checks");
+      const { error } = hidden
+        ? await table.upsert({ user_id: user.id, check_id: id }, { onConflict: "user_id,check_id" })
+        : await table.delete().eq("user_id", user.id).eq("check_id", id);
+      return json({ error: error ? error.message : null });
+    }
+
     if (action === "list") {
-      const { data, error } = await admin
-        .from("theology_checks")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data: hiddenRows, error: hiddenError } = await admin.from("hidden_doctrine_checks").select("check_id").eq("user_id", user.id);
+      if (hiddenError) return json({ error: hiddenError.message }, 500);
+      const hiddenIds = (hiddenRows || []).map((row: { check_id: string }) => row.check_id);
+      let query = admin.from("theology_checks").select("*").order("created_at", { ascending: false });
+      if (body.hiddenOnly === true) {
+        if (!hiddenIds.length) return json({ data: [], error: null });
+        query = query.in("id", hiddenIds);
+      } else if (hiddenIds.length) {
+        query = query.not("id", "in", "(" + hiddenIds.join(",") + ")");
+      }
+      const { data, error } = await query.limit(200);
       return json({ data, error: error ? error.message : null });
     }
 

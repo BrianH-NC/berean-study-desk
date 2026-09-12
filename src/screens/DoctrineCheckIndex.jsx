@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera, Images } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
-  assessSubject, checksList, checksInsert, listHolyShelfUnchecked, mapAssessmentToRow,
+  assessSubject, checksList, checksSetHidden, checksInsert, listHolyShelfUnchecked, mapAssessmentToRow,
 } from '../lib/theologyCheck'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
@@ -24,6 +24,9 @@ function verdictBucket(verdict) {
 export default function DoctrineCheckIndex() {
   const navigate = useNavigate()
 
+  const [hiddenOnly, setHiddenOnly] = useState(false)
+  const [changingVisibility, setChangingVisibility] = useState(null)
+  const [visibilityError, setVisibilityError] = useState('')
   const [checks, setChecks] = useState(null) // null = loading
   const [unchecked, setUnchecked] = useState(null)
   const [checkingIsbn, setCheckingIsbn] = useState(null) // isbn currently being checked from the shelf panel
@@ -53,7 +56,7 @@ export default function DoctrineCheckIndex() {
 
   async function loadChecks() {
     try {
-      const { data } = await checksList()
+      const { data } = await checksList(hiddenOnly)
       setChecks(data || [])
     } catch (err) {
       alert('Could not load checks: ' + err.message)
@@ -71,9 +74,10 @@ export default function DoctrineCheckIndex() {
   }
 
   useEffect(() => {
-    loadChecks()
     loadUnchecked()
   }, [])
+
+  useEffect(() => { loadChecks() }, [hiddenOnly])
 
   const stats = useMemo(() => {
     if (!checks) return null
@@ -97,6 +101,20 @@ export default function DoctrineCheckIndex() {
     }
     return [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   }, [checks, verdictFilter, kindFilter, query])
+
+  async function changeVisibility(check) {
+    if (!hiddenOnly && !window.confirm(`Remove “${check.title || check.name}” from your view? You can restore it from Hidden checks. The shared assessment and library book will remain.`)) return
+    setChangingVisibility(check.id)
+    setVisibilityError('')
+    try {
+      await checksSetHidden(check.id, !hiddenOnly)
+      setChecks(current => current.filter(row => row.id !== check.id))
+    } catch (err) {
+      setVisibilityError(err.message)
+    } finally {
+      setChangingVisibility(null)
+    }
+  }
 
   async function runCheck(subject, extraRowFields = {}) {
     const assessment = await assessSubject(subject)
@@ -475,6 +493,11 @@ export default function DoctrineCheckIndex() {
         </div>
       </div>
 
+      <div className="flex gap-2 items-center mb-3">
+        <button className="btn btn-secondary" disabled={changingVisibility !== null} onClick={() => { setChecks(null); setHiddenOnly(value => !value) }}>{hiddenOnly ? 'Back to visible checks' : 'Hidden checks'}</button>
+        <span className="card-meta">{hiddenOnly ? 'Restore a check to show it again.' : 'Remove hides an assessment only for your account.'}</span>
+      </div>
+      {visibilityError && <p role="alert">Could not update visibility: {visibilityError}</p>}
       {/* Table */}
       {checks === null ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
@@ -492,7 +515,7 @@ export default function DoctrineCheckIndex() {
               <th style={{ width: '48%' }}>Subject</th>
               <th style={{ width: '12%' }}>Type</th>
               <th style={{ width: '20%' }}>Verdict</th>
-              <th style={{ width: '20%' }}>Checked</th>
+              <th style={{ width: '20%' }}>Checked</th><th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -528,6 +551,7 @@ export default function DoctrineCheckIndex() {
                     </span>
                   </td>
                   <td className="card-meta">{new Date(c.created_at).toLocaleDateString()}</td>
+                  <td><button type="button" className="btn btn-ghost" style={{padding:'4px 8px',fontSize:12}} aria-label={`${hiddenOnly ? 'Restore' : 'Remove'} ${c.title || c.name}`} disabled={changingVisibility !== null} onClick={event => { event.stopPropagation(); changeVisibility(c) }}>{changingVisibility === c.id ? 'Saving…' : hiddenOnly ? 'Restore' : 'Remove'}</button></td>
                 </tr>
               )
             })}

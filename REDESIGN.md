@@ -169,3 +169,8 @@ Creation & Origins is prominent in saved reports and the Library Doctrine tab. E
 The reference's passage/text evaluation, sourced quotation tabs and per-topic verdict counts are not yet backed by the current assessment model. The UI displays saved alignment/concern findings and actual confidence instead of inventing those details. The existing confession comparison workflow remains the supported comparison mechanism.
 
 Validation: production build, lint, 31 existing tests; isolated browser checks of report, Library Doctrine tab and phone-width new-check form with no horizontal overflow. No paid AI assessments were run solely for testing.
+# Personal Doctrine visibility
+
+Doctrine list rows offer Remove, with a named confirmation, and Hidden checks offers Restore. Preferences persist per authenticated account in hidden_doctrine_checks; shared assessment records and library books are never deleted. The checks-api list action excludes the caller's hidden assessments by default (including search callers); direct saved report/library links still work. The hidden-only list supports restoration. The existing 200-result limit remains.
+
+Schema is recorded in supabase/hidden-doctrine-checks.sql and deployed through the personal_hidden_doctrine_checks migration. RLS is enabled with direct anon/authenticated access revoked; the authenticated checks-api scopes every preference operation to its verified user. Tests execute the actual handler with isolated data to check hide/restore, another account's preferences, invalid ids and unsigned requests. Build and lint pass.

@@ -35,8 +35,12 @@ export function askFollowup(checkContext, question) {
   return callFunction('theology-check', { action: 'followup', checkContext, question })
 }
 
-export function checksList() {
-  return callFunction('checks-api', { action: 'list' })
+export function checksList(hiddenOnly = false) {
+  return callFunction('checks-api', { action: 'list', hiddenOnly })
+}
+
+export function checksSetHidden(id, hidden) {
+  return callFunction('checks-api', { action: 'setHidden', id, hidden })
 }
 
 export function checksInsert(row) {

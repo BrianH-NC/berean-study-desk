@@ -1,4 +1,4 @@
-.bible-desk { max-width:1900px; margin:auto; }
+.page.bible-desk { max-width:none; margin:0; }
 .bible-topbar { display:flex; align-items:center; gap:24px; margin-bottom:14px; }
 .bible-lookup { display:flex; align-items:center; flex:1; gap:10px; padding-left:12px; min-width:0; background:var(--bsd-surface); border:1px solid var(--bsd-border); border-radius:5px; }
 .bible-lookup input { flex:1; min-width:0; background:transparent; font:14px Inter,sans-serif; padding:12px 0; }
@@ -49,7 +49,13 @@
 .bible-disclosure>summary { cursor:pointer; font:600 16px/1.4 Lora,serif; margin-bottom:12px; }
 .bible-disclosure:not([open])>summary { margin:0; }
 .bible-disclosure::details-content { min-width:0; }
-.bible-tool-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); gap:5px; margin-bottom:12px; }
+.bible-tool-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin-bottom:12px; }
+.bible-fullscreen-toggle { order:1; margin-left:auto; }
+.bible-reading:fullscreen { display:block; width:100%; height:100%; overflow:auto; padding:16px; background:var(--bsd-parchment); }
+.bible-reading:fullscreen .bible-toolbar { position:sticky; top:0; z-index:30; margin-bottom:12px; background:var(--bsd-surface); }
+.bible-reading:fullscreen .bible-parallel { grid-auto-columns:minmax(220px,1fr); }
+.bible-reading:fullscreen .bible-parallel.is-single { grid-auto-columns:100%; }
+@media(min-width:1100px) and (max-width:1399px) { .bible-tool-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .bible-tool-grid>button,.bible-tool-grid>a { min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; text-align:center; padding:10px 3px; border:1px solid #e7e4db; border-radius:4px; background:linear-gradient(var(--bsd-surface),#eef2ec); font:11px/1.25 Inter,sans-serif; overflow-wrap:anywhere; }
 .bible-tool-grid svg { width:21px; height:21px; flex:none; }
 .bible-tool-grid small { font-size:9px; color:var(--bsd-muted); }

@@ -161,6 +161,23 @@ function BookPickerDialog({ initialBook, onPick, onClose }) {
 }
 
 export default function BibleStudy() {
+  const readerRef = useRef(null)
+  const [readerFullscreen, setReaderFullscreen] = useState(false)
+  const [fullscreenError, setFullscreenError] = useState('')
+  useEffect(() => {
+    const sync = () => setReaderFullscreen(Boolean(readerRef.current) && document.fullscreenElement === readerRef.current)
+    document.addEventListener('fullscreenchange', sync)
+    return () => document.removeEventListener('fullscreenchange', sync)
+  }, [])
+  async function toggleReaderFullscreen() {
+    setFullscreenError('')
+    try {
+      if (document.fullscreenElement === readerRef.current) await document.exitFullscreen()
+      else await readerRef.current.requestFullscreen()
+    } catch {
+      setFullscreenError('Fullscreen could not open in this browser. Try opening this page in a separate browser window.')
+    }
+  }
   const navigate = useNavigate()
   const user = useAuth()
   const [toolNotice, setToolNotice] = useState('')
@@ -497,13 +514,15 @@ export default function BibleStudy() {
     <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>
     {refError && <p role="alert">{refError}</p>}
     {viewMode === 'Read' ? <div className="bible-grid">
-      <section className="bible-reading" aria-label="Passage reader">
+      <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         <div className="card bible-toolbar">
+          <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
           <button className="btn btn-secondary" onClick={()=>setShowPicker(true)}>{passageRef}<ChevronDown size={14}/></button>
           <details className="bible-translations"><summary>Translations ({columns.length})</summary><div>{ALL_TRANSLATIONS.filter(t=>t.id!==readingTranslation).map(t=><label key={t.id}><input type="checkbox" checked={compareIds.includes(t.id)} onChange={()=>setCompareIds(ids=>ids.includes(t.id)?ids.filter(id=>id!==t.id):[...ids,t.id])}/>{t.short}</label>)}</div></details>
           <div className="bible-chapter-nav"><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(-1)} disabled={chapter<=1} aria-label="Previous chapter"><ChevronLeft size={16}/></button><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(1)} disabled={chapterCount!=null && chapter>=chapterCount} aria-label="Next chapter"><ChevronRight size={16}/></button></div>
           <div className="bible-view-modes"><button className={`btn ${showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={showCompare} onClick={()=>setShowCompare(true)}>Parallel</button><button className={`btn ${!showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={!showCompare} onClick={()=>setShowCompare(false)}>Single</button><a className="btn btn-secondary" href={interlinearUrl} target="_blank" rel="noreferrer">Interlinear <ExternalLink size={12}/></a></div>
         </div>
+        {fullscreenError && <p role="alert">{fullscreenError}</p>}
         <div className="card bible-reader-card">
           <div className="bible-reader-heading"><h2>{passageRef}</h2><div><button className="btn btn-icon" onClick={()=>copy('passage',`${passageRef} (${readingMeta.short})\n${(displayedVerses||[]).map(v=>`${v.number} ${v.text}`).join('\n')}`)} aria-label="Copy passage"><Copy size={17}/></button><button className="btn btn-icon" onClick={()=>draftNote()} aria-label="Create study note"><NotebookPen size={17}/></button></div></div>
           {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}

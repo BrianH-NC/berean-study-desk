@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import { compareConfession, askFollowup, checksUpdate, CONFESSIONS } from '../lib/theologyCheck'
 import { listEntriesForBook, formatEntryNum } from '../lib/entries'
+import { DoctrineHeader, DoctrineLegend, CreationAssessment } from '../components/DoctrineChrome'
 import { stanceClass } from '../lib/stance'
 
 export default function DoctrineCheckReport() {
@@ -73,6 +74,7 @@ export default function DoctrineCheckReport() {
         strengths: check.strengths,
         concerns: check.concerns,
         denominationalNote: check.denominational_note,
+        creationView: check.creation_view,
       }
       const { answer } = await askFollowup(checkContext, question.trim())
       const nextFollowups = [...(check.followups || []), { question: question.trim(), answer, ts: new Date().toISOString() }]
@@ -109,7 +111,9 @@ export default function DoctrineCheckReport() {
   const label = check.title || check.name
 
   return (
-    <div className="max-w-[1080px] mx-auto page">
+    <div className="page doctrine-desk">
+      <DoctrineHeader report/>
+      <div className="doctrine-layout"><div className="doctrine-main">
       <div className="card-meta mb-3">
         <Link to="/checks" className="hover:underline">
           Doctrine Check
@@ -130,7 +134,7 @@ export default function DoctrineCheckReport() {
             </div>
           )}
           <div className="flex-1">
-            <h2 className="!mb-1" style={{ fontSize: 30 }}>
+            <h2 className="!mb-1" style={{ font: '600 22px/1.4 Lora, serif' }}>
               {label}
             </h2>
             {check.kind === 'book' && check.authors && <div className="card-meta mb-2">{check.authors}</div>}
@@ -159,37 +163,18 @@ export default function DoctrineCheckReport() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[1fr_296px]">
+      <div className="doctrine-overall" data-verdict={verdictClass(check.verdict)}><VerdictIcon size={42}/><div><div className="card-kicker">Overall Assessment</div><h2>{check.verdict || 'Unable to Assess'}</h2><p>{check.summary}</p></div></div>
+      <CreationAssessment value={check.creation_view}/>
+      {linkedBook && <Link className="btn btn-secondary mb-3" to={`/shelf/${linkedBook.id}?tab=doctrine`}>View in Library →</Link>}
+      <div className="doctrine-counts"><span>{check.strengths?.length || 0} recorded points of alignment</span><span>{check.concerns?.length || 0} recorded points of concern</span><span>Confidence: {check.confidence || 'Unknown'}</span></div>
+      <section className="card doctrine-analysis"><h2 className="card-title">Doctrinal Analysis</h2><table><thead><tr><th scope="col">Finding</th><th scope="col">Recorded assessment</th></tr></thead><tbody>{(check.strengths || []).map((text,i)=><tr key={`strength-${i}`}><td>Alignment</td><td>{text}</td></tr>)}{(check.concerns || []).map((text,i)=><tr key={`concern-${i}`}><td>Concern / difference</td><td>{text}</td></tr>)}{!check.strengths?.length && !check.concerns?.length && <tr><td colSpan={2}>No individual findings were recorded. See the overall assessment.</td></tr>}</tbody></table></section>
+      <div className="doctrine-report-columns">
         {/* Left column */}
         <div className="flex flex-col gap-6">
           <div>
-            <h4 className="mb-2">The verdict</h4>
+            <h4 className="mb-2">Detailed Report</h4>
             <p style={{ fontSize: 17, lineHeight: 1.6 }}>{check.summary}</p>
           </div>
-
-          {check.strengths?.length > 0 && (
-            <div>
-              <div className="card-kicker mb-2">Points of alignment</div>
-              <ul className="flex flex-col gap-1.5 pl-4" style={{ fontSize: 14.5, lineHeight: 1.65 }}>
-                {check.strengths.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {check.concerns?.length > 0 && (
-            <div>
-              <div className="card-kicker mb-2" style={{ color: 'var(--color-accent-700)' }}>
-                Points of concern
-              </div>
-              <ul className="flex flex-col gap-1.5 pl-4" style={{ fontSize: 14.5, lineHeight: 1.65 }}>
-                {check.concerns.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {check.alternative_suggestion && (
             <div className="card">
@@ -257,7 +242,7 @@ export default function DoctrineCheckReport() {
         </div>
 
         {/* Right rail */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4" id="doctrine-comparison">
           <div className="card">
             <div className="card-title">Measured against</div>
             <div className="card-body">Baptist Faith &amp; Message 2000</div>
@@ -299,14 +284,10 @@ export default function DoctrineCheckReport() {
             </div>
           </div>
 
-          {check.creation_view && check.creation_view !== 'Not Addressed / Unclear' && (
-            <div className="card">
-              <div className="card-title">Creation view</div>
-              <div className="card-body">{check.creation_view}</div>
-            </div>
-          )}
+
         </div>
       </div>
+      </div><DoctrineLegend/></div>
     </div>
   )
 }

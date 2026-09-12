@@ -160,3 +160,12 @@ Implemented the supplied Search layout on `feature/search-workspace`: search for
 Commentary scope is deliberately disclosed: selected commentary, entered passage or first three BSB-result chapters; this is not an indexed search of every commentary. Result counts are loaded counts; more BSB verses and displayed results can be requested. BSB filters also constrain commentary source passages. No ESV call occurs in Search; translation comparison opens the existing Bible Study feature. Advanced Search offers exact phrase matching. Related topics come from saved tags; external discovery currently covers books.
 
 Validation: build/lint and 31 tests pass. Local fixture browser checks covered real Matthew Henry API response for Romans 5:8, the BSB-to-note draft, library-only category, empty results, radio selection, phone preview focus, desktop four-column layout, and no horizontal overflow at 320/390/768/1024/1440 widths. Open Library suggestions loaded in-browser; shell access was intermittent. Browser fixture uses sample personal data, not production writes. Existing bundle-size warning remains. Main remains unchanged for review.
+# Doctrine Check workspace — September 12, 2026
+
+The Doctrine Check index and saved reports now use the Modern Heritage header, responsive workspace, assessment legend, standards rail, overall assessment and a findings table. Existing book/person checks, scanning, saved comparisons, follow-up questions and library links remain available.
+
+Creation & Origins is prominent in saved reports and the Library Doctrine tab. Existing `creation_view` text is displayed unchanged, with an explicit unclear fallback. Future assessments support Young Earth, Old Earth, Intelligent Design, Evolution and Theistic Evolution, including nuanced combined positions. Origins remain informational, separate from the overall verdict. The theology-check Edge Function was deployed as version 14 with JWT verification retained; no saved records were rewritten.
+
+The reference's passage/text evaluation, sourced quotation tabs and per-topic verdict counts are not yet backed by the current assessment model. The UI displays saved alignment/concern findings and actual confidence instead of inventing those details. The existing confession comparison workflow remains the supported comparison mechanism.
+
+Validation: production build, lint, 31 existing tests; isolated browser checks of report, Library Doctrine tab and phone-width new-check form with no horizontal overflow. No paid AI assessments were run solely for testing.

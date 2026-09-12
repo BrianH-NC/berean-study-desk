@@ -486,7 +486,7 @@ export default function DoctrineCheckIndex() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-        <table className="table w-full" style={{ minWidth: 620 }}>
+        <table className="table w-full doctrine-checks-table" style={{ minWidth: 620 }}>
           <thead>
             <tr>
               <th style={{ width: '48%' }}>Subject</th>
@@ -515,16 +515,16 @@ export default function DoctrineCheckIndex() {
                         </div>
                       )}
                       <div>
-                        <div className="card-title !text-[14px]">{c.title || c.name}</div>
+                        <div className="doctrine-subject-title">{c.title || c.name}</div>
                         {c.kind === 'book' && c.authors && <div className="card-meta">{c.authors}</div>}
                       </div>
                     </div>
                   </td>
                   <td style={{ textTransform: 'capitalize' }}>{c.kind}</td>
                   <td>
-                    <span className={`tag ${verdictClass(c.verdict)} flex items-center gap-1 w-fit`}>
+                    <span className={`tag doctrine-list-verdict ${verdictClass(c.verdict)}`} title={c.verdict || 'Unable to Assess'} aria-label={c.verdict || 'Unable to Assess'}>
                       <VerdictIcon size={12} strokeWidth={2.75} />
-                      {c.verdict || 'Unable to Assess'}
+                      {c.verdict?.startsWith('Baptism') ? 'Distinctive' : c.verdict || 'Unable to Assess'}
                     </span>
                   </td>
                   <td className="card-meta">{new Date(c.created_at).toLocaleDateString()}</td>

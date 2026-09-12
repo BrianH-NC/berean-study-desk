@@ -46,6 +46,11 @@
 .doctrine-index .doctrine-new-check { background:var(--bsd-surface) !important; }
 .doctrine-index .doctrine-new-check form .field { flex:1; }
 .doctrine-index .seg { flex-wrap:wrap; }
+.doctrine-subject-title { font:500 14px/1.45 Lora,serif; font-variant:normal; text-transform:none; letter-spacing:normal; }
+.doctrine-checks-table td { vertical-align:middle; padding:5px 8px; }
+.doctrine-checks-table th { font:600 14px/1.4 Lora,serif; text-align:left; padding:8px; }
+.doctrine-checks-table .doctrine-list-verdict { display:inline-flex; align-items:center; gap:4px; width:max-content; white-space:nowrap; padding:4px 8px; font:500 12px/1.25 Inter,sans-serif; }
+.doctrine-list-verdict svg { flex:none; }
 .doctrine-index .doctrine-advisory-full { margin-top:20px; }
 .doctrine-index .doctrine-framework { font:13px/1.6 Inter,sans-serif; color:var(--bsd-muted); padding:12px 0; }
 #doctrine-comparison { scroll-margin-top:20px; }

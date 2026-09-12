@@ -362,6 +362,8 @@
 .search-workspace { max-width:1800px; }
 .search-main-form { display:flex; align-items:center; gap:12px; background:#fffcf6; border:1px solid #dcd5c7; border-radius:5px; padding-left:12px; margin-bottom:20px; }
 .search-main-form input { flex:1; width:100%; min-width:0; background:transparent; border:0; font:16px Inter,sans-serif; padding:12px 0; }
+.search-main-form:has(input:focus) { border-color:var(--bsd-forest); box-shadow:0 0 0 1px rgb(15 61 46 / 15%); }
+.search-main-form input:focus { outline:none; }
 .search-main-form select { background:transparent; font:13px Inter,sans-serif; padding:12px; border-left:1px solid #dcd5c7; max-width:155px; }
 .search-title { display:flex; justify-content:space-between; gap:20px; align-items:start; margin-bottom:14px; }
 .search-title h1 { font:600 30px/1.2 Lora,serif; margin:0 0 4px; }

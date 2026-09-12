@@ -316,3 +316,44 @@
 .desk-closing small { font:14px Lora,serif; margin-top:10px; }
 @media(max-width:1199px) { .desk-layout { grid-template-columns:1fr; } .desk-activity { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); } .desk-motto { display:none; } }
 @media(max-width:767px) { .desk-home { padding:12px; } .desk-topbar { gap:8px; margin-bottom:12px; } .desk-profile { display:none; } .desk-search { gap:7px; } .desk-search input { font-size:16px; } .desk-search .btn { padding-inline:12px; } .desk-hero { min-height:235px; padding:30px 12px 16px; background-position:45% center; } .desk-hero blockquote { font-size:17px; margin-top:18px; padding:9px 13px; } .desk-hero blockquote br { display:none; } .desk-hero blockquote { align-self:center; max-width:240px; } .desk-shortcuts { grid-template-columns:repeat(3,minmax(0,1fr)); } .desk-shortcuts>a { padding:12px 4px; } .desk-shortcuts>a:last-child { grid-column:1/-1; flex-direction:row; justify-content:center; gap:12px; } .desk-shortcuts h2 { font-size:12px; margin:8px 0 0; } .desk-shortcuts>a:last-child h2 { margin:0; } .desk-shortcuts p,.desk-shortcuts>a>svg:last-child { display:none; } .desk-bottom,.desk-activity { grid-template-columns:1fr; } .desk-bottom { gap:12px; } .desk-layout { gap:12px; } }
+
+/* Compact dashboard refinement after live screenshot review. */
+.desk-home { padding-top:18px; }
+.desk-topbar { gap:18px; margin-bottom:12px; }
+.desk-hero { min-height:250px; padding:28px 20px 16px; }
+.desk-hero blockquote { margin-top:14px; padding:10px 16px; }
+.desk-shortcuts>a { padding:12px 7px 10px; }
+.desk-shortcuts h2 { font-size:13px; line-height:1.25; min-height:2.5em; display:flex; align-items:center; justify-content:center; margin:8px 0 5px; overflow-wrap:normal; }
+.desk-shortcuts p { font-size:11px; line-height:1.45; }
+.desk-home .card { padding:12px; }
+.desk-activity-row { padding:8px 0; }
+.desk-panel-title { margin-bottom:8px; }
+.desk-panel-title h2 { font-size:16px; }
+.desk-bottom p { font-size:13px; line-height:1.5; }
+.desk-verse .scripture-text { font-size:18px; line-height:1.35; }
+.desk-verse-body { display:flow-root; }
+.desk-verse-image { float:left; width:34%; aspect-ratio:1; object-fit:cover; object-position:75% center; border-radius:4px; margin:0 10px 6px 0; }
+.desk-progress progress { appearance:none; display:block; border:0; border-radius:8px; overflow:hidden; background:#e1ddd4; height:7px; }
+.desk-progress progress::-webkit-progress-bar { background:#e1ddd4; border-radius:8px; }
+.desk-progress progress::-webkit-progress-value { background:#0f3d2e; border-radius:8px; }
+.desk-progress progress::-moz-progress-bar { background:#0f3d2e; border-radius:8px; }
+.desk-closing { min-height:130px; }
+@media(min-width:768px) {
+ .heritage-sidebar { padding-top:14px; padding-bottom:12px; gap:14px; scrollbar-width:thin; }
+ .heritage-sidebar>div:first-child { gap:6px; }
+ .heritage-sidebar>div:first-child>img { width:58px; height:66px; }
+ .heritage-sidebar .nav-item { min-height:44px; padding:6px 10px; border-radius:5px; }
+ .heritage-sidebar .brand-detail .mt-3 { margin-top:7px; }
+ .heritage-sidebar .brand-detail p:last-child { display:none; }
+ .heritage-sidebar nav { gap:0; }
+ .brand-wordmark strong { font-size:1.2rem; }
+ .brand-wordmark span { font-size:.65rem; }
+ .heritage-sidebar .nav-item[aria-current='page'] { background:#244f39; color:#fff; }
+}
+@media(min-width:1280px) { .heritage-sidebar:not(.is-collapsed) { width:220px; } }
+@media(max-width:767px) {
+ .desk-hero { min-height:225px; padding:24px 12px 14px; }
+ .desk-shortcuts h2 { min-height:0; font-size:12px; }
+ .desk-shortcuts>a { padding:12px 4px; }
+ .desk-verse-image { max-width:100px; }
+}

@@ -40,10 +40,10 @@ export const COMMENTARIES = [
   { id: 'tyndale', name: 'Tyndale' },
 ]
 
-export async function fetchCommentaryChapter(commentaryId, bookName, chapter) {
+export async function fetchCommentaryChapter(commentaryId, bookName, chapter, options = {}) {
   const code = bookCodeFor(bookName)
   if (!code) throw new Error(`No book code for "${bookName}"`)
-  const res = await fetch(`${API_BASE}/c/${commentaryId}/${code}/${chapter}.json`)
+  const res = await fetch(`${API_BASE}/c/${commentaryId}/${code}/${chapter}.json`, options)
   if (!res.ok) throw new Error(`Commentary lookup failed (${res.status})`)
   return res.json()
 }

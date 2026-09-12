@@ -175,8 +175,8 @@ export default function BibleStudy() {
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
 
-  const [showCommentary, setShowCommentary] = useState(false)
-  const [commentaryId, setCommentaryId] = useState('matthew-henry')
+  const [showCommentary, setShowCommentary] = useState(searchParams.get('panel') === 'commentary')
+  const [commentaryId, setCommentaryId] = useState(() => COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || 'matthew-henry')
   const [commentaryData, setCommentaryData] = useState(null) // null = not loaded, false = error
   const [commentaryLoading, setCommentaryLoading] = useState(false)
 
@@ -186,7 +186,7 @@ export default function BibleStudy() {
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
 
-  const [showCompare, setShowCompare] = useState(false)
+  const [showCompare, setShowCompare] = useState(searchParams.get('panel') === 'compare')
   const [compareIds, setCompareIds] = useState(['eng_kjv', 'ENGWEBP'])
   const [compareData, setCompareData] = useState({}) // translationId -> { status: 'loading'|'ready'|'error', verses }
 

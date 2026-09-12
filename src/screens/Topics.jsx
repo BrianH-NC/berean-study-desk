@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { listEntries, formatEntryNum, bookNameForRef, canonicalIndex } from '../lib/entries'
 
@@ -7,7 +7,8 @@ export default function Topics() {
   const user = useAuth()
   const [entries, setEntries] = useState(null)
   const [tab, setTab] = useState('topic')
-  const [selectedTag, setSelectedTag] = useState(null)
+  const [searchParams] = useSearchParams()
+  const [selectedTag, setSelectedTag] = useState(searchParams.get('tag'))
 
   useEffect(() => {
     listEntries(user.id).then(setEntries)
@@ -33,7 +34,7 @@ export default function Topics() {
   const tagNames = Object.keys(byTag).sort((a, b) => byTag[b].length - byTag[a].length)
   const bookNames = Object.keys(byBook).sort((a, b) => canonicalIndex(a) - canonicalIndex(b))
 
-  if (!selectedTag && tab === 'topic' && tagNames.length) setSelectedTag(tagNames[0])
+  if ((!selectedTag || !byTag[selectedTag]) && tab === 'topic' && tagNames.length) setSelectedTag(tagNames[0])
 
   if (entries === null) {
     return (
@@ -94,7 +95,7 @@ export default function Topics() {
               ))}
             </div>
             <div>
-              {selectedTag && (
+              {selectedTag && byTag[selectedTag] && (
                 <>
                   <div className="card-kicker mb-2">
                     {selectedTag} · {byTag[selectedTag].length} entries

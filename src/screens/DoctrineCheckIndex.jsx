@@ -1,3 +1,6 @@
+import { useAuth } from '../App'
+import { loadCheckLibrary } from '../lib/checkLibrary'
+import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera, Images } from 'lucide-react'
@@ -23,6 +26,9 @@ function verdictBucket(verdict) {
 
 export default function DoctrineCheckIndex() {
   const navigate = useNavigate()
+  const user = useAuth()
+  const [library, setLibrary] = useState([])
+  useEffect(() => { let active = true; loadCheckLibrary(user.id).then(books => { if (active) setLibrary(books) }).catch(() => {}); return () => { active = false } }, [user.id])
 
   const [hiddenOnly, setHiddenOnly] = useState(false)
   const [changingVisibility, setChangingVisibility] = useState(null)
@@ -538,7 +544,7 @@ export default function DoctrineCheckIndex() {
                         </div>
                       )}
                       <div>
-                        <div className="doctrine-subject-title">{c.title || c.name}</div>
+                        <div className="doctrine-subject-title">{c.title || c.name}</div>{findCheckBook(c, library) && <span className="card-meta" style={{color: 'var(--bsd-forest)'}}>In your library</span>}
                         {c.kind === 'book' && c.authors && <div className="card-meta">{c.authors}</div>}
                       </div>
                     </div>

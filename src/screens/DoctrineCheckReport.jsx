@@ -1,3 +1,5 @@
+import { loadCheckLibrary } from '../lib/checkLibrary'
+import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { User, Loader2 } from 'lucide-react'
@@ -13,6 +15,9 @@ export default function DoctrineCheckReport() {
   const { id } = useParams()
   const user = useAuth()
   const [check, setCheck] = useState(null) // null = loading, false = not found
+  const [libraryReady, setLibraryReady] = useState(false)
+  const [libraryError, setLibraryError] = useState('')
+  const [addingBook, setAddingBook] = useState(false)
   const [linkedBook, setLinkedBook] = useState(null) // the shelf book this check's ISBN matches, if any
   const [bookNotes, setBookNotes] = useState(null) // notes taken while reading that book
   const [confessionSlug, setConfessionSlug] = useState(CONFESSIONS[0].slug)
@@ -23,21 +28,42 @@ export default function DoctrineCheckReport() {
   async function load() {
     const { data } = await supabase.from('theology_checks').select('*').eq('id', id).single()
     setCheck(data || false)
-    if (data?.kind === 'book' && data.isbn) {
-      const { data: book } = await supabase
-        .from('books')
-        .select('id, title')
-        .eq('user_id', user.id)
-        .eq('isbn', data.isbn)
-        .maybeSingle()
-      setLinkedBook(book || null)
-      if (book) setBookNotes(await listEntriesForBook(user.id, book.id))
-    }
+    setLinkedBook(null)
+    setBookNotes(null)
+    setLibraryReady(false)
+    setLibraryError('')
+    try {
+      if (data?.kind === 'book') {
+        const book = findCheckBook(data, await loadCheckLibrary(user.id))
+        setLinkedBook(book)
+        if (book) setBookNotes(await listEntriesForBook(user.id, book.id))
+      }
+      setLibraryReady(true)
+    } catch (err) { setLibraryError(err.message) }
+
   }
 
   useEffect(() => {
     load()
   }, [id])
+
+  async function addToLibrary() {
+    setAddingBook(true)
+    setLibraryError('')
+    try {
+      const existing = findCheckBook(check, await loadCheckLibrary(user.id))
+      if (existing) { setLinkedBook(existing); return }
+      const { data, error } = await supabase.from('books').insert({
+        user_id: user.id, title: check.title, author: check.authors || null,
+        isbn: check.isbn || null, cover_url: check.cover_url || null,
+        reading_status: 'unread', tags: [],
+      }).select('id,title,author,isbn').single()
+      if (error) throw error
+      setLinkedBook(data)
+      setBookNotes([])
+    } catch (err) { setLibraryError(err.message) }
+    finally { setAddingBook(false) }
+  }
 
   async function handleCompare() {
     const confession = CONFESSIONS.find((c) => c.slug === confessionSlug)
@@ -165,7 +191,9 @@ export default function DoctrineCheckReport() {
 
       <div className="doctrine-overall" data-verdict={verdictClass(check.verdict)}><VerdictIcon size={42}/><div><div className="card-kicker">Overall Assessment</div><h2>{check.verdict || 'Unable to Assess'}</h2><p>{check.summary}</p></div></div>
       <CreationAssessment value={check.creation_view}/>
-      {linkedBook && <Link className="btn btn-secondary mb-3" to={`/shelf/${linkedBook.id}?tab=doctrine`}>View in Library →</Link>}
+      {linkedBook && <Link className="btn btn-secondary mb-3" to={`/shelf/${linkedBook.id}?tab=doctrine`}>In your library · View book →</Link>}
+      {check.kind === 'book' && !linkedBook && <button className="btn btn-secondary mb-3" disabled={!libraryReady || addingBook} onClick={addToLibrary}>{addingBook ? 'Adding…' : libraryReady ? 'Add to my library' : 'Checking your library…'}</button>}
+      {libraryError && <p role="alert">Could not update library information: {libraryError} <button className="btn btn-ghost" onClick={load}>Retry</button></p>}
       <div className="doctrine-counts"><span>{check.strengths?.length || 0} recorded points of alignment</span><span>{check.concerns?.length || 0} recorded points of concern</span><span>Confidence: {check.confidence || 'Unknown'}</span></div>
       <section className="card doctrine-analysis"><h2 className="card-title">Doctrinal Analysis</h2><table><thead><tr><th scope="col">Finding</th><th scope="col">Recorded assessment</th></tr></thead><tbody>{(check.strengths || []).map((text,i)=><tr key={`strength-${i}`}><td>Alignment</td><td>{text}</td></tr>)}{(check.concerns || []).map((text,i)=><tr key={`concern-${i}`}><td>Concern / difference</td><td>{text}</td></tr>)}{!check.strengths?.length && !check.concerns?.length && <tr><td colSpan={2}>No individual findings were recorded. See the overall assessment.</td></tr>}</tbody></table></section>
       <div className="doctrine-report-columns">

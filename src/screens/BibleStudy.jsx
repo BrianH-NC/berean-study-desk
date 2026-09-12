@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2 } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2, BookOpen, Link2, Languages, FileText, MapPin, Clock, ChartColumn, ExternalLink, ChevronDown } from 'lucide-react'
 import {
   OT_BOOKS,
   NT_BOOKS,
@@ -22,7 +22,10 @@ import {
 import { fetchEsvChapterVerses } from '../lib/esv'
 import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 
-const VIEW_MODES = ['Read', 'Search']
+import { useAuth } from '../App'
+import StudySection from '../components/StudySection'
+import StudyPersonalSidebar from '../components/StudyPersonalSidebar'
+import './BibleStudy.css'
 
 // Every translation the reading pane and the comparison panel can show, in
 // one list so both stay in sync. BSB is the app's own local copy; ESV and
@@ -159,6 +162,8 @@ function BookPickerDialog({ initialBook, onPick, onClose }) {
 
 export default function BibleStudy() {
   const navigate = useNavigate()
+  const user = useAuth()
+  const [toolNotice, setToolNotice] = useState('')
   const [searchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState('Read')
 
@@ -186,8 +191,8 @@ export default function BibleStudy() {
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
 
-  const [showCompare, setShowCompare] = useState(searchParams.get('panel') === 'compare')
-  const [compareIds, setCompareIds] = useState(['eng_kjv', 'ENGWEBP'])
+  const [showCompare, setShowCompare] = useState(true)
+  const [compareIds, setCompareIds] = useState(['eng_kjv', 'eng_asv', 'ENGWEBP'])
   const [compareData, setCompareData] = useState({}) // translationId -> { status: 'loading'|'ready'|'error', verses }
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -416,7 +421,9 @@ export default function BibleStudy() {
     e.preventDefault()
     const parsed = parseReference(quickRef)
     if (!parsed) {
-      setRefError(`Couldn't make sense of "${quickRef}" — try something like "Romans 8:28" or "Ps 23".`)
+      setSearchQuery(quickRef)
+      setViewMode('Search')
+      setRefError('')
       return
     }
     setRefError('')
@@ -436,22 +443,6 @@ export default function BibleStudy() {
     if (!verses || !verseRange) return verses
     return verses.filter((v) => v.number >= verseRange.start && v.number <= verseRange.end)
   }, [verses, verseRange])
-
-  // Groups displayedVerses into paragraphs wherever paragraphStart says one
-  // begins -- real USX paragraph boundaries for the API.Bible translations,
-  // or one verse per paragraph as a fallback for sources without that data.
-  // The first verse of whatever's currently displayed always starts a group,
-  // even mid-chapter, so a narrowed verse range never opens looking like a
-  // paragraph fragment missing its start.
-  const paragraphs = useMemo(() => {
-    if (!displayedVerses) return []
-    const groups = []
-    for (const v of displayedVerses) {
-      if (v.paragraphStart || groups.length === 0) groups.push([v])
-      else groups[groups.length - 1].push(v)
-    }
-    return groups
-  }, [displayedVerses])
 
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
 
@@ -484,183 +475,59 @@ export default function BibleStudy() {
   }
 
   const readingMeta = ALL_TRANSLATIONS.find((t) => t.id === readingTranslation) || BSB_OPTION
-  const sidePanelOpen = showCommentary || showCompare
-
-  return (
-    <div className="max-w-[1180px] mx-auto page">
-      <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-        <div>
-          <div className="card-kicker mb-1">{readingMeta.name}</div>
-          <h2 className="!mb-0">Bible Study</h2>
+  const passageRef = formatReference(book, chapter, verseRange?.start, verseRange?.end)
+  const hubBook = ({'Song of Solomon':'songs', 'Psalms':'psalms'})[book] || book.toLowerCase().replaceAll(' ', '_')
+  const interlinearUrl = `https://biblehub.com/interlinear/${hubBook}/${chapter}.htm`
+  const name = user.user_metadata?.display_name || user.user_metadata?.full_name?.split(' ')[0] || 'Reader'
+  const draftNote = (analysis = false) => navigate('/notebook/new', {state:{ref:selectionRef || passageRef, body:analysis ? 'Observations\n\nThemes and repeated words:\n\nPeople and places:\n\nWhat does this reveal about God?\n\nApplication:\n' : selectionText ? `“${selectionText}”` : ''}})
+  const columns = [{id:readingTranslation, meta:readingMeta, entry:{status:verses === null?'loading':'ready', verses:displayedVerses}}, ...(showCompare ? compareIds.filter(id=>id!==readingTranslation).map(id=>({id,meta:ALL_TRANSLATIONS.find(t=>t.id===id),entry:compareData[id]})) : [])]
+  function renderVerses(rows, anchor) {
+    const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
+    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number} className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>)}</div>
+  }
+  return <div className="page bible-desk">
+    <div className="bible-topbar">
+      <form className="bible-lookup" onSubmit={handleQuickRef} role="search">
+        <SearchIcon size={19}/><input aria-label="Passage or Bible search" value={quickRef} onChange={e=>setQuickRef(e.target.value)} placeholder="Enter a passage (e.g. John 3:16) or search the Bible…"/>
+        <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{ALL_TRANSLATIONS.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
+      </form>
+      <Link className="bible-account" to="/settings/profile"><span>{name.slice(0,2).toUpperCase()}</span>{name}<ChevronDown size={14}/></Link>
+      <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
+    </div>
+    <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>
+    {refError && <p role="alert">{refError}</p>}
+    {viewMode === 'Read' ? <div className="bible-grid">
+      <section className="bible-reading" aria-label="Passage reader">
+        <div className="card bible-toolbar">
+          <button className="btn btn-secondary" onClick={()=>setShowPicker(true)}>{passageRef}<ChevronDown size={14}/></button>
+          <details className="bible-translations"><summary>Translations ({columns.length})</summary><div>{ALL_TRANSLATIONS.filter(t=>t.id!==readingTranslation).map(t=><label key={t.id}><input type="checkbox" checked={compareIds.includes(t.id)} onChange={()=>setCompareIds(ids=>ids.includes(t.id)?ids.filter(id=>id!==t.id):[...ids,t.id])}/>{t.short}</label>)}</div></details>
+          <div className="bible-chapter-nav"><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(-1)} disabled={chapter<=1} aria-label="Previous chapter"><ChevronLeft size={16}/></button><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(1)} disabled={chapterCount!=null && chapter>=chapterCount} aria-label="Next chapter"><ChevronRight size={16}/></button></div>
+          <div className="bible-view-modes"><button className={`btn ${showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={showCompare} onClick={()=>setShowCompare(true)}>Parallel</button><button className={`btn ${!showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={!showCompare} onClick={()=>setShowCompare(false)}>Single</button><a className="btn btn-secondary" href={interlinearUrl} target="_blank" rel="noreferrer">Interlinear <ExternalLink size={12}/></a></div>
         </div>
-        <div className="seg">
-          {VIEW_MODES.map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="seg-opt"
-              style={viewMode === v ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
-              onClick={() => setViewMode(v)}
-            >
-              {v}
-            </button>
-          ))}
+        <div className="card bible-reader-card">
+          <div className="bible-reader-heading"><h2>{passageRef}</h2><div><button className="btn btn-icon" onClick={()=>copy('passage',`${passageRef} (${readingMeta.short})\n${(displayedVerses||[]).map(v=>`${v.number} ${v.text}`).join('\n')}`)} aria-label="Copy passage"><Copy size={17}/></button><button className="btn btn-icon" onClick={()=>draftNote()} aria-label="Create study note"><NotebookPen size={17}/></button></div></div>
+          {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}
+          <div className={`bible-parallel ${showCompare?'':'is-single'}`}>
+            {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0):<p>No text is available for this passage.</p>}</article>)}
+          </div>
+          <div className="bible-reader-footer"><span>Select verses in {readingMeta.short} to study or save them.</span>{verseRange && <button className="btn btn-ghost" onClick={()=>setVerseRange(null)}>Show whole chapter</button>}</div>
+          {selectedSorted.length>0 && <div className="bible-selection"><strong>{selectionRef}</strong><button className="btn btn-secondary" onClick={()=>copy('text',selectionText)}>Copy text</button><button className="btn btn-secondary" onClick={()=>copy('ref',selectionRef)}>Copy reference</button><button className="btn btn-primary" onClick={handleCreateEntry}>Create Note</button><button className="btn btn-ghost" onClick={()=>setSelectedVerses(new Set())}>Clear</button></div>}
+          {copied && <p role="status">Copied!</p>}
+          <small className="bible-attribution">BSB is public domain. ESV® via Crossway; NIV/NLT/CSB via API.Bible; other translations via Free Use Bible API.</small>
         </div>
-      </div>
-
-      {viewMode === 'Read' ? (
-        <>
-          <form onSubmit={handleQuickRef} className="flex gap-2 flex-wrap mb-2">
-            <input
-              className="input flex-1"
-              style={{ minWidth: 220 }}
-              aria-label="Passage reference"
-              placeholder="Jump to a reference — e.g. Romans 8:28, Jn 3:16-18, Ps 23"
-              value={quickRef}
-              onChange={(e) => setQuickRef(e.target.value)}
-            />
-            <button type="submit" className="btn btn-secondary">
-              Go
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowPicker(true)}>
-              Browse
-            </button>
-          </form>
-          {refError && (
-            <div className="mb-3 text-sm" style={{ color: 'var(--color-accent-800)' }}>
-              {refError}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mb-3">
-            <button type="button" className="btn btn-icon btn-ghost" onClick={() => stepChapter(-1)} disabled={chapter <= 1} aria-label="Previous chapter">
-              <ChevronLeft size={18} strokeWidth={2.75} />
-            </button>
-            <h3 className="!mb-0">
-              {book} {chapter}
-            </h3>
-            <button
-              type="button"
-              className="btn btn-icon btn-ghost"
-              onClick={() => stepChapter(1)}
-              disabled={chapterCount != null && chapter >= chapterCount}
-              aria-label="Next chapter"
-            >
-              <ChevronRight size={18} strokeWidth={2.75} />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <select
-              className="input"
-              style={{ width: 'auto' }}
-              value={readingTranslation}
-              onChange={(e) => setReadingTranslation(e.target.value)}
-              aria-label="Reading translation"
-            >
-              {ALL_TRANSLATIONS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.short}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2 flex-wrap ml-auto">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowCommentary((v) => !v)}>
-                {showCommentary ? 'Hide commentary' : 'Commentary'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowCrossRefs((v) => !v)}>
-                {showCrossRefs ? 'Hide cross references' : 'Cross references'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={() => setShowCompare((v) => !v)}>
-                {showCompare ? 'Hide comparison' : 'Compare translations'}
-              </button>
-            </div>
-          </div>
-
-          <div className="study-workspace">
-            <div className="study-passage">
-              <div className="card mb-3 scripture-block" aria-label={`${book} ${chapter}, ${readingMeta.name}`}>
-                {verses === null ? (
-                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                    Loading…
-                  </div>
-                ) : verses.length === 0 ? (
-                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                    No text found for that reference.
-                  </div>
-                ) : displayedVerses.length === 0 ? (
-                  <div className="text-center py-16" style={{ opacity: 0.5 }}>
-                    That verse isn't in this chapter.
-                  </div>
-                ) : (
-                  <>
-                    {paragraphs.map((group) => (
-                      <p key={group[0].number} className="scripture-text mb-4">
-                        {group.map((v) => (
-                          <span
-                            key={v.number}
-                            role="button"
-                            tabIndex={0}
-                            aria-pressed={selectedVerses.has(v.number)}
-                            aria-label={`Select verse ${v.number}: ${v.text}`}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault()
-                                toggleVerse(v.number)
-                              }
-                            }}
-                            onClick={() => toggleVerse(v.number)}
-                            className="cursor-pointer"
-                            style={{
-                              background: selectedVerses.has(v.number) ? 'var(--color-accent-100)' : 'transparent',
-                              borderRadius: 6,
-                              padding: '2px 3px',
-                            }}
-                          >
-                            <sup style={{ color: 'var(--color-accent)', fontWeight: 700, marginRight: 3, fontSize: 12 }}>{v.number}</sup>
-                            {v.text + ' '}
-                          </span>
-                        ))}
-                      </p>
-                    ))}
-                    {verseRange && (
-                      <div className="mt-2">
-                        <button type="button" className="btn btn-secondary !text-[13px]" onClick={() => setVerseRange(null)}>
-                          Show whole chapter
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {selectedSorted.length > 0 && (
-                <div className="card" style={{ padding: '14px 18px' }}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="card-title !text-[14px]">{selectionRef}</span>
-                    <button type="button" className="btn btn-secondary" onClick={() => copy('text', selectionText)}>
-                      <Copy size={13} strokeWidth={2.75} />
-                      Copy text
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={() => copy('ref', selectionRef)}>
-                      <Copy size={13} strokeWidth={2.75} />
-                      Copy reference
-                    </button>
-                    <button type="button" className="btn btn-primary" onClick={handleCreateEntry}>
-                      <NotebookPen size={13} strokeWidth={2.75} />
-                      Create Note
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={() => setSelectedVerses(new Set())}>
-                      Clear
-                    </button>
-                    {copied && <span className="card-meta">Copied!</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {sidePanelOpen && (
-              <div className="study-tools flex flex-col gap-3">
+      </section>
+      <aside className="bible-tools-column" aria-label="Study tools">
+        <StudySection title="Study Tools for This Passage"><div className="bible-tool-grid">
+          <button aria-pressed={showCrossRefs} onClick={()=>setShowCrossRefs(v=>!v)}><Link2/>Cross-References</button>
+          <a href={interlinearUrl} target="_blank" rel="noreferrer"><Languages/>Word Study <small>External ↗</small></a>
+          <button onClick={()=>setToolNotice(toolNotice?'':'Textual variants require a dedicated manuscript source. This tool is not connected yet.')}><FileText/>Textual Variants <small>Not connected</small></button>
+          <button aria-pressed={showCompare} onClick={()=>setShowCompare(v=>!v)}><BookOpen/>Translation Compare</button>
+          <button onClick={()=>draftNote()}><NotebookPen/>Study Notes</button>
+          <button onClick={()=>draftNote(true)}><ChartColumn/>Passage Analysis <small>Guided note</small></button>
+          <a href="https://biblehub.com/atlas/" target="_blank" rel="noreferrer"><MapPin/>Biblical Maps <small>External ↗</small></a>
+          <a href="https://biblehub.com/timeline/" target="_blank" rel="noreferrer"><Clock/>Timeline <small>External ↗</small></a>
+        </div>{toolNotice && <p role="status">{toolNotice}</p>}<button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button></StudySection>
+        <StudySection title="Quick Insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
                 {showCommentary && (
                   <div className="card" style={{ padding: '16px 20px' }}>
                     <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -711,102 +578,6 @@ export default function BibleStudy() {
                     </p>
                   </div>
                 )}
-
-                {showCompare && (
-                  <div className="card" style={{ padding: '16px 20px' }}>
-                    <div className="card-kicker mb-2">Compare Translations</div>
-                    {selectedSorted.length === 0 ? (
-                      <p className="text-sm" style={{ opacity: 0.6 }}>
-                        Tap a verse to compare translations.
-                      </p>
-                    ) : (
-                      <>
-                        <div className="flex gap-1.5 flex-wrap mb-3">
-                          {ALL_TRANSLATIONS.filter((t) => t.id !== readingTranslation).map((t) => {
-                            const active = compareIds.includes(t.id)
-                            return (
-                              <button
-                                key={t.id}
-                                type="button"
-                                className="tag font-body font-medium"
-                                style={{
-                                  background: active ? 'var(--color-accent)' : 'var(--color-surface)',
-                                  color: active ? 'var(--color-bg)' : 'var(--color-text)',
-                                  border: '1px solid var(--color-divider)',
-                                }}
-                                onClick={() =>
-                                  setCompareIds((prev) => (active ? prev.filter((id) => id !== t.id) : [...prev, t.id]))
-                                }
-                              >
-                                {t.short}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        <div className="flex flex-col gap-3">
-                          <div>
-                            <div className="card-meta mb-1">
-                              {readingMeta.short} — {readingMeta.name}
-                            </div>
-                            <p className="scripture-text">
-                              {(verses || [])
-                                .filter((v) => selectedVerses.has(v.number))
-                                .map((v) => `${v.number} ${v.text}`)
-                                .join('  ')}
-                            </p>
-                          </div>
-                          {compareIds.length === 0 ? (
-                            <p className="text-sm" style={{ opacity: 0.6 }}>
-                              Pick at least one translation above.
-                            </p>
-                          ) : (
-                            compareIds.map((id) => {
-                              const meta = ALL_TRANSLATIONS.find((t) => t.id === id)
-                              const entry = compareData[id]
-                              return (
-                                <div key={id}>
-                                  <div className="card-meta mb-1">
-                                    {meta?.short} — {meta?.name}
-                                  </div>
-                                  {!entry || entry.status === 'loading' ? (
-                                    <div className="flex items-center gap-2 text-sm" style={{ opacity: 0.7 }}>
-                                      <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Loading…
-                                    </div>
-                                  ) : entry.status === 'error' ? (
-                                    <p className="text-sm" style={{ opacity: 0.6 }}>
-                                      Couldn't load {meta?.short}
-                                      {entry.message ? ` — ${entry.message}` : '.'}
-                                    </p>
-                                  ) : (
-                                    <p className="scripture-text">
-                                      {entry.verses
-                                        .filter((v) => selectedVerses.has(v.number))
-                                        .map((v) => `${v.number} ${v.text}`)
-                                        .join('  ')}
-                                    </p>
-                                  )}
-                                </div>
-                              )
-                            })
-                          )}
-                        </div>
-                      </>
-                    )}
-                    <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
-                      ESV® via Crossway; NIV/NLT/CSB via{' '}
-                      <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
-                        API.Bible
-                      </a>
-                      ; other translations via the{' '}
-                      <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
-                        Free Use Bible API
-                      </a>
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
 
           {showCrossRefs && (
             <div className="card mt-3" style={{ padding: '16px 20px' }}>
@@ -865,9 +636,10 @@ export default function BibleStudy() {
               </p>
             </div>
           )}
-        </>
-      ) : (
-        <>
+
+      </aside>
+      <StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef}/>
+    </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <div className="relative flex-1" style={{ minWidth: 220 }}>
               <SearchIcon size={15} strokeWidth={2.75} className="absolute top-1/2 -translate-y-1/2" style={{ left: 14, opacity: 0.5 }} />
@@ -931,10 +703,8 @@ export default function BibleStudy() {
               ))}
             </div>
           )}
-        </>
-      )}
 
-      {showPicker && <BookPickerDialog initialBook={book} onPick={goTo} onClose={() => setShowPicker(false)} />}
-    </div>
-  )
+    </section>}
+    {showPicker && <BookPickerDialog initialBook={book} onPick={goTo} onClose={()=>setShowPicker(false)}/>}
+  </div>
 }

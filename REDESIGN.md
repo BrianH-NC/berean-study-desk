@@ -8,6 +8,14 @@ rules and direct-to-main workflow are superseded on this branch.
 
 ## Delivered chunks
 
+### Bible Study detailed reference — September 12, 2026
+
+The reading workspace now follows Brian's desktop/tablet/phone reference: compact passage search, account link and Scripture quote, chapter/translation controls, Single and Parallel reading, tools and insights column, personal notes, related library books, and an image quote. BSB remains the anchor; default comparison uses KJV/ASV/WEB. Existing licensed translations remain opt-in. Passage scopes apply to all columns. Phone comparison scrolls inside the reader, with collapsible study sections.
+
+Commentary, cross-references, copy actions, passage navigation, and unsaved note drafts retain their existing integrations. Personal notes match the current chapter; related books come from those notes' shelf links or a matching Bible-book tag. Word study/interlinear, maps, and timeline open explicitly labeled Bible Hub resources. Textual variants are visibly not connected. Quick Insights provides study questions, and Passage Analysis opens a guided note draft; neither claims to be generated passage analysis. No schema or authentication changes.
+
+Validation: build/lint and all 31 existing tests pass. Isolated browser checks at desktop and phone sizes confirmed real free-translation responses, range lookup, Single mode, selected-text note drafts, personal sidebar fixture data, collapsed phone sections, and no page overflow. Existing bundle-size warning remains. Published on the existing Search preview branch; main is unchanged.
+
 ### Foundation
 
 - Central forest, gold, parchment, charcoal, surface, muted, control and verdict

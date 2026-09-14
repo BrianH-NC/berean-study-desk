@@ -1,3 +1,4 @@
+import FindMissingCovers from '../components/FindMissingCovers'
 import { useAuth } from '../App'
 import { loadCheckLibrary } from '../lib/checkLibrary'
 import { findCheckBook } from '../lib/checkLibraryMatch'
@@ -6,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera, Images } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
-  assessSubject, checksList, checksSetHidden, checksInsert, listHolyShelfUnchecked, mapAssessmentToRow,
+  assessSubject, checksList, checksSetHidden, checksInsert, checksUpdate, listHolyShelfUnchecked, mapAssessmentToRow,
 } from '../lib/theologyCheck'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
@@ -444,6 +445,7 @@ export default function DoctrineCheckIndex() {
         )}
       </div>
 
+      <div className="mb-4"><FindMissingCovers books={checks} saveCover={async (book, cover) => { await checksUpdate(book.id, {cover_url: cover}) }} onComplete={loadChecks}/></div>
       {/* Stat cells */}
       {stats && (
         <div className="flex flex-wrap gap-6 mb-5 pt-3 pb-3" style={{ borderTop: '1px solid var(--color-divider)', borderBottom: '1px solid var(--color-divider)' }}>

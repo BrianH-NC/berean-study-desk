@@ -1,3 +1,9 @@
+async function fetchWithTimeout(url) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+  if (!response.ok) throw new Error(`Book lookup failed (${response.status})`)
+  return response
+}
+
 // ISBN -> book-data lookup, ported from holy-shelf/src/App.jsx (Google Books
 // primary, Open Library fallback) -- the same lookup Holy Shelf itself uses
 // when a book is first scanned in.
@@ -6,7 +12,7 @@ export async function fetchBookByISBN(isbn) {
   let result = null
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
     )
     const data = await res.json()
@@ -36,7 +42,7 @@ export async function fetchBookByISBN(isbn) {
   const needsBackfill = !result || !result.cover_url || !result.publisher || !result.pub_date || !result.pages
   if (needsBackfill) {
     try {
-      const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
+      const res = await fetchWithTimeout(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
       const data = await res.json()
       const book = data[`ISBN:${isbn}`]
       if (book) {
@@ -75,7 +81,7 @@ export async function fetchCoverCandidates(isbn) {
   const candidates = []
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
     )
     const data = await res.json()
@@ -86,7 +92,7 @@ export async function fetchCoverCandidates(isbn) {
   }
 
   try {
-    const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
+    const res = await fetchWithTimeout(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
     const data = await res.json()
     const book = data[`ISBN:${isbn}`]
     const cover = book?.cover?.large || book?.cover?.medium || book?.cover?.small
@@ -112,7 +118,7 @@ export async function fetchCoverCandidates(isbn) {
 export async function searchBookCover(title, author) {
   try {
     const q = encodeURIComponent(`intitle:${title}${author ? ` inauthor:${author}` : ''}`)
-    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`)
+    const res = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=${q}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`)
     const data = await res.json()
     const cover = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail
     if (cover) return cover.replace('http:', 'https:')
@@ -123,7 +129,7 @@ export async function searchBookCover(title, author) {
   try {
     const params = new URLSearchParams({ title, limit: '1' })
     if (author) params.set('author', author)
-    const res = await fetch(`https://openlibrary.org/search.json?${params}`)
+    const res = await fetchWithTimeout(`https://openlibrary.org/search.json?${params}`)
     const data = await res.json()
     const coverId = data.docs?.[0]?.cover_i
     if (coverId) return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`

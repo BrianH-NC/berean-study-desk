@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
-import { fetchBookByISBN, searchBookCover, fetchAmazonCoverByISBN } from '../lib/googleBooks'
+import FindMissingCovers from '../components/FindMissingCovers'
 import { primaryCategory, readingStatus, sortLibrary } from '../lib/libraryPresentation'
 import LibraryCollection from '../components/LibraryCollection'
 
@@ -19,8 +19,6 @@ export default function Shelf() {
   const [checksByIsbn, setChecksByIsbn] = useState({})
   const [loadError, setLoadError] = useState('')
   const [assessmentError, setAssessmentError] = useState(false)
-  const [findingCovers, setFindingCovers] = useState(false)
-  const [coverProgress, setCoverProgress] = useState(null)
   const query = params.get('q') || ''
   const category = params.get('category') || ''
   const status = params.get('status') || ''
@@ -58,33 +56,9 @@ export default function Shelf() {
   },[user.id])
   useEffect(() => { void loadBooks() },[loadBooks])
 
-  // Sequential, not parallel -- these are free Google Books/Open Library
-  // lookups (no cost concern), but running them one at a time keeps the
-  // progress readout meaningful and avoids hammering either API at once.
-  async function handleFindCovers() {
-    const missing = books.filter((b) => !b.cover_url)
-    if (missing.length === 0) return
-    setFindingCovers(true)
-    let done = 0
-    let found = 0
-    setCoverProgress({ done, total: missing.length })
-    for (const b of missing) {
-      let cover = b.isbn ? (await fetchBookByISBN(b.isbn))?.cover_url : null
-      if (!cover) cover = await searchBookCover(b.title, b.author)
-      if (!cover && b.isbn) cover = await fetchAmazonCoverByISBN(b.isbn)
-      if (cover) {
-        await supabase.from('books').update({ cover_url: cover }).eq('id', b.id)
-        found++
-      }
-      done++
-      setCoverProgress({ done, total: missing.length })
-    }
-    setFindingCovers(false)
-    setCoverProgress(null)
-    await loadBooks()
-    if (found < missing.length) {
-      alert(`Found covers for ${found} of ${missing.length} books. The rest weren't matched — try adding an ISBN, or check the title/author spelling.`)
-    }
+  async function saveCover(book, cover) {
+    const { error } = await supabase.from('books').update({cover_url:cover}).eq('user_id',user.id).eq('id',book.id).or('cover_url.is.null,cover_url.eq.')
+    if (error) throw error
   }
 
   function handleExport() {
@@ -108,7 +82,6 @@ export default function Shelf() {
     (!tradition || book.tradition === tradition) &&
     (!verdict || assessmentError || (verdict === 'not-assessed' ? !checksByIsbn[book.isbn] : checksByIsbn[book.isbn]?.verdict === verdict))
   ),sort,direction),[books,query,category,status,tradition,verdict,checksByIsbn,sort,direction,assessmentError])
-  const missingCoverCount = (books || []).filter(book => !book.cover_url).length
   const hasFilters = query || category || status || tradition || verdict
   function clearFilters() { update({q:'',category:'',status:'',tradition:'',verdict:''}) }
   function toggleSort(key) { update({sort:key,direction:sort === key && direction === 'asc' ? 'desc' : 'asc'}) }
@@ -118,6 +91,7 @@ export default function Shelf() {
       <div><p className="card-kicker mb-2">Your personal collection</p><h1>Library</h1><p className="text-muted mb-0">Books to read, return to, and study alongside Scripture.</p></div>
       <div className="flex gap-2 flex-wrap"><Link to="/shelf/add" className="btn btn-primary">Add books</Link><Link to="/shelf/wishlist" className="btn btn-secondary">Wishlist</Link></div>
     </header>
+    <div className="mb-4"><FindMissingCovers books={books} saveCover={saveCover} onComplete={loadBooks}/></div>
     <section className="card mb-6" aria-label="Library controls">
       <div className="library-toolbar">
         <div className="field flex-1 min-w-0"><label htmlFor="library-search">Search Library</label><input id="library-search" type="search" className="input" placeholder="Title or author" value={query} onChange={e=>update({q:e.target.value})} /></div>
@@ -136,8 +110,6 @@ export default function Shelf() {
       <div className="flex items-center gap-2 flex-wrap">
         {hasFilters && <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>}
         <button type="button" className="btn btn-ghost" onClick={handleExport} disabled={!books?.length}>Export Library</button>
-        {missingCoverCount>0 && <button type="button" className="btn btn-ghost" onClick={handleFindCovers} disabled={findingCovers}>Find missing covers ({missingCoverCount})</button>}
-        {coverProgress && <span className="card-meta" role="status">Finding covers… {coverProgress.done} of {coverProgress.total}</span>}
       </div>
       </details>
     </section>

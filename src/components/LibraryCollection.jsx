@@ -1,13 +1,11 @@
+import LibraryBookMenu from './LibraryBookMenu'
+import { LibraryProgress } from './LibrarySummary'
 import { Link } from 'react-router-dom'
 import BookCover from './BookCover'
 import AssessmentBadge from './AssessmentBadge'
 import { primaryCategory, readingStatus } from '../lib/libraryPresentation'
 
-function Actions({ book, state }) {
-  return <Link to={`/shelf/${book.id}`} state={state} className="btn btn-secondary" aria-label={`Open ${book.title}`}>Open</Link>
-}
-
-export default function LibraryCollection({ books, assessments, view, libraryFrom, sort, direction, onSort, assessmentsUnavailable }) {
+export default function LibraryCollection({ books, assessments, view, libraryFrom, sort, direction, onSort, onEdit, onRemove, assessmentsUnavailable }) {
   const state = { libraryFrom }
   const badge = book => assessmentsUnavailable ? <span className="card-meta">Assessment unavailable</span> : <AssessmentBadge assessment={assessments[book.isbn]} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={state} />
   if (view === 'list') return <div className="library-records">
@@ -25,9 +23,9 @@ export default function LibraryCollection({ books, assessments, view, libraryFro
         <td data-label="Author">{book.author || 'Unknown author'}</td>
         <td data-label="Category">{primaryCategory(book)}</td>
         <td data-label="Verdict">{badge(book)}</td>
-        <td data-label="Status">{readingStatus(book)}</td>
-        <td data-label="Progress"><span aria-label="Progress not recorded">—</span></td>
-        <td data-label="Actions"><Actions book={book} state={state} /></td>
+        <td data-label="Status">{readingStatus(book)==='Not Started'?'To Read':readingStatus(book)}</td>
+        <td data-label="Progress"><LibraryProgress book={book}/></td>
+        <td data-label="Actions"><LibraryBookMenu book={book} state={state} assessment={assessments[book.isbn]} onEdit={onEdit} onRemove={onRemove}/></td>
       </tr>)}</tbody>
     </table>
   </div>
@@ -38,8 +36,8 @@ export default function LibraryCollection({ books, assessments, view, libraryFro
       <p className="font-ui text-sm text-muted mb-0">{book.author || 'Unknown author'}</p>
       <p className="card-meta">{primaryCategory(book)}</p>
       {badge(book)}
-      <div className="font-ui text-xs text-muted mt-auto pt-2">{readingStatus(book)} · <span aria-label="Progress not recorded">Progress —</span></div>
-      <Actions book={book} state={state} />
+      <div className="font-ui text-xs text-muted mt-auto pt-2"><span className={`library-reading-status status-${book.reading_status}`}>{readingStatus(book)==='Not Started'?'To Read':readingStatus(book)}</span><LibraryProgress book={book}/></div>
+      <LibraryBookMenu book={book} state={state} assessment={assessments[book.isbn]} onEdit={onEdit} onRemove={onRemove}/>
     </article>)}
   </div>
 }

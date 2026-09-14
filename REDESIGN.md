@@ -174,3 +174,12 @@ Validation: production build, lint, 31 existing tests; isolated browser checks o
 Doctrine list rows offer Remove, with a named confirmation, and Hidden checks offers Restore. Preferences persist per authenticated account in hidden_doctrine_checks; shared assessment records and library books are never deleted. The checks-api list action excludes the caller's hidden assessments by default (including search callers); direct saved report/library links still work. The hidden-only list supports restoration. The existing 200-result limit remains.
 
 Schema is recorded in supabase/hidden-doctrine-checks.sql and deployed through the personal_hidden_doctrine_checks migration. RLS is enabled with direct anon/authenticated access revoked; the authenticated checks-api scopes every preference operation to its verified user. Tests execute the actual handler with isolated data to check hide/restore, another account's preferences, invalid ids and unsigned requests. Build and lint pass.
+# Library reference implementation — September 13, 2026
+
+Library now has a Modern Heritage banner, section tabs, grid/list/shelf choices, multi-select status/category filters, author/publisher/tag/collection/date/progress filters, recent/current reading panels and account-specific annual goals. Search covers title, author, ISBN, tags and collections. Wishlist retains its existing dedicated acquisition workflow.
+
+Book card menus group Study, Organize and Manage actions. Reading progress, status, completion date, tags and collections use a focused modal editor. Edit Book Details opens the existing metadata editor. Remove requires confirmation and scopes the deletion to the signed-in user's book. No ratings action is offered.
+
+Database additions: books.current_page, completed_at, collections and private library_goals. Reference and Paused are accepted statuses. Existing completed books are not assigned guessed dates; annual goals count only recorded completion dates. To Read displays the existing unread status. Category remains the first tag. SQL is recorded in supabase/library-progress.sql; deployed migrations are library_progress_collections_goals and library_reference_reading_status.
+
+Verified build/lint, six Library tests, isolated browser save of page 120/240 producing 50% progress, grouped menu/editor focus, and phone layout without document overflow. Artwork reuses the existing licensed project study image; sample book covers/counts from the mockup are not inserted.

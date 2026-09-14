@@ -37,7 +37,7 @@ export default function BookDetail() {
   const [notes, setNotes] = useState([])
   const [loadError, setLoadError] = useState('')
   const [contextError, setContextError] = useState(false)
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(params.get('edit') === '1')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [checking, setChecking] = useState(false)

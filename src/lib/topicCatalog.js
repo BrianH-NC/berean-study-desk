@@ -24,10 +24,10 @@ export const normalizeTopic=value=>(value||'').trim().toLocaleLowerCase().replac
 export const topicSlug=value=>encodeURIComponent(normalizeTopic(value))
 export const BUILTIN_TOPICS=definitions.map(([name,description,category,group,tags,scripture,aliases],i)=>({key:`system:${name.toLowerCase().replace(/\s+/g,'-')}`,name,description,category,group,tags,scripture,aliases,is_system:true,priority:i,related_topics:[],image_url:['/images/study-mountains.webp','/images/study-olive-grove.webp','/images/study-lake.webp'][i%3]}))
 
-export function topicCatalog(personal,notes,books,checks){
+export function topicCatalog(personal,notes,books,checks,sermons=[]){
   const result=[...BUILTIN_TOPICS,...personal.map(t=>({...t,key:`personal:${t.id}`,is_personal:true,scripture:[],group:t.category==='History'||t.category==='People'?TOPIC_GROUPS[3]:t.category==='Christian Living'||t.category==='Church & Ministry'?TOPIC_GROUPS[2]:t.category==='Bible'?TOPIC_GROUPS[1]:TOPIC_GROUPS[0]}))]
   const known=new Set(result.flatMap(t=>[t.name,...t.aliases||[]]).map(normalizeTopic))
-  for(const entity of [...notes,...books,...checks])for(const tag of entity.tags||[]){const normalized=normalizeTopic(tag);if(normalized&&!known.has(normalized)){known.add(normalized);result.push({key:`tag:${normalized}`,name:tag,description:'A topic from tags in your study collection.',category:'Other',tags:[],aliases:[],scripture:[],related_topics:[],is_derived:true})}}
+  for(const entity of [...notes,...books,...checks,...sermons])for(const tag of entity.tags||[]){const normalized=normalizeTopic(tag);if(normalized&&!known.has(normalized)){known.add(normalized);result.push({key:`tag:${normalized}`,name:tag,description:'A topic from tags in your study collection.',category:'Other',tags:[],aliases:[],scripture:[],related_topics:[],is_derived:true})}}
   return result
 }
 export function topicContent(topic,data,links){
@@ -35,17 +35,17 @@ export function topicContent(topic,data,links){
   const tagged=entity=>(entity.tags||[]).some(tag=>terms.has(normalizeTopic(tag)))
   const explicit=links.filter(link=>link.topic_key===topic.key)
   const result={}
-  for(const [type,rows] of [['note',data.notes],['book',data.books],['doctrine_check',data.checks]]){
+  for(const [type,rows] of [['note',data.notes],['book',data.books],['doctrine_check',data.checks],['sermon',data.sermons||[]]]){
     result[type]=rows.filter(row=>tagged(row)||explicit.some(l=>l.entity_type===type&&l.entity_id===row.id))
   }
   const passages=[...(topic.scripture||[]),...explicit.filter(l=>l.entity_type==='scripture').map(l=>l.entity_id),...result.note.map(n=>n.ref).filter(Boolean)]
   result.scripture=[...new Set(passages)]
   result.resource=explicit.filter(l=>l.entity_type==='resource')
   result.topic=[...new Set([...(topic.related_topics||[]),...explicit.filter(l=>l.entity_type==='topic').map(l=>l.entity_id)])]
-  result.sources=[...(topic.is_personal?['My Topics']:[]),...(topic.is_system?['Built-in Topics']:[]),...(result.note.length?['From My Notes']:[]),...(result.book.length?['From My Library']:[]),...(result.doctrine_check.length?['From Doctrine Check']:[])]
+  result.sources=[...(topic.is_personal?['My Topics']:[]),...(topic.is_system?['Built-in Topics']:[]),...(result.note.length?['From My Notes']:[]),...(result.book.length?['From My Library']:[]),...(result.doctrine_check.length?['From Doctrine Check']:[]),...(result.sermon.length?['From Sermons']:[])]
   return result
 }
 export function matchesTopic(topic,content,query){
-  const haystack=[topic.name,topic.description,...topic.aliases||[],...topic.tags||[],...content.note.map(n=>n.title),...content.book.flatMap(b=>[b.title,b.author]),...content.doctrine_check.map(c=>c.title||c.name),...content.resource.map(r=>r.label)].join(' ').toLowerCase()
+  const haystack=[topic.name,topic.description,...topic.aliases||[],...topic.tags||[],...content.note.map(n=>n.title),...content.book.flatMap(b=>[b.title,b.author]),...content.doctrine_check.map(c=>c.title||c.name),...content.resource.map(r=>r.label),...(content.sermon||[]).flatMap(s=>[s.title,s.speaker])].join(' ').toLowerCase()
   return query.trim().toLowerCase().split(/\s+/).every(term=>haystack.includes(term))
 }

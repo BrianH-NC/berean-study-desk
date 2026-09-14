@@ -9,7 +9,7 @@ import { fetchVerseRange, formatReference } from '../lib/bsb'
 // reference previews it (via the app's own local BSB copy, so it's instant
 // and free) in a popover with a link into Bible Study, rather than embedding
 // a third-party script.
-export default function ScriptureText({ text, style }) {
+export default function ScriptureText({ text, style, sermonId }) {
   // Keyed on the match's plain-number index rather than the match object
   // itself -- findReferences(text) below runs fresh on every render, so a
   // freshly-built match object is never === the one stored from a previous
@@ -56,6 +56,7 @@ export default function ScriptureText({ text, style }) {
           <ReferenceTag
             key={i}
             match={seg.match}
+            sermonId={sermonId}
             isOpen={openIndex === seg.matchIndex}
             onToggle={() => setOpenIndex(openIndex === seg.matchIndex ? null : seg.matchIndex)}
           />
@@ -65,9 +66,10 @@ export default function ScriptureText({ text, style }) {
   )
 }
 
-function ReferenceTag({ match, isOpen, onToggle }) {
+function ReferenceTag({ match, isOpen, onToggle, sermonId }) {
   const [verses, setVerses] = useState(null) // null = not loaded, false = error
   const [loading, setLoading] = useState(false)
+  const [copied,setCopied]=useState(false)
 
   useEffect(() => {
     if (!isOpen || verses !== null) return
@@ -103,6 +105,7 @@ function ReferenceTag({ match, isOpen, onToggle }) {
           e.stopPropagation()
           onToggle()
         }}
+        role="button" tabIndex={0} aria-expanded={isOpen} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onToggle()}}}
         className="cursor-pointer"
         style={{
           color: 'var(--color-accent)',
@@ -145,13 +148,14 @@ function ReferenceTag({ match, isOpen, onToggle }) {
             </span>
           ) : null}
           <Link
-            to={bibleLink}
+            to={bibleLink+(sermonId?'&sermon='+encodeURIComponent(sermonId):'')}
             className="btn btn-secondary !text-[12px] mt-2"
             style={{ display: 'inline-flex' }}
             onClick={(e) => e.stopPropagation()}
           >
             Open in Bible Study
           </Link>
+          {sermonId&&<><button type="button" className="btn btn-ghost !text-[12px]" onClick={async()=>{try{await navigator.clipboard.writeText(label);setCopied(true)}catch{alert('Could not copy the reference.')}}}>{copied?'Copied':'Copy reference'}</button><Link className="btn btn-ghost !text-[12px]" to="/notebook/new" state={{sermon_id:sermonId,ref:label,title:label,note_type:'scripture'}}>Add to Notes</Link></>}
         </span>
       )}
     </span>

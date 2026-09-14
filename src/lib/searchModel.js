@@ -1,4 +1,4 @@
-export const SEARCH_TYPES = ['Bible','Books','Topics','Notes','Resources','Doctrine Checks']
+export const SEARCH_TYPES = ['Bible','Books','Topics','Notes','Resources','Doctrine Checks','Sermons']
 export function matchesSearch(values, query, exact = false) {
   const text=values.flat().filter(Boolean).join(' ').toLowerCase()
   const q=query.trim().toLowerCase()

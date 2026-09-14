@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Library, ShieldCheck, FileText, Tags } from 'lucide-react'
+import { BookOpen, Library, ShieldCheck, FileText, Tags, Mic } from 'lucide-react'
 import { NOTE_TYPES, safeNoteUrl, relatedNotes, noteMarkdown } from '../lib/noteModel'
 import { parseReference } from '../lib/bsb'
 import { dailyHero } from '../lib/dailyHero'
@@ -33,12 +33,14 @@ export default function NoteContext({draft,note,notes,books,checks,links,version
         {field(BookOpen,'Linked Scripture',bible?<button onClick={()=>onNavigate(bible)}>{draft.ref}</button>:draft.ref)}
         {field(Library,'Related Book',book?<button onClick={()=>onNavigate(`/shelf/${book.id}`)}>{book.title}</button>:draft.shelf_book_id?'Book unavailable':null)}
         {field(ShieldCheck,'Related Doctrine Check',check?<button onClick={()=>onNavigate(`/checks/${check.id}`)}>{check.title||check.name}</button>:draft.doctrine_check_id?'Assessment unavailable':null)}
+        {draft.sermon_id&&field(Mic,'Related Sermon',<button onClick={()=>onNavigate(`/sermons/${draft.sermon_id}`)}>Open sermon →</button>)}
         {field(FileText,'Related Resource',draft.resource_title||draft.resource_url)}
       </dl>}
       <div className="notes-metadata-tags"><h3><Tags size={16}/> Tags</h3><div className="notes-tags">{(draft.tags||[]).map(t=><span key={t}>{t}<button aria-label={`Remove detail tag ${t}`} onClick={()=>change({tags:draft.tags.filter(x=>x!==t)})}>×</button></span>)}</div><form onSubmit={addTag}><input className="input" aria-label="Add tag" placeholder="Add a tag…" value={tag} onChange={e=>setTag(e.target.value)}/><button type="submit">Add</button></form></div>
       <dl className="notes-dates"><dt>Created</dt><dd>{new Date(note.created_at).toLocaleString()}</dd><dt>Last Updated</dt><dd>{new Date(version||note.created_at).toLocaleString()}</dd></dl>
     </section>
     <section className="card notes-related-actions"><h2>Related Actions</h2>
+      {draft.sermon_id&&<button onClick={()=>onNavigate(`/sermons/${draft.sermon_id}`)}>Open linked sermon →</button>}
       {bible&&<><button onClick={()=>onNavigate(bible)}>Open in Bible Study →</button><button onClick={()=>onNavigate(`/search?q=${encodeURIComponent(draft.ref)}`)}>Search this passage →</button></>}
       {book&&<button onClick={()=>onNavigate(`/shelf/${book.id}?tab=notes`)}>Open linked book →</button>}
       {check&&<button onClick={()=>onNavigate(`/checks/${check.id}`)}>View Doctrine Check →</button>}

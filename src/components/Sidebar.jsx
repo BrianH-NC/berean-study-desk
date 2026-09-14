@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, UserRound, Menu, X, PanelLeft } from 'lucide-react'
+import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, UserRound, Menu, X, PanelLeft, Mic } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import Logo, { BrandLockup } from './Logo'
 
 // Preserve existing durable URLs and working destinations during the redesign.
@@ -13,6 +14,7 @@ const PRIMARY = [
 const SECONDARY = [
   { to: '/checks', label: 'Doctrine Check', icon: ShieldCheck },
   { to: '/notebook', label: 'Notes', icon: NotebookPen },
+  { to: '/sermons', label: 'Sermons', icon: Mic },
   { to: '/topics', label: 'Topics', icon: Tags },
   { to: '/reading', label: 'Reading now', icon: BookOpenText },
 ]
@@ -24,12 +26,14 @@ const ACCOUNT = [
 function NavigationLink({ item, onClick }) {
   const Icon = item.icon
   return <NavLink to={item.to} end={item.end} onClick={onClick} className="nav-item" title={item.label} aria-label={item.label}>
-    <Icon size={22} aria-hidden="true" /><span className="nav-label">{item.label}</span>
+    <Icon size={22} aria-hidden="true" /><span className="nav-label">{item.label}{item.count!=null&&<small className="ml-2 opacity-70">{item.count}</small>}</span>
   </NavLink>
 }
 
-export default function Sidebar() {
+export default function Sidebar({user}) {
   const { pathname } = useLocation()
+  const [sermonCount,setSermonCount]=useState(null)
+  useEffect(()=>{let active=true;const refresh=()=>supabase.from('sermons').select('id',{count:'exact',head:true}).eq('user_id',user.id).then(({count,error})=>{if(active)setSermonCount(error?null:count)});refresh();window.addEventListener('sermons-changed',refresh);return()=>{active=false;window.removeEventListener('sermons-changed',refresh)}},[user.id])
   const dialog = useRef(null)
   const trigger = useRef(null)
   const [railExpanded, setRailExpanded] = useState(null)
@@ -59,10 +63,10 @@ export default function Sidebar() {
         <div className="brand-detail text-center"><BrandLockup /><p className="font-ui text-xs mt-3 mb-0 text-gold">Search. Study. Discern.</p><p className="font-ui text-xs mb-0">Acts 17:11</p></div>
       </div>
       <nav aria-label="Main navigation" className="flex flex-col gap-1 flex-1">
-        {[...PRIMARY, ...SECONDARY].map(item => <NavigationLink key={item.to} item={item} />)}
+        {[...PRIMARY, ...SECONDARY].map(item => <NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}} />)}
       </nav>
       <div className="flex flex-col gap-1">
-        {ACCOUNT.map(item => <NavigationLink key={item.to} item={item} />)}
+        {ACCOUNT.map(item => <NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}} />)}
         <button type="button" className="nav-item" title="Resize navigation" aria-label="Expand or collapse navigation" onClick={toggleRail}>
           <PanelLeft size={22} aria-hidden="true" /><span className="nav-label">Resize navigation</span>
         </button>
@@ -73,7 +77,7 @@ export default function Sidebar() {
     <nav className="heritage-bottom" aria-label="Phone navigation">
       {PRIMARY.map(item => {
         const Icon = item.icon
-        return <NavLink key={item.to} to={item.to} end={item.end}><Icon size={22} aria-hidden="true" /><span>{item.label}</span></NavLink>
+        return <NavLink key={item.to} to={item.to} end={item.end}><Icon size={22} aria-hidden="true" /><span>{item.label}{item.count!=null&&<small className="ml-2 opacity-70">{item.count}</small>}</span></NavLink>
       })}
       <button type="button" className={moreActive ? 'is-active' : ''} aria-label="More destinations" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={openMenu}>
         <Menu size={22} aria-hidden="true" /><span>More</span>

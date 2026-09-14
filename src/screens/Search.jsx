@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search as SearchIcon, BookOpen, LibraryBig, NotebookPen, ShieldCheck, Tags, ScrollText, ArrowRight, ExternalLink, X } from 'lucide-react'
+import { Search as SearchIcon, BookOpen, LibraryBig, NotebookPen, ShieldCheck, Tags, ScrollText, ArrowRight, ExternalLink, X, Mic } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { checksList } from '../lib/theologyCheck'
@@ -11,7 +11,9 @@ import { SEARCH_TYPES, matchesSearch, sortSearchResults, commentarySections } fr
 import { fetchRecommendations } from '../lib/searchRecommendations'
 import { dailyHero } from '../lib/dailyHero'
 
-const ICONS={'Bible':BookOpen,'Books':LibraryBig,'Notes':NotebookPen,'Doctrine Checks':ShieldCheck,'Topics':Tags,'Resources':ScrollText}
+import {sermonTitle,sermonPassageMatch} from '../lib/sermonModel'
+
+const ICONS={'Bible':BookOpen,'Books':LibraryBig,'Notes':NotebookPen,'Doctrine Checks':ShieldCheck,'Topics':Tags,'Resources':ScrollText,'Sermons':Mic}
 function ResultIcon({type}) { const Icon=ICONS[type]||BookOpen; return <Icon size={23} aria-hidden="true"/> }
 function bibleUrl(ref){return `/bible?book=${encodeURIComponent(ref.book)}&chapter=${ref.chapter}${ref.verseStart?`&verse=${ref.verseStart}`:''}${ref.verseEnd?`&verseEnd=${ref.verseEnd}`:''}`}
 async function allOwned(table, userId) {
@@ -34,7 +36,7 @@ export default function SearchWorkspace(){
   const sort=['title','recent'].includes(params.get('sort'))?params.get('sort'):'relevance'
   const commentary=COMMENTARIES.find(c=>c.id===params.get('commentary'))||COMMENTARIES[0]
   const [draft,setDraft]=useState(query)
-  const [library,setLibrary]=useState({books:[],notes:[],checks:[]})
+  const [library,setLibrary]=useState({books:[],notes:[],checks:[],sermons:[]})
   const [localLoading,setLocalLoading]=useState(true)
   const [localErrors,setLocalErrors]=useState([])
   const [retry,setRetry]=useState(0)
@@ -52,9 +54,9 @@ export default function SearchWorkspace(){
   useEffect(()=>{
     let active=true
     setLocalLoading(true)
-    Promise.allSettled([allOwned('books',user.id),allOwned('entries',user.id),checksList().then(r=>{if(r.error)throw r.error;return r.data||[]})]).then(results=>{
+    Promise.allSettled([allOwned('books',user.id),allOwned('entries',user.id),checksList().then(r=>{if(r.error)throw r.error;return r.data||[]}),allOwned('sermons',user.id)]).then(results=>{
       if(!active)return
-      const names=['books','notes','checks'];const next={};const errors=[]
+      const names=['books','notes','checks','sermons'];const next={};const errors=[]
       results.forEach((r,i)=>{next[names[i]]=r.status==='fulfilled'?r.value:[];if(r.status==='rejected')errors.push(names[i])})
       setLibrary(next);setLocalErrors(errors);setLocalLoading(false)
     })
@@ -96,9 +98,11 @@ export default function SearchWorkspace(){
     const notes=library.notes.filter(n=>matchesSearch([n.title,n.body,n.ref,...(n.tags||[])],query,exact)).map(n=>({id:`note:${n.id}`,type:'Notes',title:n.title||'Untitled note',text:n.body||'',date:n.created_at,url:`/notebook/${n.id}`,source:n.ref||'Your notes'}))
     const books=library.books.filter(b=>matchesSearch([b.title,b.author,b.isbn,...(b.tags||[])],query,exact)).map(b=>({id:`book:${b.id}`,type:'Books',title:b.title||'Untitled book',text:b.description||b.author||'',source:b.author||'Your library',date:b.created_at,url:`/shelf/${b.id}`,cover:b.cover_url}))
     const checks=library.checks.filter(c=>matchesSearch([c.title,c.name,c.authors,c.summary,c.verdict],query,exact)).map(c=>({id:`check:${c.id}`,type:'Doctrine Checks',title:c.title||c.name||'Doctrine Check',text:c.summary||'',source:c.verdict||'Saved assessment',date:c.created_at,url:`/checks/${c.id}`}))
+    const passage=parseReference(query)
+    const sermons=library.sermons.filter(s=>matchesSearch([s.title,s.speaker,s.series,s.description,s.notes,s.transcript_text,...(s.tags||[])],query,exact)||(passage&&sermonPassageMatch(s,passage))).map(s=>({id:`sermon:${s.id}`,sermonId:s.id,type:'Sermons',title:sermonTitle(s),text:s.description||s.transcript_text||s.notes||'',source:s.speaker||'Your sermons',date:s.created_at,url:`/sermons/${s.id}`}))
     const tags=[...new Set(library.notes.flatMap(n=>n.tags||[]))].filter(t=>matchesSearch([t],query,exact)).map(tag=>({id:`topic:${tag}`,type:'Topics',title:tag,text:`${library.notes.filter(n=>n.tags?.includes(tag)).length} notes tagged ${tag}`,url:`/topics?tag=${encodeURIComponent(tag)}`,source:'Your tagged notes'}))
     const verses=bible.query===query?bible.rows.map(v=>({id:`verse:${v.id}`,type:'Bible',title:`${v.book_name} ${v.chapter}:${v.verse}`,text:v.text,source:'BSB',ref:{book:v.book_name,chapter:v.chapter,verseStart:v.verse,verseEnd:v.verse}})):[]
-    return [...verses,...books,...tags,...notes,...checks,...resources.rows]
+    return [...verses,...books,...tags,...notes,...checks,...sermons,...resources.rows]
   },[query,library,bible,resources,exact])
   const filtered=sortSearchResults(rows.filter(r=>type==='All'||r.type===type),query,sort)
   const selected=filtered.find(r=>r.id===selectedId)||filtered[0]
@@ -123,6 +127,7 @@ export default function SearchWorkspace(){
       <section className="card search-results" aria-label="Search results">
         <details className="search-mobile-filters"><summary>Filters</summary>{filters('mobile-types')}</details>
         <div className="search-results-title"><div><h2>Search Results</h2><p role="status">{loading?'Searching…':query?`${filtered.length} loaded results for “${query}”`:'Enter a word or Bible reference to begin.'}</p></div><label className="sr-only" htmlFor="result-sort">Sort results</label><select id="result-sort" className="input" value={sort} onChange={e=>update({sort:e.target.value})}><option value="relevance">Most relevant</option><option value="title">Title A–Z</option><option value="recent">Newest saved</option></select></div>
+        {parseReference(query)&&rows.some(r=>r.type==='Sermons')&&<button className="search-context-link" onClick={()=>update({type:'Sermons'})}>Also in Sermons: {rows.filter(r=>r.type==='Sermons').length} →</button>}
         {query&&!loading&&!filtered.length&&<p>No results match your search and filters.</p>}
         {filtered.slice(0,visible).map(row=><button key={row.id} type="button" className={`search-result ${selected?.id===row.id?'is-selected':''}`} aria-pressed={selected?.id===row.id} onClick={()=>choose(row)}>{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<ResultIcon type={row.type}/>}<span><strong>{row.title}</strong><span className="search-snippet">{row.text.slice(0,240)}</span><span className="search-result-meta"><span>{row.type}</span><span>{row.source}</span></span></span></button>)}
         {filtered.length>visible&&<button className="btn btn-secondary" onClick={()=>setVisible(n=>n+30)}>Load more results</button>}
@@ -131,7 +136,7 @@ export default function SearchWorkspace(){
       </section>
       <section className={`card search-preview ${previewOpen?'is-open':''}`} aria-label="Result preview" ref={previewRef} tabIndex={-1}>
         <div className="search-preview-heading"><h2>Result Preview</h2><button className="btn btn-icon search-close-preview" aria-label="Close preview" onClick={()=>{setPreviewOpen(false);lastResult.current?.focus()}}><X size={20}/></button></div>
-        {selected?<><div className="search-preview-type"><ResultIcon type={selected.type}/>{selected.type}</div><h3>{selected.title}{selected.type==='Bible'?' (BSB)':''}</h3><p className={selected.type==='Bible'?'scripture-text':'search-preview-text'}>{selected.text}</p><div className="search-preview-actions"><Link className="btn btn-primary" to={selected.ref?bibleUrl(selected.ref)+(selected.type==='Resources'?`&panel=commentary&commentary=${commentary.id}`:''):selected.url}>{selected.type==='Bible'||selected.type==='Resources'?'Open Bible Study':'Open '+(selected.type==='Books'?'book':selected.type==='Topics'?'topic':'saved item')}</Link><Link className="btn btn-secondary" to="/notebook/new" state={{ref:selected.ref?`${selected.ref.book} ${selected.ref.chapter}:${selected.ref.verseStart||1}`:'',body:`${selected.title}\n\n${selected.text}\n\nSource: ${selected.source||selected.type}`}}>Add to Notes</Link></div>{selected.ref&&<Link className="search-context-link" to={bibleUrl({...selected.ref,verseStart:null,verseEnd:null})}>View chapter in context <ArrowRight size={14}/></Link>}<>{selected.ref&&<Link className="search-context-link" to={bibleUrl(selected.ref)+'&panel=compare'}>Compare translations <ArrowRight size={14}/></Link>}</><h3 className="search-related-heading">Related Results</h3>{rows.filter(r=>r.id!==selected.id&&(selected.ref?r.ref?.book===selected.ref.book:r.type===selected.type)).slice(0,4).map(row=><button className="search-related-link" key={row.id} onClick={()=>choose(row)}><ResultIcon type={row.type}/>{row.title}</button>)}</>:<p>Select a result to preview it here.</p>}
+        {selected?<><div className="search-preview-type"><ResultIcon type={selected.type}/>{selected.type}</div><h3>{selected.title}{selected.type==='Bible'?' (BSB)':''}</h3><p className={selected.type==='Bible'?'scripture-text':'search-preview-text'}>{selected.text}</p><div className="search-preview-actions"><Link className="btn btn-primary" to={selected.ref?bibleUrl(selected.ref)+(selected.type==='Resources'?`&panel=commentary&commentary=${commentary.id}`:''):selected.url}>{selected.type==='Bible'||selected.type==='Resources'?'Open Bible Study':'Open '+(selected.type==='Books'?'book':selected.type==='Topics'?'topic':'saved item')}</Link><Link className="btn btn-secondary" to="/notebook/new" state={{sermon_id:selected.sermonId||null,ref:selected.ref?`${selected.ref.book} ${selected.ref.chapter}:${selected.ref.verseStart||1}`:'',body:`${selected.title}\n\n${selected.text}\n\nSource: ${selected.source||selected.type}`}}>Add to Notes</Link></div>{selected.ref&&<Link className="search-context-link" to={bibleUrl({...selected.ref,verseStart:null,verseEnd:null})}>View chapter in context <ArrowRight size={14}/></Link>}<>{selected.ref&&<Link className="search-context-link" to={bibleUrl(selected.ref)+'&panel=compare'}>Compare translations <ArrowRight size={14}/></Link>}</><h3 className="search-related-heading">Related Results</h3>{rows.filter(r=>r.id!==selected.id&&(selected.ref?r.ref?.book===selected.ref.book:r.type===selected.type)).slice(0,4).map(row=><button className="search-related-link" key={row.id} onClick={()=>choose(row)}><ResultIcon type={row.type}/>{row.title}</button>)}</>:<p>Select a result to preview it here.</p>}
       </section>
       <aside className="search-related">
         <section className="card"><h2>Related Topics</h2>{relatedTopics.length?relatedTopics.map(tag=><Link className="search-related-link" key={tag} to={`/topics?tag=${encodeURIComponent(tag)}`}><Tags size={20}/><span>{tag}<small>From your notes</small></span></Link>):<p>Related tags from your notes appear here.</p>}</section>

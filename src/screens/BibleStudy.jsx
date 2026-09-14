@@ -1,3 +1,4 @@
+import SermonBiblePanel from '../components/SermonStudy'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2, BookOpen, Link2, Languages, FileText, MapPin, Clock, ChartColumn, ExternalLink, ChevronDown } from 'lucide-react'
@@ -488,7 +489,7 @@ export default function BibleStudy() {
   }
 
   function handleCreateEntry() {
-    navigate('/notebook/new', { state: { ref: selectionRef, body: `"${selectionText}"` } })
+    navigate('/notebook/new', { state: { sermon_id:searchParams.get('sermon'), ref: selectionRef, body: `"${selectionText}"` } })
   }
 
   const readingMeta = ALL_TRANSLATIONS.find((t) => t.id === readingTranslation) || BSB_OPTION
@@ -496,7 +497,7 @@ export default function BibleStudy() {
   const hubBook = ({'Song of Solomon':'songs', 'Psalms':'psalms'})[book] || book.toLowerCase().replaceAll(' ', '_')
   const interlinearUrl = `https://biblehub.com/interlinear/${hubBook}/${chapter}.htm`
   const name = user.user_metadata?.display_name || user.user_metadata?.full_name?.split(' ')[0] || 'Reader'
-  const draftNote = (analysis = false) => navigate('/notebook/new', {state:{ref:selectionRef || passageRef, body:analysis ? 'Observations\n\nThemes and repeated words:\n\nPeople and places:\n\nWhat does this reveal about God?\n\nApplication:\n' : selectionText ? `“${selectionText}”` : ''}})
+  const draftNote = (analysis = false) => navigate('/notebook/new', {state:{sermon_id:searchParams.get('sermon'),ref:selectionRef || passageRef, body:analysis ? 'Observations\n\nThemes and repeated words:\n\nPeople and places:\n\nWhat does this reveal about God?\n\nApplication:\n' : selectionText ? `“${selectionText}”` : ''}})
   const columns = [{id:readingTranslation, meta:readingMeta, entry:{status:verses === null?'loading':'ready', verses:displayedVerses}}, ...(showCompare ? compareIds.filter(id=>id!==readingTranslation).map(id=>({id,meta:ALL_TRANSLATIONS.find(t=>t.id===id),entry:compareData[id]})) : [])]
   function renderVerses(rows, anchor) {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
@@ -657,7 +658,7 @@ export default function BibleStudy() {
           )}
 
       </aside>
-      <StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef}/>
+      {searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
     </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <div className="relative flex-1" style={{ minWidth: 220 }}>

@@ -29,7 +29,7 @@ export function relatedNotes(note, notes, parse) {
     const reasons=[]
     const other=parse((n.ref||'').replace(/[–—]/g,'-'))
     if(passage&&other&&passage.book===other.book&&passage.chapter===other.chapter)reasons.push('Same Bible chapter')
-    for(const [field,label] of [['shelf_book_id','Same book'],['doctrine_check_id','Same assessment'],['resource_url','Same resource']])if(note[field]&&note[field]===n[field])reasons.push(label)
+    for(const [field,label] of [['shelf_book_id','Same book'],['doctrine_check_id','Same assessment'],['resource_url','Same resource'],['sermon_id','Same sermon']])if(note[field]&&note[field]===n[field])reasons.push(label)
     const tags=(n.tags||[]).filter(t=>(note.tags||[]).some(x=>x.toLowerCase()===t.toLowerCase()))
     if(tags.length)reasons.push(`Shared tags: ${tags.join(', ')}`)
     return {...n,reasons}

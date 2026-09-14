@@ -17,6 +17,9 @@ import Reading from './screens/Reading'
 import BibleStudy from './screens/BibleStudy'
 import Search from './screens/Search'
 import TopicIndex from './screens/TopicIndex'
+const SermonIndex = lazy(() => import('./screens/SermonIndex'))
+const SermonComposer = lazy(() => import('./screens/SermonComposer'))
+const SermonDetail = lazy(() => import('./screens/SermonDetail'))
 const Topics = lazy(() => import('./screens/TopicWorkspace'))
 import Settings from './screens/Settings'
 
@@ -24,10 +27,11 @@ export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
 
 function ProtectedLayout() {
+  const user=useAuth()
   return (
     <div className="flex flex-col md:flex-row min-h-dvh">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <Sidebar />
+      <Sidebar user={user} />
       <main id="main-content" tabIndex={-1} className="app-main flex-1 min-w-0">
         <Suspense fallback={<p role="status">Loading workspace…</p>}><Routes>
           <Route path="/" element={<Home />} />
@@ -46,6 +50,10 @@ function ProtectedLayout() {
           <Route path="/reading/:bookId" element={<Reading />} />
           <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/sermons" element={<SermonIndex />} />
+          <Route path="/sermons/new" element={<SermonComposer />} />
+          <Route path="/sermons/:id/edit" element={<SermonComposer />} />
+          <Route path="/sermons/:id" element={<SermonDetail />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/topics/index" element={<TopicIndex />} />
           <Route path="/topics/:topicKey" element={<Topics />} />

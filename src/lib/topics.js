@@ -5,8 +5,8 @@ export async function topicRows(table,userId){
   for(let offset=0;;offset+=500){const {data,error}=await supabase.from(table).select('*').eq('user_id',userId).order(table==='topic_preferences'?'topic_key':'id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)return rows}
 }
 export async function loadTopicData(userId){
-  const names=['personal','links','preferences','notes','books','checks']
-  const results=await Promise.allSettled(['topics','topic_links','topic_preferences','entries','books'].map(t=>topicRows(t,userId)).concat(checksList().then(r=>r.data||[])))
+  const names=['personal','links','preferences','notes','books','checks','sermons']
+  const results=await Promise.allSettled(['topics','topic_links','topic_preferences','entries','books'].map(t=>topicRows(t,userId)).concat(checksList().then(r=>r.data||[]),topicRows('sermons',userId)))
   results.forEach((result,i)=>{if(result.status==='rejected')console.warn('Topics request failed',names[i],result.reason?.name,result.reason?.code,result.reason?.message)})
   return Object.fromEntries([...results.map((r,i)=>[names[i],r.status==='fulfilled'?r.value:[]]),['errors',results.flatMap((r,i)=>r.status==='rejected'?[names[i]]:[])]])
 }

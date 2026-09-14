@@ -7,6 +7,7 @@ import { checksList } from '../lib/theologyCheck'
 import { NOTE_TYPES, noteType, exportNote } from '../lib/noteModel'
 import NoteWorkspaceEditor from '../components/NoteWorkspaceEditor'
 import './Notes.css'
+import { saveTopicLink } from '../lib/topics'
 import NoteMenu from '../components/NoteMenu'
 import { BookOpen, FileText, ShieldCheck, NotebookPen, Library, Search, ChevronDown, UserRound } from 'lucide-react'
 const TYPE_ICONS={scripture:BookOpen,book:Library,doctrine_check:ShieldCheck,bible_study:NotebookPen,resource:FileText,standalone:FileText}
@@ -30,6 +31,7 @@ export default function NotesWorkspace() {
       const prefill=source?.id&&source.id===saveRef.current?.snapshot().id?{...saveRef.current.snapshot(),title:source.title}:source || (isNew?location.state:null) || {}
       const row=await createEntry(user.id,{title:prefill.title||'Untitled note',body:prefill.body||'',rich_doc:prefill.rich_doc||null,ref:prefill.ref||null,tags:prefill.tags||[],note_type:prefill.note_type || (prefill.shelf_book_id?'book':prefill.doctrine_check_id?'doctrine_check':prefill.ref?'scripture':'standalone'),shelf_book_id:prefill.shelf_book_id||null,doctrine_check_id:prefill.doctrine_check_id||null,resource_title:prefill.resource_title||null,resource_url:prefill.resource_url||null,photos:prefill.photos||[],page:prefill.page||null,video_url:prefill.video_url||null,stance:prefill.stance||null})
       if(source?.id){try{const links=await getLinksFor(source.id);if(links.seeAlso.length)await setRelated(row.id,links.seeAlso.map(n=>n.id))}catch{setError('The note was copied, but its manual note links could not be copied. You can add them in Advanced tools.')}}
+      if(prefill.topic_key){try{await saveTopicLink(user.id,prefill.topic_key,'note',row.id,row.title)}catch{setError('Note saved. The topic link could not be saved; its topic tag is retained.')}}
       setView('workspace');setNotes(current=>[...(current||[]).filter(n=>n.id!==row.id),row]);navigate(`/notebook/${row.id}`,{replace:isNew})
     }catch(err){setError(err.message)}finally{setCreating(false)}
   }

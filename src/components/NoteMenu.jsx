@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import './NoteMenu.css'
 
 export default function NoteMenu({ label = 'Note actions', actions, children }) {
   const [open, setOpen] = useState(false)

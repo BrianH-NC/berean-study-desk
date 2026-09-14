@@ -3,15 +3,16 @@ import { useAuth } from '../App'
 import { loadCheckLibrary } from '../lib/checkLibrary'
 import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera, Images } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
-  assessSubject, checksList, checksSetHidden, checksInsert, checksUpdate, listHolyShelfUnchecked, mapAssessmentToRow,
+  assessSubject, askFollowup, checksList, checksSetHidden, checksInsert, checksUpdate, listHolyShelfUnchecked, mapAssessmentToRow,
 } from '../lib/theologyCheck'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
 import { DoctrineHeader, DoctrineLegend, CreationAssessment } from '../components/DoctrineChrome'
+import { saveTopicLink } from '../lib/topics'
 import BarcodeScanner from '../components/BarcodeScanner'
 
 const VERDICT_FILTERS = ['All', 'Sound', 'Caution', 'Concern', 'Distinctive', 'Unable to Assess']
@@ -27,6 +28,7 @@ function verdictBucket(verdict) {
 
 export default function DoctrineCheckIndex() {
   const navigate = useNavigate()
+  const topicContext = useLocation().state?.topicContext
   const user = useAuth()
   const [library, setLibrary] = useState([])
   useEffect(() => { let active = true; loadCheckLibrary(user.id).then(books => { if (active) setLibrary(books) }).catch(() => {}); return () => { active = false } }, [user.id])
@@ -134,7 +136,7 @@ export default function DoctrineCheckIndex() {
       authors: subject.authors || null,
       name: subject.name || null,
       cover_url: extraRowFields.cover_url || null,
-      tags: [],
+      tags: extraRowFields.topicFocus ? [extraRowFields.topicFocus.name] : [],
       is_wishlist: false,
       followups: [],
       confession_comparisons: {},
@@ -143,6 +145,16 @@ export default function DoctrineCheckIndex() {
     }
     const { error } = await checksInsert(row)
     if (error) throw new Error(error)
+    if(extraRowFields.topicFocus){
+      const topic=extraRowFields.topicFocus
+      try{
+        await saveTopicLink(user.id,topic.key,'doctrine_check',id,row.title||row.name)
+        const question=`Evaluate this subject specifically in relation to ${topic.name}. Explain its teaching, relevant Scripture, and any doctrinal concerns. Distinguish documented evidence from uncertainty.`
+        const {answer}=await askFollowup({label:row.title||row.name,verdict:row.verdict,summary:row.summary,strengths:row.strengths,concerns:row.concerns,denominationalNote:row.denominational_note,creationView:row.creation_view},question)
+        const result=await checksUpdate(id,{followups:[{question,answer,ts:new Date().toISOString()}]})
+        if(result.error)throw new Error(result.error)
+      }catch{const failure=new Error('The main assessment was saved, but the topic follow-up or link could not be completed. You can retry a topic question below.');failure.savedId=id;throw failure}
+    }
     return id
   }
 
@@ -155,10 +167,10 @@ export default function DoctrineCheckIndex() {
         subjectKind === 'book'
           ? { kind: 'book', title: title.trim(), authors: authors.trim(), isbn: isbn.trim() || null }
           : { kind: 'person', name: name.trim() }
-      const id = await runCheck(subject)
+      const id = await runCheck(subject, {topicFocus:topicContext})
       navigate(`/checks/${id}`)
     } catch (err) {
-      setRunError(err.message)
+      if(err.savedId)navigate(`/checks/${err.savedId}`,{state:{notice:err.message}});else setRunError(err.message)
     } finally {
       setRunning(false)
     }
@@ -283,6 +295,7 @@ export default function DoctrineCheckIndex() {
         )}
 
         <div className="doctrine-framework"><strong>Analysis Framework</strong><br/>Baptist Faith &amp; Message 2000. Additional doctrinal comparisons are available after the check. Creation and origins are assessed separately.</div>
+        {topicContext&&<p className="card-meta">Topic focus: <strong>{topicContext.name}</strong>. Choose a book or author; the check will include a focused follow-up and be linked to this topic. <Link to="/checks" state={null}>Clear topic focus</Link></p>}
         <form onSubmit={handleNewCheck} className="flex gap-2 flex-wrap items-end">
           {subjectKind === 'book' ? (
             <>

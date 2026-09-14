@@ -1,7 +1,7 @@
 import { loadCheckLibrary } from '../lib/checkLibrary'
 import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { User, Loader2 } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
@@ -13,6 +13,7 @@ import { stanceClass } from '../lib/stance'
 
 export default function DoctrineCheckReport() {
   const { id } = useParams()
+  const notice=useLocation().state?.notice
   const user = useAuth()
   const [check, setCheck] = useState(null) // null = loading, false = not found
   const [libraryReady, setLibraryReady] = useState(false)
@@ -138,7 +139,7 @@ export default function DoctrineCheckReport() {
 
   return (
     <div className="page doctrine-desk">
-      <DoctrineHeader report/>
+      <DoctrineHeader report/>{notice&&<p role="status">{notice}</p>}
       <div className="doctrine-layout"><div className="doctrine-main">
       <div className="card-meta mb-3">
         <Link to="/checks" className="hover:underline">

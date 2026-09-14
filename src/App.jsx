@@ -16,7 +16,8 @@ import Entry from './screens/Entry'
 import Reading from './screens/Reading'
 import BibleStudy from './screens/BibleStudy'
 import Search from './screens/Search'
-import Topics from './screens/Topics'
+import TopicIndex from './screens/TopicIndex'
+const Topics = lazy(() => import('./screens/TopicWorkspace'))
 import Settings from './screens/Settings'
 
 export const AuthContext = createContext(null)
@@ -46,6 +47,8 @@ function ProtectedLayout() {
           <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />
           <Route path="/topics" element={<Topics />} />
+          <Route path="/topics/index" element={<TopicIndex />} />
+          <Route path="/topics/:topicKey" element={<Topics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/profile" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

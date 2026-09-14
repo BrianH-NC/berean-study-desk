@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import Auth from './components/Auth'
@@ -11,7 +11,7 @@ import Wishlist from './screens/Wishlist'
 import WishlistAdd from './screens/WishlistAdd'
 import DoctrineCheckIndex from './screens/DoctrineCheckIndex'
 import DoctrineCheckReport from './screens/DoctrineCheckReport'
-import NotebookHome from './screens/NotebookHome'
+const NotebookHome = lazy(() => import('./screens/NotesWorkspace'))
 import Entry from './screens/Entry'
 import Reading from './screens/Reading'
 import BibleStudy from './screens/BibleStudy'
@@ -28,7 +28,7 @@ function ProtectedLayout() {
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar />
       <main id="main-content" tabIndex={-1} className="app-main flex-1 min-w-0">
-        <Routes>
+        <Suspense fallback={<p role="status">Loading workspace…</p>}><Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />
           <Route path="/shelf/add" element={<AddBooks />} />
@@ -39,7 +39,8 @@ function ProtectedLayout() {
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />
           <Route path="/notebook" element={<NotebookHome />} />
           <Route path="/notebook/new" element={<NotebookHome />} />
-          <Route path="/notebook/:id" element={<Entry />} />
+          <Route path="/notebook/:id" element={<NotebookHome />} />
+          <Route path="/notebook/:id/advanced" element={<Entry />} />
           <Route path="/reading" element={<Reading />} />
           <Route path="/reading/:bookId" element={<Reading />} />
           <Route path="/bible" element={<BibleStudy />} />
@@ -48,7 +49,7 @@ function ProtectedLayout() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/profile" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        </Routes></Suspense>
       </main>
     </div>
   )

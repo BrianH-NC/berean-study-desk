@@ -16,7 +16,7 @@ export default function Entry() {
   const [entry, setEntry] = useState(null) // null = loading, false = not found
   const [links, setLinks] = useState({ seeAlso: [], referencedBy: [] })
   const [book, setBook] = useState(null) // the shelf book this note was taken while reading, if any
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(true)
   const [passage, setPassage] = useState(null) // null = not loaded, false = load failed
   const [passageLoading, setPassageLoading] = useState(false)
 
@@ -37,7 +37,7 @@ export default function Entry() {
   }, [id])
 
   useEffect(() => {
-    if (!entry || !entry.ref) {
+    if (editing || !entry || !entry.ref) {
       setPassage(null)
       return
     }
@@ -56,7 +56,7 @@ export default function Entry() {
     return () => {
       cancelled = true
     }
-  }, [entry?.ref])
+  }, [entry?.ref, editing])
 
   async function handleDelete() {
     if (!confirm(`Delete entry no. ${formatEntryNum(entry.number)}? This can't be undone.`)) return
@@ -115,10 +115,9 @@ export default function Entry() {
               initial={entry}
               initialRelated={links.seeAlso}
               onSaved={() => {
-                load()
-                setEditing(false)
+                navigate(`/notebook/${id}`)
               }}
-              onCancel={() => setEditing(false)}
+              onCancel={() => navigate(`/notebook/${id}`)}
             />
           ) : (
             <article>

@@ -185,11 +185,12 @@ export async function getLinksFor(entryId) {
 }
 
 export async function createEntry(userId, fields) {
-  const { data: existing } = await supabase.from('entries').select('number').eq('user_id', userId)
+  const { data: existing, error: numberError } = await supabase.from('entries').select('number').eq('user_id', userId)
+  if (numberError) throw new Error(numberError.message)
   const number = nextGapNumber((existing || []).map((e) => e.number))
   const { data, error } = await supabase
     .from('entries')
-    .insert({ user_id: userId, number, ...fields })
+    .insert({ user_id: userId, number, note_type: fields.shelf_book_id ? 'book' : fields.ref ? 'scripture' : 'standalone', ...fields })
     .select()
     .single()
   if (error) throw new Error(error.message)

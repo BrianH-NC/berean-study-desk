@@ -191,6 +191,8 @@ export default function DoctrineCheckReport() {
 
       <div className="doctrine-overall" data-verdict={verdictClass(check.verdict)}><VerdictIcon size={42}/><div><div className="card-kicker">Overall Assessment</div><h2>{check.verdict || 'Unable to Assess'}</h2><p>{check.summary}</p></div></div>
       <CreationAssessment value={check.creation_view}/>
+      <Link to="/notebook/new" state={{note_type:'doctrine_check',doctrine_check_id:check.id,title:`Notes on ${check.title||check.name}`,shelf_book_id:linkedBook?.id}}>Add a linked note →</Link>
+      <Link to={`/notebook?doctrine=${check.id}`} className="btn btn-ghost">Related notes →</Link>
       {linkedBook && <Link className="btn btn-secondary mb-3" to={`/shelf/${linkedBook.id}?tab=doctrine`}>In your library · View book →</Link>}
       {check.kind === 'book' && !linkedBook && <button className="btn btn-secondary mb-3" disabled={!libraryReady || addingBook} onClick={addToLibrary}>{addingBook ? 'Adding…' : libraryReady ? 'Add to my library' : 'Checking your library…'}</button>}
       {libraryError && <p role="alert">Could not update library information: {libraryError} <button className="btn btn-ghost" onClick={load}>Retry</button></p>}

@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",
+    "@tiptap/extension-image": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.40.0",
     "react": "^19.2.8",

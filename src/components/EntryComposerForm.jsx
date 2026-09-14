@@ -121,6 +121,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
       const fields = {
         title: title.trim() || null,
         body: body.trim(),
+        ...(initial?.rich_doc && body.trim() !== initial.body ? {rich_doc:null} : {}),
         ref: ref.trim() || null,
         tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
         photos,
@@ -175,6 +176,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
         </button>
       </div>
 
+      {initial?.rich_doc && <p className="card-meta">This advanced editor shows plain text. Changing the body here replaces its rich formatting; use the Notes workspace for formatted writing.</p>}
       <form onSubmit={handleSave}>
         <div className="card mb-4" style={{ padding: '18px 20px' }}>
           <input

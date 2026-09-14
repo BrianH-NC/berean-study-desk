@@ -1,21 +1,30 @@
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import { Node } from '@tiptap/core'
 import { useRef, useState } from 'react'
 import { uploadEntryPhoto } from '../lib/entryPhotos'
 import { plainDocument, safeNoteUrl } from '../lib/noteModel'
-const ScriptureQuote=Node.create({name:'scriptureQuote',group:'block',content:'block+',defining:true,parseHTML:()=>[{tag:'blockquote[data-scripture]'}],renderHTML:()=>['blockquote',{'data-scripture':'true',class:'notes-scripture'},0]})
+import { Bold, Italic, Underline, List, ListOrdered, Quote, BookOpen, Link as LinkIcon, Image as ImageIcon, Undo2, Redo2 } from 'lucide-react'
+const ScriptureQuote=Node.create({name:'scriptureQuote',group:'block',content:'block+',defining:true,
+  addAttributes:()=>({reference:{default:'',parseHTML:element=>element.getAttribute('data-reference')||''}}),
+  parseHTML:()=>[{tag:'blockquote[data-scripture]',contentElement:element=>element.querySelector('.scripture-content')||element}],
+  renderHTML:({node})=>['blockquote',{'data-scripture':'true','data-reference':node.attrs.reference,class:'notes-scripture'},['div',{class:'scripture-content'},0],['cite',{contenteditable:'false'},node.attrs.reference||'Scripture quotation']]
+})
 export default function NoteRichEditor({note,onChange,userId}) {
-  const upload=useRef(null), [error,setError]=useState('')
+  const upload=useRef(null), [error,setError]=useState(''),[tool,setTool]=useState(null),[value,setValue]=useState('')
   const editor=useEditor({extensions:[StarterKit.configure({heading:{levels:[2,3]},link:{openOnClick:false}}),Image,ScriptureQuote],content:note.rich_doc || plainDocument(note.body),editorProps:{attributes:{'aria-label':'Note content',role:'textbox','aria-multiline':'true'}},onUpdate:({editor})=>onChange({rich_doc:editor.getJSON(),body:editor.getText()})})
+  const active=useEditorState({editor,selector:({editor:e})=>e?{style:e.isActive('heading',{level:2})?'2':e.isActive('heading',{level:3})?'3':'paragraph',...Object.fromEntries(['bold','italic','underline','bulletList','orderedList','blockquote','scriptureQuote','link'].map(k=>[k,e.isActive(k)])),undo:e.can().undo(),redo:e.can().redo()}:null})
   if(!editor)return <p>Loading editor…</p>
-  const action=(label,command)=> <button type="button" key={label} title={label} aria-label={label} onClick={command}>{label}</button>
+  const icons={Bold,Italic,Underline,Bullets:List,'Numbered list':ListOrdered,Quote,Scripture:BookOpen,Link:LinkIcon,Image:ImageIcon,Undo:Undo2,Redo:Redo2}
+  const keys={Bold:'bold',Italic:'italic',Underline:'underline',Bullets:'bulletList','Numbered list':'orderedList',Quote:'blockquote',Scripture:'scriptureQuote',Link:'link'}
+  const action=(label,command)=> {const Icon=icons[label];return <button type="button" key={label} title={label} aria-label={label} aria-pressed={keys[label]?!!active?.[keys[label]]:undefined} disabled={label==='Undo'?!active?.undo:label==='Redo'?!active?.redo:false} onClick={command}><Icon size={17}/></button>}
   return <><div className="notes-toolbar" role="group" aria-label="Formatting">
-    <select aria-label="Paragraph style" defaultValue="paragraph" onChange={e=>e.target.value==='paragraph'?editor.chain().focus().setParagraph().run():editor.chain().focus().toggleHeading({level:Number(e.target.value)}).run()}><option value="paragraph">Paragraph</option><option value="2">Heading</option><option value="3">Subheading</option></select>
-    {action('Bold',()=>editor.chain().focus().toggleBold().run())}{action('Italic',()=>editor.chain().focus().toggleItalic().run())}{action('Underline',()=>editor.chain().focus().toggleUnderline().run())}{action('Bullets',()=>editor.chain().focus().toggleBulletList().run())}{action('Numbered list',()=>editor.chain().focus().toggleOrderedList().run())}{action('Quote',()=>editor.chain().focus().toggleBlockquote().run())}{action('Scripture',()=>editor.chain().focus().toggleWrap('scriptureQuote').run())}
-    {action('Link',()=>{const value=window.prompt('Link URL (https://… or /bible?…)',editor.getAttributes('link').href||'');if(value===null)return;if(!value){editor.chain().focus().unsetLink().run();return}if(safeNoteUrl(value)||(value.startsWith('/')&&!value.startsWith('//')))editor.chain().focus().setLink({href:value}).run();else setError('Use a valid web address or BSD path.')})}
+    <select aria-label="Paragraph style" value={active?.style||'paragraph'} onChange={e=>e.target.value==='paragraph'?editor.chain().focus().setParagraph().run():editor.chain().focus().setHeading({level:Number(e.target.value)}).run()}><option value="paragraph">Paragraph</option><option value="2">Heading</option><option value="3">Subheading</option></select>
+    {action('Bold',()=>editor.chain().focus().toggleBold().run())}{action('Italic',()=>editor.chain().focus().toggleItalic().run())}{action('Underline',()=>editor.chain().focus().toggleUnderline().run())}{action('Bullets',()=>editor.chain().focus().toggleBulletList().run())}{action('Numbered list',()=>editor.chain().focus().toggleOrderedList().run())}{action('Quote',()=>editor.chain().focus().toggleBlockquote().run())}{action('Scripture',()=>{setTool('scripture');setValue(editor.getAttributes('scriptureQuote').reference||note.ref||'')})}
+    {active?.scriptureQuote&&<button title="Remove Scripture callout" aria-label="Remove Scripture callout" onClick={()=>editor.chain().focus().lift('scriptureQuote').run()}>×</button>}
+    {action('Link',()=>{setTool('link');setValue(editor.getAttributes('link').href||'')})}
     {action('Image',()=>upload.current.click())}{action('Undo',()=>editor.chain().focus().undo().run())}{action('Redo',()=>editor.chain().focus().redo().run())}
     <input ref={upload} hidden type="file" accept="image/*" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setError('Uploading image…');try{const src=await uploadEntryPhoto(userId,file);if(!editor.isDestroyed)editor.chain().focus().setImage({src,alt:file.name}).run();setError('')}catch(err){setError(err.message)}finally{e.target.value=''}}}/>
-  </div>{error&&<p role="status">{error}</p>}<EditorContent editor={editor}/></>
+  </div>{tool&&<form className="notes-inline-tool" onSubmit={e=>{e.preventDefault();if(tool==='scripture'){if(editor.isActive('scriptureQuote'))editor.chain().focus().updateAttributes('scriptureQuote',{reference:value}).run();else editor.chain().focus().wrapIn('scriptureQuote',{reference:value}).run()}else{if(!value)editor.chain().focus().unsetLink().run();else if(safeNoteUrl(value)||(value.startsWith('/')&&!value.startsWith('//')))editor.chain().focus().setLink({href:value}).run();else{setError('Use a valid web address or BSD path.');return}}setTool(null);setError('')}} onKeyDown={e=>{if(e.key==='Escape'){setTool(null);editor.commands.focus()}}}><label>{tool==='scripture'?'Quotation reference and translation':'Web address or BSD link'}<input autoFocus value={value} onChange={e=>setValue(e.target.value)} placeholder={tool==='scripture'?'John 1:1 · BSB':'https://… or /notebook/…'}/></label><button type="submit">Apply</button><button type="button" onClick={()=>{setTool(null);editor.commands.focus()}}>Cancel</button></form>}{error&&<p role="status">{error}</p>}<EditorContent editor={editor}/></>
 }

@@ -1,129 +1,20 @@
-import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import Logo, { BrandLockup } from './Logo'
+import {useRef,useState} from 'react'
+import {BookOpen,ShieldCheck,Leaf,LoaderCircle} from 'lucide-react'
+import {supabase} from '../lib/supabase'
+import Logo,{BrandLockup} from './Logo'
+import './Auth.css'
 
-export default function Auth() {
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [showEmail, setShowEmail] = useState(false)
-  const [mode, setMode] = useState('login')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [emailLoading, setEmailLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-
-  async function handleGoogleSignIn() {
-    setGoogleLoading(true)
-    setError('')
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: { prompt: 'select_account' },
-      },
-    })
-    if (error) {
-      setError(error.message)
-      setGoogleLoading(false)
-    }
-    // On success, the browser redirects to Google — App.jsx's auth listener
-    // picks up the new session when it comes back.
-  }
-
-  async function handleEmailSubmit(e) {
-    e.preventDefault()
-    setEmailLoading(true)
-    setError('')
-    setMessage('')
-
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setError(error.message)
-      else setMessage('Check your email to confirm your account, then sign in.')
-    }
-
-    setEmailLoading(false)
-  }
-
-  return (
-    <div className="min-h-dvh flex items-center justify-center bg-bg py-8">
-      <div className="card w-full max-w-[400px] mx-4">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-3">
-            <Logo size={56} />
-          </div>
-          <h1 className="sr-only">Sign in to Berean Study Desk</h1>
-          <BrandLockup />
-          <p className="font-body mt-4 mb-2">Search. Study. Discern.</p>
-          <div className="text-accent uppercase" style={{ fontSize: 12, letterSpacing: '0.14em' }}>
-            Acts 17:11
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          onClick={handleGoogleSignIn}
-          disabled={googleLoading}
-        >
-          {googleLoading ? 'Signing in…' : 'Sign in with Google'}
-        </button>
-
-        {error && (
-          <div className="mt-3 rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-accent-100)', color: 'var(--color-accent-800)' }}>
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="mt-3 rounded-md px-3 py-2 text-sm" style={{ background: 'var(--color-accent-2-100)', color: 'var(--color-accent-2-800)' }}>
-            {message}
-          </div>
-        )}
-
-        {!showEmail ? (
-          <button type="button" className="btn btn-ghost btn-block mt-3" onClick={() => setShowEmail(true)}>
-            Sign in with email &amp; password instead
-          </button>
-        ) : (
-          <form onSubmit={handleEmailSubmit} className="mt-4 flex flex-col gap-3">
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                className="input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                className="input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <button type="submit" className="btn btn-secondary btn-block" disabled={emailLoading}>
-              {emailLoading ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Sign up'}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            >
-              {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  )
+function GoogleMark(){return <svg aria-hidden="true" width="24" height="24" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z"/><path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.78-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"/></svg>}
+export default function Auth(){
+ const [loading,setLoading]=useState(false),[error,setError]=useState('');const pending=useRef(false)
+ async function handleGoogleSignIn(){
+  if(pending.current)return;pending.current=true;setLoading(true);setError('')
+  try{
+   const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,queryParams:{prompt:'select_account'}}})
+   if(error)throw error
+   // Supabase redirects; App's existing listener handles the returning session.
+  }catch{pending.current=false;setLoading(false);setError('We couldn’t connect to Google. Please check your connection and try again.')}
+ }
+ return <main className="auth-page"><section className="auth-visual" aria-label="Welcome to Berean Study Desk"><div className="auth-brand"><Logo size={100}/><BrandLockup/><p className="auth-tagline">Search. Study. Discern.</p><blockquote className="scripture-text">“Your word is a lamp<br/>to my feet and a light<br/>to my path.”<cite>Psalm 119:105</cite></blockquote></div><div className="auth-values">{[[BookOpen,'Build Your Library','Keep good books close'],[ShieldCheck,'Compare with Truth','Test ideas carefully'],[Leaf,'Grow in Understanding','All for the glory of Christ']].map(([Icon,title,copy])=><div key={title}><Icon aria-hidden="true"/><div><strong>{title}</strong><span>{copy}</span></div></div>)}</div></section>
+ <section className="auth-panel" aria-labelledby="auth-title"><div className="auth-card"><header><Logo size={64}/><p className="auth-welcome">Welcome to</p><h1 id="auth-title">Berean Study Desk</h1><div className="auth-rule" aria-hidden="true">◆</div><p className="auth-tagline">Search. Study. Discern.</p></header><div className="auth-action"><button type="button" className="btn btn-primary auth-google" disabled={loading} aria-busy={loading} onClick={handleGoogleSignIn}>{loading?<LoaderCircle className="auth-spinner" aria-hidden="true"/>:<GoogleMark/>}<span>{loading?'Connecting to Google…':'Continue with Google'}</span></button><div aria-live="polite" role="status">{loading&&<p className="auth-status">Opening Google’s secure sign-in…</p>}</div>{error&&<p className="auth-error" role="alert">{error}</p>}</div><blockquote className="auth-verse scripture-text">“Search the Scriptures daily<br/>to see if these things are so.”<cite>Inspired by Acts 17:11</cite></blockquote></div></section></main>
 }

@@ -49,3 +49,14 @@ export function matchesTopic(topic,content,query){
   const haystack=[topic.name,topic.description,...topic.aliases||[],...topic.tags||[],...content.note.map(n=>n.title),...content.book.flatMap(b=>[b.title,b.author]),...content.doctrine_check.map(c=>c.title||c.name),...content.resource.map(r=>r.label),...(content.sermon||[]).flatMap(s=>[s.title,s.speaker])].join(' ').toLowerCase()
   return query.trim().toLowerCase().split(/\s+/).every(term=>haystack.includes(term))
 }
+
+// Reuse canonical topics and aliases before deriving a new topic from a sermon tag.
+export function resolveSermonTopics(suggestions=[],catalog=[],tags=[]){
+ const seen=new Set();return suggestions.flatMap(t=>{
+  if(!t||typeof t.name!=='string'||!t.name.trim())return [];
+  const match=catalog.find(c=>[c.name,...c.aliases||[]].some(n=>normalizeTopic(n)===normalizeTopic(t.name)));
+  const name=match?.name||t.name.trim(),key=match?.key||`tag:${normalizeTopic(name)}`;
+  if(seen.has(key))return [];seen.add(key);
+  return [{key,name,reason:typeof t.reason==='string'?t.reason:'',linked:tags.some(n=>[name,...match?.aliases||[]].some(a=>normalizeTopic(a)===normalizeTopic(n)))}];
+ });
+}

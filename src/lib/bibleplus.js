@@ -1,4 +1,4 @@
-// Client for the licensed API.Bible translations (NIV, NLT, CSB), backed by
+// Client for the licensed API.Bible translations, backed by
 // the bibleplus-chapter Edge Function the same way esv.js backs ESV -- these
 // are copyrighted, so the key stays server-side and this only ever sends a
 // bibleId + chapterId, never the key itself.
@@ -15,6 +15,11 @@ export const BIBLEPLUS_TRANSLATIONS = [
   { id: 'NIV', bibleId: '78a9f6124f344018-01', name: 'New International Version', short: 'NIV' },
   { id: 'NLT', bibleId: 'd6e14a625393b4da-01', name: 'New Living Translation', short: 'NLT' },
   { id: 'CSB', bibleId: 'a556c5305ee15c3f-01', name: 'Christian Standard Bible', short: 'CSB' },
+  { id: 'NKJV', bibleId: '63097d2a0a2f7db3-01', name: 'New King James Version', short: 'NKJV' },
+  { id: 'MSG', bibleId: '6f11a7de016f942e-01', name: 'The Message', short: 'MSG' },
+  { id: 'AMP', bibleId: 'a81b73293d3080c9-01', name: 'Amplified Bible', short: 'AMP' },
+  { id: 'CEV', bibleId: '555fef9a6cb31151-01', name: 'Contemporary English Version', short: 'CEV' },
+  { id: 'NASB2020', bibleId: 'a761ca71e0b3ddcf-01', name: 'New American Standard Bible 2020', short: 'NASB 2020' },
 ]
 
 // Recursively walks API.Bible's USX-derived content tree, collecting text
@@ -77,11 +82,13 @@ export async function fetchBibleplusChapter(bibleplusId, bookName, chapter) {
     const firstId = firstVerseNumberIn(block)
     if (firstId) paragraphStarts.add(parseInt(firstId.split('.').pop(), 10))
   })
-  return Object.entries(byVerse)
+  const verses = Object.entries(byVerse)
     .map(([number, text]) => ({
       number: parseInt(number, 10),
       text: text.replace(/#/g, '').trim().replace(/\s+/g, ' '),
       paragraphStart: paragraphStarts.has(parseInt(number, 10)),
     }))
     .sort((a, b) => a.number - b.number)
+  verses.copyright = typeof data.copyright === 'string' ? data.copyright : ''
+  return verses
 }

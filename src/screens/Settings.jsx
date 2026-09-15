@@ -87,11 +87,11 @@ export default function Settings() {
           <div className="card-body mb-2">
             Scripture quotations marked CSB have been taken from the Christian Standard Bible®, copyright © 2017 by
             Holman Bible Publishers. Used by permission. Christian Standard Bible® and CSB® are federally registered
-            trademarks of Holman Bible Publishers. NIV, NLT, and CSB text is served live through{' '}
+            trademarks of Holman Bible Publishers. NIV, NLT, CSB, NKJV, The Message, Amplified Bible, CEV, and NASB 2020 are served live through{' '}
             <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
               API.Bible
             </a>
-            .
+            . Publisher copyright notices are displayed with the loaded Bible text.
           </div>
           <div className="card-body">
             Bible commentary and cross-reference data in Bible Study is provided live by the{' '}

@@ -35,6 +35,12 @@ test('source classification only recognizes real YouTube hosts',()=>{
  assert.equal(sourceType('https://example.org/sermon.mp3?q=1'),'audio')
  assert.equal(sourceType(''),'text')
 })
+test('primary text is searchable even without transcript references',()=>{
+ const sermon={primary_text:'Romans 8:28-39',primary_ref:{book:'Romans',chapter:8,verseStart:28,verseEnd:39},detected_refs:[]}
+ assert.equal(sermonPassageMatch(sermon,{book:'Romans',chapter:8,verseStart:30}),true)
+ assert.equal(sermonPassageMatch(sermon,{book:'Romans',chapter:8,verseStart:20}),false)
+ assert.equal(filterSermons([sermon],{query:'Romans 8'}).length,1)
+})
 test('sermon tags and explicit links connect topics without duplicate content',()=>{
  const sermons=[{id:'s1',title:'Grace Sermon',tags:['Grace']},{id:'s2',title:'Other',tags:['Custom Sermon Topic']}]
  const catalog=topicCatalog([],[],[],[],sermons),grace=catalog.find(t=>t.name==='Grace')

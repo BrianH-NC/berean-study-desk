@@ -6,6 +6,7 @@ Implemented on `feature/sermons-workspace`, 2026-09-14. The user's approved Mode
 
 - Open Sermons in the sidebar (More on phones), then New Sermon.
 - Save a source URL and optional title, speaker, series, church, date, description, image, tags and personal notes.
+- Set **Primary Text** to the main passage (for example Romans 8:28–39). The prominent Bible Study button opens it with the sermon alongside. Study-guide links retain that same sermon context. `supabase/sermon-primary-text.sql` adds the saved text and parsed passage; Search matches it even if it is not in the transcript.
 - Paste a transcript or import TXT, searchable PDF, DOCX, SRT or VTT. Uploaded originals are private. Files are limited to 20 MB, PDFs to 500 pages, extracted text to one million characters. Image-only scanned PDFs need a text transcript; OCR is not included.
 - Transcript imports detect and deduplicate explicit Scripture references using the existing BSD tagger. Editing a transcript replaces its Scripture index transactionally. SRT/VTT timestamps are displayed; manually changing extracted text clears the timing alignment.
 - Source audio/video opens externally. There is no embedded player, synchronization, automatic transcription, or YouTube caption retrieval, per the user's choices.

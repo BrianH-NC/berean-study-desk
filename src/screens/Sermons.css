@@ -12,3 +12,5 @@
 @media(max-width:1450px){.sermon-list-heading{grid-template-columns:minmax(170px,2fr) minmax(90px,1fr) 75px 40px 60px 25px}}
 @media(max-width:1000px){.sermon-list-heading{display:none}}
 @media(max-width:767px){.sermon-mobile-meta{display:block!important}}
+
+.sermon-link-help{font:12px/1.6 Inter,sans-serif;padding:10px;background:var(--color-accent-100);border-radius:4px;margin:10px 0}.sermon-transcript [role=button]{text-decoration:underline;text-underline-offset:3px;cursor:pointer}

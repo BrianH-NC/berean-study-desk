@@ -1,3 +1,4 @@
+import {preferencesFor} from '../lib/preferences'
 import LibrarySummary from '../components/LibrarySummary'
 import LibraryBookEditor from '../components/LibraryBookEditor'
 import './Library.css'
@@ -10,12 +11,9 @@ import { primaryCategory, readingStatus, sortLibrary } from '../lib/libraryPrese
 import LibraryCollection from '../components/LibraryCollection'
 
 const VIEWS = ['shelf', 'grid', 'list']
-function storedView(userId) {
-  try { const value = localStorage.getItem(`bsd-library-view:${userId}`); return VIEWS.includes(value) ? value : 'grid' } catch { return 'grid' }
-}
-
 export default function Shelf() {
   const user = useAuth()
+  const prefs = preferencesFor(user)
   const location = useLocation()
   const [params, setParams] = useSearchParams()
   const [editing, setEditing] = useState(null)
@@ -38,9 +36,9 @@ export default function Shelf() {
   const status = params.get('status') || ''
   const tradition = params.get('tradition') || ''
   const verdict = params.get('verdict') || ''
-  const view = VIEWS.includes(params.get('view')) ? params.get('view') : storedView(user.id)
-  const sort = ['title','author','category','recent'].includes(params.get('sort')) ? params.get('sort') : 'title'
-  const direction = params.get('direction') === 'desc' ? 'desc' : 'asc'
+  const view = VIEWS.includes(params.get('view')) ? params.get('view') : prefs.libraryView
+  const sort = ['title','author','category','recent'].includes(params.get('sort')) ? params.get('sort') : prefs.librarySort
+  const direction = ['asc','desc'].includes(params.get('direction')) ? params.get('direction') : prefs.libraryDirection
   const limit = Math.max(24, Math.min(10000, Number(params.get('limit')) || 24))
 
   function update(values) {
@@ -51,7 +49,6 @@ export default function Shelf() {
   }
   function setView(value) {
     update({view:value})
-    try { localStorage.setItem(`bsd-library-view:${user.id}`,value) } catch { /* URL state still works. */ }
   }
   const loadBooks = useCallback(async () => {
     setLoadError('')

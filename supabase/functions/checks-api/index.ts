@@ -85,7 +85,10 @@ Deno.serve(async (req) => {
       } else if (hiddenIds.length) {
         query = query.not("id", "in", "(" + hiddenIds.join(",") + ")");
       }
-      const { data, error } = await query.limit(200);
+      if (body.offset !== undefined && (!Number.isSafeInteger(body.offset) || body.offset < 0)) {
+        return json({ error: "Invalid page offset." }, 400);
+      }
+      const { data, error } = await (body.offset === undefined ? query.limit(200) : query.order("id").range(body.offset, body.offset + 199));
       return json({ data, error: error ? error.message : null });
     }
 

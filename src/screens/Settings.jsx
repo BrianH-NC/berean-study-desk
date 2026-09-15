@@ -1,115 +1,36 @@
-import { useState } from 'react'
-import { useAuth } from '../App'
-import { supabase } from '../lib/supabase'
-
-export default function Settings() {
-  const user = useAuth()
-  const [signingOut, setSigningOut] = useState(false)
-  const [displayName, setDisplayName] = useState(user.user_metadata?.display_name || '')
-  const [savingName, setSavingName] = useState(false)
-  async function handleSignOut() {
-    setSigningOut(true)
-    await supabase.auth.signOut()
-    // App.jsx's onAuthStateChange listener handles the redirect back to Auth.
-  }
-
-  async function handleSaveName(e) {
-    e.preventDefault()
-    setSavingName(true)
-    try {
-      const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() } })
-      if (error) throw error
-      // updateUser triggers onAuthStateChange, which refreshes the app-wide
-      // user object App.jsx hands down via useAuth() -- no extra state needed.
-    } catch (err) {
-      alert('Error saving: ' + err.message)
-    } finally {
-      setSavingName(false)
-    }
-  }
-
-  return (
-    <div className="max-w-[1180px] mx-auto page">
-      <h2>Settings</h2>
-      <div className="flex flex-col gap-4 max-w-[640px]">
-        <div className="card" id="account">
-          <div className="card-title">Account</div>
-          <div className="card-body">{user.email}</div>
-          <form onSubmit={handleSaveName} className="flex gap-2 items-end mt-1">
-            <div className="field flex-1">
-              <label htmlFor="display-name">What should I call you?</label>
-              <input
-                id="display-name"
-                className="input"
-                placeholder="Your name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </div>
-            <button type="submit" className="btn btn-secondary" disabled={savingName}>
-              {savingName ? 'Saving…' : 'Save'}
-            </button>
-          </form>
-          <button type="button" className="btn btn-secondary self-start mt-2" onClick={handleSignOut} disabled={signingOut}>
-            {signingOut ? 'Signing out…' : 'Sign out'}
-          </button>
-        </div>
-
-        <section className="card" aria-labelledby="about-heading">
-          <h3 id="about-heading" className="card-title">About Berean Study Desk</h3>
-          <p className="card-body">Search. Study. Discern. · Acts 17:11</p>
-          <p className="card-body">AI is advisory. Scripture and the leading of the Holy Spirit are the final authority.</p>
-        </section>
-
-        <div className="card">
-          <div className="card-title">Licenses</div>
-          <div className="card-body mb-2">
-            Scripture quotations marked ESV — including wherever ESV is selected as the Bible Study reading
-            translation or shown in the comparison panel — are from the ESV® Bible (The Holy Bible, English Standard
-            Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by
-            permission. All rights reserved.
-          </div>
-          <div className="card-body mb-2">
-            Scripture quotations marked BSB are from The Holy Bible, Berean Standard Bible (BSB), which was placed
-            into the public domain on April 30, 2023 by the Berean Bible Translation Committee. No permission is
-            required for its use.
-          </div>
-          <div className="card-body mb-2">
-            Scripture quotations marked NIV are taken from the Holy Bible, New International Version®, NIV®.
-            Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission of Biblica, Inc.® All rights
-            reserved worldwide.
-          </div>
-          <div className="card-body mb-2">
-            Scripture quotations marked NLT are taken from the Holy Bible, New Living Translation, copyright © 1996,
-            2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Inc., Carol
-            Stream, Illinois 60188. All rights reserved.
-          </div>
-          <div className="card-body mb-2">
-            Scripture quotations marked CSB have been taken from the Christian Standard Bible®, copyright © 2017 by
-            Holman Bible Publishers. Used by permission. Christian Standard Bible® and CSB® are federally registered
-            trademarks of Holman Bible Publishers. NIV, NLT, CSB, NKJV, The Message, Amplified Bible, CEV, and NASB 2020 are served live through{' '}
-            <a href="https://scripture.api.bible" target="_blank" rel="noopener noreferrer">
-              API.Bible
-            </a>
-            . Publisher copyright notices are displayed with the loaded Bible text.
-          </div>
-          <div className="card-body">
-            Bible commentary and cross-reference data in Bible Study is provided live by the{' '}
-            <a href="https://bible.helloao.org" target="_blank" rel="noopener noreferrer">
-              Free Use Bible API
-            </a>{' '}
-            (AO Lab). Commentaries (Matthew Henry, John Calvin, John Gill, Adam Clarke, Jamieson-Fausset-Brown,
-            Keil-Delitzsch, Tyndale) are classic public-domain works. Cross-reference data is from{' '}
-            <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
-              OpenBible.info
-            </a>
-            , licensed under CC BY 4.0. The reading pane's and comparison panel's other translation options (King
-            James Version, American Standard Version, World English Bible, Darby, Young's Literal Translation,
-            Douay-Rheims) use public-domain and freely-licensed texts distributed via eBible.org, also served through
-            the Free Use Bible API.
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+import {useEffect,useState} from 'react'
+import {Link,useSearchParams} from 'react-router-dom'
+import {useAuth} from '../App'
+import {supabase} from '../lib/supabase'
+import {DEFAULT_PREFERENCES,normalizePreferences,preferencesFor,parseSettingsFile} from '../lib/preferences'
+import {TRANSLATIONS} from '../lib/translationCatalog'
+import {CONFESSIONS} from '../lib/theologyCheck'
+import {COMMENTARIES,fetchCommentaryChapter,fetchTranslationChapter} from '../lib/helloao'
+import {fetchBibleplusChapter} from '../lib/bibleplus'
+import {fetchChapter} from '../lib/bsb'
+import {fetchEsvChapterVerses} from '../lib/esv'
+import {downloadJson,exportStudyData} from '../lib/settingsData'
+import SettingsLicenses from '../components/SettingsLicenses'
+import './Settings.css'
+const SECTIONS=[['account','Account'],['reading','Bible & Reading'],['study','Study Preferences'],['library','Library'],['connections','Connections'],['data','Your Data'],['about','About & Help']]
+export default function Settings(){
+ const user=useAuth(),[params,setParams]=useSearchParams();const section=SECTIONS.some(([id])=>id===params.get('section'))?params.get('section'):'account'
+ const [draft,setDraft]=useState(()=>preferencesFor(user)),[name,setName]=useState(user.user_metadata?.display_name||''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState(''),[goal,setGoal]=useState(''),[goalReady,setGoalReady]=useState(false),[probe,setProbe]=useState({}),[probeId,setProbeId]=useState('NIV')
+ const year=new Date().getFullYear();const change=(key,value)=>{setDraft(d=>({...d,[key]:value}));setMessage('Unsaved changes')}
+ async function action(fn){setBusy(true);setError('');setMessage('');try{await fn()}catch(e){setError(e.message||'Could not complete this action. Please try again.')}finally{setBusy(false)}}
+ useEffect(()=>{let active=true;supabase.from('library_goals').select('target').eq('user_id',user.id).eq('year',year).maybeSingle().then(({data,error})=>{if(!active)return;if(error)setError('Your reading goal could not load. Reopen Settings to retry.');else{setGoal(data?.target??'');setGoalReady(true)}});return()=>{active=false}},[user.id,year])
+ async function save(){const preferences=normalizePreferences(draft);const {error}=await supabase.auth.updateUser({data:{display_name:name.trim(),bsd_preferences:preferences}});if(error)throw new Error('Settings could not be saved. Please try again.');setDraft(preferences);setMessage('Settings saved to your account. New reading and library sessions will use these defaults.')}
+ function toggle(key,id){change(key,draft[key].includes(id)?draft[key].filter(x=>x!==id):[...draft[key],id])}
+ function move(id,delta){const order=[...draft.order],index=order.indexOf(id),next=index+delta;if(next<0||next>=order.length)return;[order[index],order[next]]=[order[next],order[index]];change('order',order)}
+ const select=(label,key,options)=><label className="settings-field">{label}<select className="input" value={draft[key]} onChange={e=>change(key,['fontSize','lineHeight'].includes(key)?Number(e.target.value):e.target.value)}>{options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+ async function testConnection(key,fn){setProbe(p=>({...p,[key]:'Checking…'}));try{const data=await fn();if(Array.isArray(data)&&!data.length)throw new Error();setProbe(p=>({...p,[key]:`Available · checked ${new Date().toLocaleTimeString()}`}))}catch{setProbe(p=>({...p,[key]:'Unavailable. Try again; check provider access if this continues.'}))}}
+ return <div className="page settings-page"><header><h1>Settings</h1><p>Make your study desk your own.</p></header><div className="settings-layout"><nav aria-label="Settings sections">{SECTIONS.map(([id,label])=><button key={id} aria-current={section===id?'page':undefined} onClick={()=>setParams({section:id})}>{label}</button>)}</nav><div className="settings-content"><div className="settings-save"><span role="status">{message||'Preferences follow your signed-in account.'}</span><button className="btn btn-primary" disabled={busy} onClick={()=>action(save)}>{busy?'Working…':'Save Settings'}</button></div>{error&&<p role="alert" className="settings-error">{error}</p>}
+ {section==='account'&&<section className="card"><h2>Account</h2><p>Signed in with Google</p><p>{user.email}</p><label className="settings-field">Display name<input className="input" maxLength={100} value={name} onChange={e=>{setName(e.target.value);setMessage('Unsaved changes')}}/></label><button className="btn btn-secondary" disabled={busy} onClick={()=>action(async()=>{if(message==='Unsaved changes'&&!confirm('Sign out without saving your changes?'))return;const {error}=await supabase.auth.signOut();if(error)throw new Error('Could not sign out. Please try again.')})}>Sign out</button></section>}
+ {section==='reading'&&<><section className="card"><h2>Bible &amp; Reading</h2>{select('Default reading translation','translation',TRANSLATIONS.map(t=>[t.id,`${t.short} — ${t.name}`]))}<label className="settings-check"><input type="checkbox" checked={draft.parallel} onChange={e=>change('parallel',e.target.checked)}/>Open Bible Study in parallel comparison</label><div className="settings-fields">{select('Scripture text size','fontSize',[[18,'Small'],[21,'Standard'],[24,'Large'],[28,'Extra large']])}{select('Line spacing','lineHeight',[[1.45,'Compact'],[1.65,'Comfortable'],[1.9,'Spacious']])}</div><blockquote className="scripture-text settings-sample" style={{fontSize:draft.fontSize,lineHeight:draft.lineHeight}}>Your word is a lamp to my feet and a light to my path.<cite>Psalm 119:105 · BSB</cite></blockquote></section><section className="card"><h2>Manage Translations</h2><p>Favorites appear first. Use the arrows to order translations within each group. Your default translation always remains available.</p><div className="settings-translations">{draft.order.map((id,i)=>{const t=TRANSLATIONS.find(t=>t.id===id);return <div key={id} className="settings-translation"><div><strong>{t.short}</strong><small>{t.name}</small></div><label><input type="checkbox" checked={draft.enabled.includes(id)||id===draft.translation} disabled={id===draft.translation} onChange={()=>toggle('enabled',id)}/>Show</label><label><input type="checkbox" checked={draft.favorites.includes(id)} disabled={!draft.enabled.includes(id)&&id!==draft.translation} onChange={()=>toggle('favorites',id)}/>Favorite</label><label><input type="checkbox" checked={draft.compare.includes(id)&&id!==draft.translation} disabled={id===draft.translation||!draft.enabled.includes(id)} onChange={()=>toggle('compare',id)}/>Compare</label><div><button className="btn" aria-label={`Move ${t.short} up`} disabled={i===0} onClick={()=>move(id,-1)}>↑</button><button className="btn" aria-label={`Move ${t.short} down`} disabled={i===draft.order.length-1} onClick={()=>move(id,1)}>↓</button></div></div>})}</div></section></>}
+ {section==='study'&&<section className="card"><h2>Study Preferences</h2><p>Doctrine Check’s base assessment remains Baptist Faith &amp; Message 2000. This preference preselects the separate comparison; it never runs a paid check automatically. Creation and origins remain part of assessments.</p>{select('Default doctrinal comparison','confession',CONFESSIONS.map(c=>[c.slug,c.name]))}{select('Default commentary','commentary',COMMENTARIES.map(c=>[c.id,c.name]))}<h3>Sermon study guides</h3>{select('Study-guide audience','guideAudience',[['personal','Personal study'],['small-group','Small group discussion'],['teaching','Teaching preparation']])}{select('Study-guide detail','guideLength',[['concise','Concise'],['standard','Standard'],['detailed','Detailed']])}<p>Applies to your next explicitly requested generation. Existing guides remain unchanged.</p></section>}
+ {section==='library'&&<section className="card"><h2>Library</h2>{select('Default view','libraryView',[['grid','Grid'],['list','List'],['shelf','Shelf']])}{select('Default sort','librarySort',[['title','Title'],['author','Author'],['category','Category'],['recent','Date added']])}{select('Sort direction','libraryDirection',[['asc','Ascending / newest first'],['desc','Descending / oldest first']])}<h3>Reading goal for {year}</h3><p>Uses the same goal and completed-book progress shown in your Library.</p><label className="settings-field">Books to complete<input className="input" type="number" min="1" max="1000" disabled={!goalReady||busy} value={goal} onChange={e=>setGoal(e.target.value)}/></label><button className="btn btn-secondary" disabled={!goalReady||busy} onClick={()=>action(async()=>{const target=Number(goal);if(!Number.isInteger(target)||target<1||target>1000)throw new Error('Enter a whole-number goal between 1 and 1,000.');const {error}=await supabase.from('library_goals').upsert({user_id:user.id,year,target});if(error)throw new Error('Could not save your reading goal.');setMessage('Reading goal saved.')})}>Save Reading Goal</button><Link className="btn" to="/shelf">View Library →</Link></section>}
+ {section==='connections'&&<section className="card"><h2>Connections</h2><p>Check availability with a sample chapter. These checks do not generate AI content. Credentials stay on the server.</p>{[['BSB','Local BSB Scripture',()=>fetchChapter('John',1)],['ESV','ESV via Crossway',()=>fetchEsvChapterVerses('John',1)],['free','Free Use Bible translations',()=>fetchTranslationChapter('eng_kjv','John',1)],['commentary','Commentary source',()=>fetchCommentaryChapter(draft.commentary,'John',1)]].map(([id,label,fn])=><div className="settings-connection" key={id}><div><strong>{label}</strong><p role="status">{probe[id]||'Not checked this session'}</p></div><button className="btn btn-secondary" disabled={probe[id]==='Checking…'} onClick={()=>testConnection(id,fn)}>Check</button></div>)}<h3>API.Bible</h3><label className="settings-field">Translation to check<select className="input" value={probeId} onChange={e=>setProbeId(e.target.value)}>{TRANSLATIONS.filter(t=>t.bibleId).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><p role="status">{probe[probeId]||'Not checked this session'}</p><button className="btn btn-secondary" disabled={probe[probeId]==='Checking…'} onClick={()=>testConnection(probeId,()=>fetchBibleplusChapter(probeId,'John',1))}>Check Translation Access</button><p><a href="https://app.api.bible" target="_blank" rel="noreferrer">Manage API.Bible account ↗</a></p></section>}
+ {section==='data'&&<section className="card"><h2>Your Data</h2><h3>Data export</h3><p>Download your library, notes, sermons, topics, reading goals, and visible/hidden Doctrine Checks as JSON. Includes stored transcript text, but not uploaded files or image files. Keep those originals separately. This is an archival export; it is not an automatic restore package.</p><button className="btn btn-primary" disabled={busy} onClick={()=>action(async()=>{downloadJson('berean-study-desk-data.json',await exportStudyData(user));setMessage('Data export downloaded.')})}>Download Data Export</button><h3>Settings backup</h3><button className="btn btn-secondary" disabled={busy} onClick={()=>downloadJson('bsd-settings.json',{format:'bsd-settings',version:1,preferences:preferencesFor(user)})}>Export Saved Settings</button><label className="settings-field">Import settings<input type="file" accept=".json,application/json" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)action(async()=>{if(file.size>100000)throw new Error('This file is too large for a settings export.');setDraft(parseSettingsFile(await file.text()));setMessage('Settings imported for review. Select Save Settings to apply them.')})}}/></label><h3>Add content</h3><div className="settings-links"><Link to="/shelf/add">Add books by ISBN, barcode, or photograph →</Link><Link to="/sermons/new">Import sermon transcripts →</Link><Link to="/notebook">Export individual notes as Markdown →</Link></div><button className="btn" disabled={busy} onClick={()=>{if(confirm('Reset preferences to BSD defaults? Select Save Settings afterward to apply. Your study content will not be deleted.')){setDraft(normalizePreferences(DEFAULT_PREFERENCES));setMessage('Defaults loaded for review. Select Save Settings to apply.')}}}>Reset Preferences</button></section>}
+ {section==='about'&&<><section className="card"><h2>About &amp; Help</h2><p>Berean Study Desk · Modern Heritage</p><p>Search. Study. Discern. · Acts 17:11</p><p>AI assists your study; weigh assessments and generated guides against Scripture.</p><details><summary>How do I change my Bible defaults?</summary><p>Use Bible &amp; Reading, save your settings, then reopen Bible Study. The translation selector still lets you switch for the current reading session.</p></details><details><summary>Why did an external source fail?</summary><p>Use Connections to retry a sample chapter. Your provider account may limit access or requests. BSB uses the local Scripture database.</p></details><details><summary>Where is dark mode?</summary><p>BSD uses the approved Modern Heritage light appearance throughout the app.</p></details><a href="https://github.com/BrianH-NC/berean-study-desk/issues" target="_blank" rel="noreferrer">Report an issue on GitHub ↗</a></section><SettingsLicenses/></>}
+ </div></div></div>
 }

@@ -1,3 +1,4 @@
+import {preferencesFor} from '../lib/preferences'
 import { loadCheckLibrary } from '../lib/checkLibrary'
 import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useState } from 'react'
@@ -21,7 +22,7 @@ export default function DoctrineCheckReport() {
   const [addingBook, setAddingBook] = useState(false)
   const [linkedBook, setLinkedBook] = useState(null) // the shelf book this check's ISBN matches, if any
   const [bookNotes, setBookNotes] = useState(null) // notes taken while reading that book
-  const [confessionSlug, setConfessionSlug] = useState(CONFESSIONS[0].slug)
+  const [confessionSlug, setConfessionSlug] = useState(preferencesFor(user).confession)
   const [comparing, setComparing] = useState(false)
   const [question, setQuestion] = useState('')
   const [asking, setAsking] = useState(false)

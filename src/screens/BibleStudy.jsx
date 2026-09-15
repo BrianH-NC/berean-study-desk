@@ -1,3 +1,4 @@
+import {preferencesFor,orderedTranslations} from '../lib/preferences'
 import SermonBiblePanel from '../components/SermonStudy'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -181,6 +182,8 @@ export default function BibleStudy() {
   }
   const navigate = useNavigate()
   const user = useAuth()
+  const prefs = preferencesFor(user)
+  const availableTranslations = orderedTranslations(ALL_TRANSLATIONS,prefs)
   const [toolNotice, setToolNotice] = useState('')
   const [searchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState('Read')
@@ -189,7 +192,7 @@ export default function BibleStudy() {
   const [refError, setRefError] = useState('')
   const [book, setBook] = useState('John')
   const [chapter, setChapter] = useState(3)
-  const [readingTranslation, setReadingTranslation] = useState('BSB')
+  const [readingTranslation, setReadingTranslation] = useState(prefs.translation)
   const [verses, setVerses] = useState(null) // null = loading
   const [chapterCount, setChapterCount] = useState(null)
   const [selectedVerses, setSelectedVerses] = useState(new Set())
@@ -199,7 +202,7 @@ export default function BibleStudy() {
   const [copied, setCopied] = useState('')
 
   const [showCommentary, setShowCommentary] = useState(searchParams.get('panel') === 'commentary')
-  const [commentaryId, setCommentaryId] = useState(() => COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || 'matthew-henry')
+  const [commentaryId, setCommentaryId] = useState(() => COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || prefs.commentary)
   const [commentaryData, setCommentaryData] = useState(null) // null = not loaded, false = error
   const [commentaryLoading, setCommentaryLoading] = useState(false)
 
@@ -209,8 +212,8 @@ export default function BibleStudy() {
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
 
-  const [showCompare, setShowCompare] = useState(true)
-  const [compareIds, setCompareIds] = useState(['eng_kjv', 'eng_asv', 'ENGWEBP'])
+  const [showCompare, setShowCompare] = useState(prefs.parallel)
+  const [compareIds, setCompareIds] = useState(prefs.compare)
   const [compareData, setCompareData] = useState({}) // translationId -> { status: 'loading'|'ready'|'error', verses }
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -503,11 +506,11 @@ export default function BibleStudy() {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
     return <div className="bible-verse-text">{scoped.map(v=><span key={v.number} className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>)}</div>
   }
-  return <div className="page bible-desk">
+  return <div className="page bible-desk" style={{'--reading-size':prefs.fontSize+'px','--reading-line':prefs.lineHeight}}>
     <div className="bible-topbar">
       <form className="bible-lookup" onSubmit={handleQuickRef} role="search">
         <SearchIcon size={19}/><input aria-label="Passage or Bible search" value={quickRef} onChange={e=>setQuickRef(e.target.value)} placeholder="Enter a passage (e.g. John 3:16) or search the Bible…"/>
-        <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{ALL_TRANSLATIONS.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
+        <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{availableTranslations.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
       </form>
       <Link className="bible-account" to="/settings/profile"><span>{name.slice(0,2).toUpperCase()}</span>{name}<ChevronDown size={14}/></Link>
       <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
@@ -519,7 +522,7 @@ export default function BibleStudy() {
         <div className="card bible-toolbar">
           <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
           <button className="btn btn-secondary" onClick={()=>setShowPicker(true)}>{passageRef}<ChevronDown size={14}/></button>
-          <details className="bible-translations"><summary>Translations ({columns.length})</summary><div>{ALL_TRANSLATIONS.filter(t=>t.id!==readingTranslation).map(t=><label key={t.id}><input type="checkbox" checked={compareIds.includes(t.id)} onChange={()=>setCompareIds(ids=>ids.includes(t.id)?ids.filter(id=>id!==t.id):[...ids,t.id])}/>{t.short}</label>)}</div></details>
+          <details className="bible-translations"><summary>Translations ({columns.length})</summary><div>{availableTranslations.filter(t=>t.id!==readingTranslation).map(t=><label key={t.id}><input type="checkbox" checked={compareIds.includes(t.id)} onChange={()=>setCompareIds(ids=>ids.includes(t.id)?ids.filter(id=>id!==t.id):[...ids,t.id])}/>{t.short}</label>)}</div></details>
           <div className="bible-chapter-nav"><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(-1)} disabled={chapter<=1} aria-label="Previous chapter"><ChevronLeft size={16}/></button><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(1)} disabled={chapterCount!=null && chapter>=chapterCount} aria-label="Next chapter"><ChevronRight size={16}/></button></div>
           <div className="bible-view-modes"><button className={`btn ${showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={showCompare} onClick={()=>setShowCompare(true)}>Parallel</button><button className={`btn ${!showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={!showCompare} onClick={()=>setShowCompare(false)}>Single</button><a className="btn btn-secondary" href={interlinearUrl} target="_blank" rel="noreferrer">Interlinear <ExternalLink size={12}/></a></div>
         </div>

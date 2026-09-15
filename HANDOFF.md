@@ -2,7 +2,7 @@
 
 ## Current Sermons work — 2026-09-14
 
-See [SERMONS.md](SERMONS.md) for the new Sermons workspace, integration details, applied database migrations, and validation. It is on `feature/sermons-workspace` for preview review, not merged to main. Current design is **Modern Heritage**, single light theme; BSB is the default Scripture source. Keep sidebar expansion button-controlled. These user-approved decisions supersede the historical Organic/hover-peek/direct-to-main descriptions below. The actual installed React version is 19; preserve the current package versions rather than reverting to this old stack snapshot.
+See [SERMONS.md](SERMONS.md) for the new Sermons workspace, integration details, applied database migrations, and validation. The user approved promotion of `feature/sermons-workspace` to main, including Primary Text and suggested topic linking. Current design is **Modern Heritage**, single light theme; BSB is the default Scripture source. Keep sidebar expansion button-controlled. These user-approved decisions supersede the historical Organic/hover-peek/direct-to-main descriptions below. The actual installed React version is 19; preserve the current package versions rather than reverting to this old stack snapshot.
 
 Written 2026-09-09 for continuity when switching AI coding assistants (Claude → Codex). This is a snapshot, not a permanent doc — update or delete it once it's served its purpose.
 

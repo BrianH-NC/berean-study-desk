@@ -42,6 +42,6 @@ Guides use at most the first 240,000 transcript characters and disclose truncati
 - Deployed guide endpoint rejects unauthenticated calls with HTTP 401. No paid AI request was made during automated verification.
 - Supabase advisors reported no new security finding for Sermons. Existing unrelated findings: [mutable search path](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable), [RLS without a policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) on the deliberately server-managed hidden checks table, and [password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Newly created unused indexes are expected before real sermon data is added.
 
-Main is not merged or published by this change. Preview review comes first.
+The user approved the preview and requested promotion to main, including Primary Text and suggested topic linking. The latest validation has 51 passing Node tests, plus browser verification of suggested topic linking and connected sermon counts.
 
 Study-guide generation now suggests 3–6 sermon topics with reasons. On the Study Guide tab, Link Topic / Link All Suggested Topics reuse existing names and aliases or create tag-derived Topics, save explicit sermon links, and preserve existing tags. Older guides remain readable; regenerate explicitly for suggestions. No extra AI call is made for topic linking.

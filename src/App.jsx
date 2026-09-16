@@ -22,6 +22,7 @@ const SermonComposer = lazy(() => import('./screens/SermonComposer'))
 const SermonDetail = lazy(() => import('./screens/SermonDetail'))
 const Topics = lazy(() => import('./screens/TopicWorkspace'))
 import Settings from './screens/Settings'
+import Privacy from './screens/Privacy'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -66,7 +67,7 @@ function ProtectedLayout() {
   )
 }
 
-export default function App() {
+function SessionApp() {
   const [user, setUser] = useState(undefined) // undefined = loading
 
   useEffect(() => {
@@ -93,7 +94,11 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={user}>
-      <BrowserRouter>{user ? <ProtectedLayout /> : <Auth />}</BrowserRouter>
+      {user ? <ProtectedLayout /> : <Auth />}
     </AuthContext.Provider>
   )
+}
+
+export default function App() {
+  return <BrowserRouter><Routes><Route path="/privacy" element={<Privacy />} /><Route path="*" element={<SessionApp />} /></Routes></BrowserRouter>
 }

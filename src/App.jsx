@@ -23,6 +23,7 @@ const SermonDetail = lazy(() => import('./screens/SermonDetail'))
 const Topics = lazy(() => import('./screens/TopicWorkspace'))
 import Settings from './screens/Settings'
 import Privacy from './screens/Privacy'
+import Terms from './screens/Terms'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -100,5 +101,5 @@ function SessionApp() {
 }
 
 export default function App() {
-  return <BrowserRouter><Routes><Route path="/privacy" element={<Privacy />} /><Route path="*" element={<SessionApp />} /></Routes></BrowserRouter>
+  return <BrowserRouter><Routes><Route path="/privacy" element={<Privacy />} /><Route path="/terms" element={<Terms />} /><Route path="*" element={<SessionApp />} /></Routes></BrowserRouter>
 }

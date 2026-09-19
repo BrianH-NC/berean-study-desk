@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, UserRound, Menu, X, PanelLeft, Mic } from 'lucide-react'
+import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Logo, { BrandLockup } from './Logo'
 
@@ -19,8 +19,7 @@ const SECONDARY = [
   { to: '/reading', label: 'Reading now', icon: BookOpenText },
 ]
 const ACCOUNT = [
-  { to: '/settings', label: 'Settings', icon: Settings, end: true },
-  { to: '/settings/profile', label: 'Profile', icon: UserRound },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 function NavigationLink({ item, onClick }) {

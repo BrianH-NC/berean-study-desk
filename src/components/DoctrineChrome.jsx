@@ -1,3 +1,4 @@
+import UserAvatar from './UserAvatar'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, BookOpen, ShieldCheck } from 'lucide-react'
@@ -11,7 +12,7 @@ export function DoctrineHeader({ report = false }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const name = user.user_metadata?.display_name || user.user_metadata?.full_name?.split(' ')[0] || 'Reader'
-  return <><div className="doctrine-topbar"><form onSubmit={e => { e.preventDefault(); if(query.trim()) navigate(`/search?type=Doctrine+Checks&q=${encodeURIComponent(query.trim())}`) }}><Search size={19}/><input aria-label="Search saved doctrine checks" placeholder="Search your assessments by book, author, or topic…" value={query} onChange={e => setQuery(e.target.value)}/><button className="btn btn-primary">Search</button></form><Link to="/settings/profile" className="doctrine-account"><span>{name.slice(0,2).toUpperCase()}</span>{name}</Link><blockquote>“Contend for the faith that was once for all entrusted to the saints.”<cite>Jude 1:3 · BSB</cite></blockquote></div><header className="doctrine-title"><h1>Doctrine Check</h1><p>Evaluate. Compare. Discern. &nbsp; All for the glory of Christ.</p></header><nav className="doctrine-tabs" aria-label="Doctrine workspace"><Link to="/checks"><BookOpen size={17}/>{report ? 'New Book / Author Check' : 'Check a Book or Author'}</Link>{report && <a href="#doctrine-comparison"><ShieldCheck size={17}/>Compare Doctrinal Standards</a>}</nav></>
+  return <><div className="doctrine-topbar"><form onSubmit={e => { e.preventDefault(); if(query.trim()) navigate(`/search?type=Doctrine+Checks&q=${encodeURIComponent(query.trim())}`) }}><Search size={19}/><input aria-label="Search saved doctrine checks" placeholder="Search your assessments by book, author, or topic…" value={query} onChange={e => setQuery(e.target.value)}/><button className="btn btn-primary">Search</button></form><Link to="/settings/profile" className="doctrine-account"><UserAvatar user={user}/>{name}</Link><blockquote>“Contend for the faith that was once for all entrusted to the saints.”<cite>Jude 1:3 · BSB</cite></blockquote></div><header className="doctrine-title"><h1>Doctrine Check</h1><p>Evaluate. Compare. Discern. &nbsp; All for the glory of Christ.</p></header><nav className="doctrine-tabs" aria-label="Doctrine workspace"><Link to="/checks"><BookOpen size={17}/>{report ? 'New Book / Author Check' : 'Check a Book or Author'}</Link>{report && <a href="#doctrine-comparison"><ShieldCheck size={17}/>Compare Doctrinal Standards</a>}</nav></>
 }
 
 export function CreationAssessment({ value, introduction = false }) {

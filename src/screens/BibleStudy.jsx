@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar'
 import {preferencesFor,orderedTranslations} from '../lib/preferences'
 import SermonBiblePanel from '../components/SermonStudy'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -512,7 +513,7 @@ export default function BibleStudy() {
         <SearchIcon size={19}/><input aria-label="Passage or Bible search" value={quickRef} onChange={e=>setQuickRef(e.target.value)} placeholder="Enter a passage (e.g. John 3:16) or search the Bible…"/>
         <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{availableTranslations.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
       </form>
-      <Link className="bible-account" to="/settings/profile"><span>{name.slice(0,2).toUpperCase()}</span>{name}<ChevronDown size={14}/></Link>
+      <Link className="bible-account" to="/settings/profile"><UserAvatar user={user}/>{name}<ChevronDown size={14}/></Link>
       <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
     </div>
     <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>

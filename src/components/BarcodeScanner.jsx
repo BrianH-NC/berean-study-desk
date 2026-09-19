@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+import { isValidISBN, normalizeISBN } from '../lib/isbn'
 
 // Camera barcode scan + manual ISBN fallback, ported from
 // holy-shelf/src/components/BarcodeScanner.jsx (same html5-qrcode usage),
@@ -9,6 +10,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
   const hasScannedRef = useRef(false)
   const [error, setError] = useState(null)
   const [manualIsbn, setManualIsbn] = useState('')
+  const [isbnError, setIsbnError] = useState('')
 
   useEffect(() => {
     let html5QrCode = null
@@ -38,8 +40,8 @@ export default function BarcodeScanner({ onScan, onClose }) {
             if (hasScannedRef.current) return
             hasScannedRef.current = true
 
-            const isbn = decoded.replace(/[^0-9X]/gi, '')
-            if (isbn.length >= 8) {
+            const isbn = normalizeISBN(decoded)
+            if (isValidISBN(isbn)) {
               const scanner = scannerRef.current
               scannerRef.current = null
               if (scanner) {
@@ -49,6 +51,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
               }
             } else {
               hasScannedRef.current = false
+              setIsbnError('That barcode is not a valid ISBN. Scan the book’s ISBN barcode or enter it below.')
             }
           },
           () => {}
@@ -73,8 +76,14 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
   function handleManualSubmit(e) {
     e.preventDefault()
-    const isbn = manualIsbn.replace(/[^0-9X]/gi, '')
-    if (isbn.length >= 8) onScan(isbn)
+    if (hasScannedRef.current) return
+    const isbn = normalizeISBN(manualIsbn)
+    if (!isValidISBN(isbn)) {
+      setIsbnError('Enter a valid 10- or 13-character ISBN, including its check digit.')
+      return
+    }
+    hasScannedRef.current = true
+    onScan(isbn)
   }
 
   return (
@@ -114,6 +123,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
               Look up
             </button>
           </form>
+          {isbnError && <p className="text-sm mt-2" role="alert">{isbnError}</p>}
         </div>
       </div>
     </div>

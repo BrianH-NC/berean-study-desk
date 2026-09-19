@@ -1,7 +1,48 @@
-async function fetchWithTimeout(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+import { isValidISBN, normalizeISBN } from './isbn.js'
+
+async function fetchWithTimeout(url, signal = AbortSignal.timeout(15000)) {
+  const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`Book lookup failed (${response.status})`)
   return response
+}
+
+function googleBooksURL(query) {
+  const key = import.meta.env?.VITE_GOOGLE_BOOKS_API_KEY?.trim()
+  if (!key) throw new Error('Google Books API key is not configured')
+  return `https://www.googleapis.com/books/v1/volumes?${new URLSearchParams({ q: query, key })}`
+}
+
+// Use the edition API: the legacy /api/books endpoint can return 404 even
+// for ISBNs with an available edition. Author names require separate reads.
+async function fetchOpenLibraryEdition(isbn, resolveAuthors = true) {
+  const signal = AbortSignal.timeout(15000)
+  const book = await (await fetchWithTimeout(`https://openlibrary.org/isbn/${isbn}.json`, signal)).json()
+  const names = []
+  if (resolveAuthors) {
+    for (const author of book.authors || []) {
+      if (signal.aborted) break
+      if (author.name) names.push(author.name)
+      else if (/^\/authors\/OL\d+A$/.test(author.key || '')) {
+        try {
+          const data = await (await fetchWithTimeout(`https://openlibrary.org${author.key}.json`, signal)).json()
+          if (data.name) names.push(data.name)
+        } catch (e) {
+          console.error('Open Library author error:', e)
+        }
+      }
+    }
+  }
+  const coverId = book.covers?.find(id => Number.isInteger(id) && id > 0)
+  return {
+    isbn,
+    title: book.title || '',
+    author: names.join(', '),
+    cover_url: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : '',
+    publisher: book.publishers?.[0] || '',
+    pub_date: book.publish_date || '',
+    pages: book.number_of_pages || null,
+    description: typeof book.description === 'string' ? book.description : book.description?.value || '',
+  }
 }
 
 // ISBN -> book-data lookup, ported from holy-shelf/src/App.jsx (Google Books
@@ -9,11 +50,13 @@ async function fetchWithTimeout(url) {
 // when a book is first scanned in.
 
 export async function fetchBookByISBN(isbn) {
+  isbn = normalizeISBN(isbn)
+  if (!isValidISBN(isbn)) return null
   let result = null
 
   try {
     const res = await fetchWithTimeout(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+      googleBooksURL(`isbn:${isbn}`)
     )
     const data = await res.json()
     if (data.items?.length > 0) {
@@ -33,38 +76,13 @@ export async function fetchBookByISBN(isbn) {
     console.error('Google Books error:', e)
   }
 
-  // Open Library fills in whatever Google Books didn't have -- either the
-  // whole record if Google had no match at all, or just individual fields
-  // (most often the cover, since Google's own thumbnail is frequently
-  // missing even when its metadata is otherwise good). Open Library's
-  // per-ISBN endpoint doesn't reliably return a summary, so description
-  // stays Google-Books-only.
-  const needsBackfill = !result || !result.cover_url || !result.publisher || !result.pub_date || !result.pages
+  const fields = ['title', 'author', 'cover_url', 'publisher', 'pub_date', 'pages', 'description']
+  const needsBackfill = !result || fields.some(field => !result[field])
   if (needsBackfill) {
     try {
-      const res = await fetchWithTimeout(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
-      const data = await res.json()
-      const book = data[`ISBN:${isbn}`]
-      if (book) {
-        const cover = book.cover?.large || book.cover?.medium || book.cover?.small || ''
-        if (!result) {
-          result = {
-            title: book.title || '',
-            author: book.authors?.map((a) => a.name).join(', ') || '',
-            cover_url: cover,
-            publisher: book.publishers?.[0]?.name || '',
-            pub_date: book.publish_date || '',
-            pages: book.number_of_pages || null,
-            description: '',
-            isbn,
-          }
-        } else {
-          if (!result.cover_url && cover) result.cover_url = cover
-          if (!result.publisher && book.publishers?.[0]?.name) result.publisher = book.publishers[0].name
-          if (!result.pub_date && book.publish_date) result.pub_date = book.publish_date
-          if (!result.pages && book.number_of_pages) result.pages = book.number_of_pages
-        }
-      }
+      const book = await fetchOpenLibraryEdition(isbn, !result?.author)
+      if (!result) result = book
+      else for (const field of fields) if (!result[field] && book[field]) result[field] = book[field]
     } catch (e) {
       console.error('Open Library error:', e)
     }
@@ -78,11 +96,13 @@ export async function fetchBookByISBN(isbn) {
 // the user pick -- e.g. their own 2008 hardcover instead of the 2021
 // paperback the "best" single guess would otherwise land on.
 export async function fetchCoverCandidates(isbn) {
+  isbn = normalizeISBN(isbn)
+  if (!isValidISBN(isbn)) return []
   const candidates = []
 
   try {
     const res = await fetchWithTimeout(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`
+      googleBooksURL(`isbn:${isbn}`)
     )
     const data = await res.json()
     const cover = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail?.replace('http:', 'https:')
@@ -92,10 +112,7 @@ export async function fetchCoverCandidates(isbn) {
   }
 
   try {
-    const res = await fetchWithTimeout(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
-    const data = await res.json()
-    const book = data[`ISBN:${isbn}`]
-    const cover = book?.cover?.large || book?.cover?.medium || book?.cover?.small
+    const cover = (await fetchOpenLibraryEdition(isbn, false)).cover_url
     if (cover) candidates.push({ source: 'Open Library', url: cover })
   } catch (e) {
     console.error('Open Library error:', e)
@@ -117,8 +134,8 @@ export async function fetchCoverCandidates(isbn) {
 // Books first, then Open Library's search API.
 export async function searchBookCover(title, author) {
   try {
-    const q = encodeURIComponent(`intitle:${title}${author ? ` inauthor:${author}` : ''}`)
-    const res = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=${q}&key=${import.meta.env.VITE_GOOGLE_BOOKS_API_KEY}`)
+    const q = `intitle:${title}${author ? ` inauthor:${author}` : ''}`
+    const res = await fetchWithTimeout(googleBooksURL(q))
     const data = await res.json()
     const cover = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail
     if (cover) return cover.replace('http:', 'https:')

@@ -7,16 +7,21 @@ import { identifyShelfPhoto } from '../lib/shelfPhoto'
 import { identifyBookImage } from '../lib/bookPhoto'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import BarcodeScanner from '../components/BarcodeScanner'
+import BookCover from '../components/BookCover'
+import { isValidISBN, normalizeISBN } from '../lib/isbn'
 
 export default function AddBooks() {
   const user = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const coverFileRef = useRef(null)
+  const lookupBusyRef = useRef(false)
+  const metadataIsbnRef = useRef('')
 
   // Single book: scan, photo, or manual entry
   const [showScanner, setShowScanner] = useState(false)
   const [scanLookupLoading, setScanLookupLoading] = useState(false)
+  const [lookupMessage, setLookupMessage] = useState('')
   const [photoLoading, setPhotoLoading] = useState(false)
   const [photoError, setPhotoError] = useState('')
   const [title, setTitle] = useState('')
@@ -35,23 +40,62 @@ export default function AddBooks() {
   const [found, setFound] = useState(null) // [{ title, author, confidence, include }]
   const [savingShelf, setSavingShelf] = useState(false)
 
+  function clearBookMetadata() {
+    setTitle('')
+    setAuthor('')
+    setCoverUrl('')
+    setExtraMeta({})
+    metadataIsbnRef.current = ''
+  }
+
+  function handleIsbnChange(value) {
+    if (metadataIsbnRef.current && normalizeISBN(value) !== metadataIsbnRef.current) clearBookMetadata()
+    setIsbn(value)
+    setLookupMessage('')
+  }
+
   async function handleScan(scannedIsbn) {
+    if (lookupBusyRef.current || savingOne) return
+    const normalized = normalizeISBN(scannedIsbn)
+    if (!isValidISBN(normalized)) {
+      setLookupMessage('Enter a valid 10- or 13-character ISBN, including its check digit.')
+      return
+    }
+    lookupBusyRef.current = true
     setShowScanner(false)
-    setIsbn(scannedIsbn)
+    clearBookMetadata()
+    setIsbn(normalized)
+    setLookupMessage('')
+    setOneError('')
+    setPhotoError('')
     setScanLookupLoading(true)
-    const book = await fetchBookByISBN(scannedIsbn)
-    setScanLookupLoading(false)
-    if (book) {
-      setTitle(book.title)
-      setAuthor(book.author)
-      setCoverUrl(book.cover_url || '')
-      setExtraMeta({ publisher: book.publisher, pub_date: book.pub_date, pages: book.pages, description: book.description })
+    try {
+      const book = await fetchBookByISBN(normalized)
+      if (book) {
+        setTitle(book.title)
+        setAuthor(book.author)
+        setCoverUrl(book.cover_url || '')
+        setExtraMeta({ publisher: book.publisher, pub_date: book.pub_date, pages: book.pages, description: book.description })
+        metadataIsbnRef.current = normalized
+        setLookupMessage(book.cover_url ? 'Book details found. Review them before adding.' : 'Book details found, but no cover was available. Review them before adding.')
+      } else {
+        setLookupMessage('No book details could be retrieved. The ISBN may be unlisted or a lookup service unavailable. Retry or enter the details manually.')
+      }
+    } catch {
+      setLookupMessage('Book lookup could not finish. Retry or enter the details manually.')
+    } finally {
+      lookupBusyRef.current = false
+      setScanLookupLoading(false)
     }
   }
 
   async function handlePhotoFile(e) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || lookupBusyRef.current || savingOne) return
+    lookupBusyRef.current = true
+    clearBookMetadata()
+    setIsbn('')
+    setLookupMessage('')
     setPhotoLoading(true)
     setPhotoError('')
     try {
@@ -59,7 +103,8 @@ export default function AddBooks() {
       if (result.title) setTitle(result.title)
       if (result.author) setAuthor(result.author)
       if (result.isbn) {
-        setIsbn(result.isbn)
+        setIsbn(normalizeISBN(result.isbn))
+        metadataIsbnRef.current = normalizeISBN(result.isbn)
         const book = await fetchBookByISBN(result.isbn)
         if (book?.cover_url) setCoverUrl(book.cover_url)
         if (book) setExtraMeta({ publisher: book.publisher, pub_date: book.pub_date, pages: book.pages, description: book.description })
@@ -70,6 +115,7 @@ export default function AddBooks() {
     } catch (err) {
       setPhotoError(err.message)
     } finally {
+      lookupBusyRef.current = false
       setPhotoLoading(false)
       e.target.value = ''
     }
@@ -77,7 +123,11 @@ export default function AddBooks() {
 
   async function handleAddOne(e) {
     e.preventDefault()
-    if (!title.trim()) return
+    if (lookupBusyRef.current || savingOne || !title.trim()) return
+    if (isbn.trim() && !isValidISBN(isbn)) {
+      setOneError('Enter a valid ISBN or leave it blank.')
+      return
+    }
     setSavingOne(true)
     setOneError('')
     try {
@@ -85,7 +135,7 @@ export default function AddBooks() {
         user_id: user.id,
         title: title.trim(),
         author: author.trim() || null,
-        isbn: isbn.trim() || null,
+        isbn: normalizeISBN(isbn) || null,
         cover_url: coverUrl || null,
         publisher: extraMeta.publisher || null,
         pub_date: extraMeta.pub_date || null,
@@ -147,6 +197,7 @@ export default function AddBooks() {
   }
 
   const includedCount = found ? found.filter((b) => b.include).length : 0
+  const singleBusy = scanLookupLoading || photoLoading || savingOne
 
   return (
     <div className="max-w-[1140px] mx-auto page">
@@ -161,11 +212,11 @@ export default function AddBooks() {
       <div className="card mb-5" style={{ padding: '18px 20px' }}>
         <div className="card-title mb-2">Add a book</div>
         <div className="flex gap-2 mb-3 flex-wrap">
-          <button type="button" className="btn btn-primary" onClick={() => setShowScanner(true)}>
+          <button type="button" className="btn btn-primary" onClick={() => setShowScanner(true)} disabled={singleBusy}>
             <ScanBarcode size={15} strokeWidth={2.75} />
             Scan barcode
           </button>
-          <button type="button" className="btn btn-secondary" onClick={() => coverFileRef.current?.click()} disabled={photoLoading}>
+          <button type="button" className="btn btn-secondary" onClick={() => coverFileRef.current?.click()} disabled={singleBusy}>
             {photoLoading ? <Loader2 size={15} strokeWidth={2.75} className="animate-spin" /> : <Camera size={15} strokeWidth={2.75} />}
             Take a photo
           </button>
@@ -177,7 +228,7 @@ export default function AddBooks() {
         </div>
 
         {scanLookupLoading && (
-          <div className="text-sm mb-2 flex items-center gap-1.5" style={{ opacity: 0.7 }}>
+          <div className="text-sm mb-2 flex items-center gap-1.5" role="status" style={{ opacity: 0.7 }}>
             <Loader2 size={13} strokeWidth={2.75} className="animate-spin" /> Looking up that ISBN…
           </div>
         )}
@@ -187,20 +238,23 @@ export default function AddBooks() {
           </div>
         )}
 
-        <form onSubmit={handleAddOne} className="flex gap-2 flex-wrap items-end">
+        {lookupMessage && <p className="text-sm mb-2" role="status">{lookupMessage}</p>}
+        {coverUrl && <div className="mb-3" style={{ width: 100 }}><BookCover book={{ title, author, cover_url: coverUrl }} /></div>}
+        <form onSubmit={handleAddOne} className="flex gap-2 flex-wrap items-end" aria-busy={singleBusy}>
           <div className="field" style={{ minWidth: 220 }}>
             <label htmlFor="ab-title">Title</label>
-            <input id="ab-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <input id="ab-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={singleBusy} />
           </div>
           <div className="field" style={{ minWidth: 180 }}>
             <label htmlFor="ab-author">Author</label>
-            <input id="ab-author" className="input" value={author} onChange={(e) => setAuthor(e.target.value)} />
+            <input id="ab-author" className="input" value={author} onChange={(e) => setAuthor(e.target.value)} disabled={singleBusy} />
           </div>
           <div className="field" style={{ minWidth: 140 }}>
             <label htmlFor="ab-isbn">ISBN (optional)</label>
-            <input id="ab-isbn" className="input" value={isbn} onChange={(e) => setIsbn(e.target.value)} />
+            <input id="ab-isbn" className="input" value={isbn} onChange={(e) => handleIsbnChange(e.target.value)} disabled={singleBusy} />
           </div>
-          <button type="submit" className="btn btn-secondary" disabled={savingOne}>
+          <button type="button" className="btn btn-secondary" onClick={() => handleScan(isbn)} disabled={singleBusy || !isbn.trim()}>Look up ISBN</button>
+          <button type="submit" className="btn btn-secondary" disabled={singleBusy}>
             {savingOne ? 'Adding…' : 'Add to library'}
           </button>
         </form>

@@ -1,0 +1,14 @@
+.wishlist-page h2,.wishlist-page .card-title { font-family:Lora,Georgia,serif; font-variant:normal; text-transform:none; }
+.wishlist-subtitle { font-family:Lora,Georgia,serif; font-style:italic; margin:8px 0; }
+.wishlist-intro { background:var(--bsd-forest); color:white; padding:22px; border-radius:8px; margin-bottom:24px; line-height:1.6; }
+.wishlist-intro small { display:block; opacity:.8; margin-top:6px; }
+.wishlist-search { flex:1; min-width:220px; }
+.wishlist-sort { width:auto; }
+.wishlist-grid { display:grid; grid-template-columns:1fr; gap:16px; }
+.wishlist-page .card-title { font-size:19px!important; line-height:1.4; }
+.wishlist-actions { flex-wrap:wrap; align-items:center; }
+.wishlist-actions .btn { font-size:13px; }
+.wishlist-edit { display:grid; gap:12px; margin-top:18px; padding:16px; background:var(--bsd-parchment); border-radius:6px; }
+.wishlist-edit label { display:grid; gap:6px; font-size:13px; }
+.wishlist-page .card-body { white-space:pre-wrap; overflow-wrap:anywhere; }
+@media(max-width:560px) { .wishlist-search { flex-basis:100%; } .wishlist-actions .btn { margin-left:0!important; } .wishlist-actions .btn-secondary { flex:1; } .wishlist-page .seg { flex-wrap:wrap; } }

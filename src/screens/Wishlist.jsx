@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Search as SearchIcon, ExternalLink } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
+import './Wishlist.css'
 
 const PRIORITY_FILTERS = ['All', 'high', 'medium', 'low']
 const PRIORITY_LABEL = { high: 'High', medium: 'Medium', low: 'Low' }
@@ -10,7 +11,7 @@ const PRIORITY_CLASS = { high: 'verdict-concern', medium: 'tag-accent', low: 'ta
 
 function amazonSearchUrl(item) {
   return item.isbn
-    ? `https://www.amazon.com/s?k=${item.isbn}&i=stripbooks`
+    ? `https://www.amazon.com/s?k=${encodeURIComponent(item.isbn.trim())}&i=stripbooks`
     : `https://www.amazon.com/s?k=${encodeURIComponent([item.title, item.author].filter(Boolean).join(' '))}&i=stripbooks`
 }
 
@@ -20,9 +21,14 @@ export default function Wishlist() {
   const [query, setQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('All')
   const [movingId, setMovingId] = useState(null)
+  const [sort, setSort] = useState('priority')
+  const [editing, setEditing] = useState(null)
+  const [error, setError] = useState('')
 
   async function load() {
-    const { data } = await supabase.from('wishlist').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    setError('')
+    const { data, error } = await supabase.from('wishlist').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    if (error) { setError(error.message); return }
     setItems(data || [])
   }
 
@@ -33,13 +39,26 @@ export default function Wishlist() {
   const filtered = useMemo(() => {
     if (!items) return []
     let list = items
-    if (priorityFilter !== 'All') list = list.filter((i) => i.priority === priorityFilter)
+    if (priorityFilter !== 'All') list = list.filter((i) => (i.priority || 'medium') === priorityFilter)
     if (query.trim()) {
       const q = query.trim().toLowerCase()
-      list = list.filter((i) => i.title?.toLowerCase().includes(q) || i.author?.toLowerCase().includes(q))
+      list = list.filter((i) => [i.title, i.author, i.isbn, i.notes].some(value => value?.toLowerCase().includes(q)))
     }
-    return list
-  }, [items, priorityFilter, query])
+    return [...list].sort((a, b) => sort === 'title' ? a.title.localeCompare(b.title) : (sort === 'priority' ? PRIORITY_FILTERS.indexOf(a.priority || 'medium') - PRIORITY_FILTERS.indexOf(b.priority || 'medium') : 0) || new Date(b.created_at) - new Date(a.created_at))
+  }, [items, priorityFilter, query, sort])
+
+  async function saveEdit(event) {
+    event.preventDefault()
+    setMovingId(editing.id)
+    try {
+      const changes = { priority: editing.priority, notes: editing.notes.trim() || null }
+      const result = await supabase.from('wishlist').update(changes).eq('id', editing.id).eq('user_id', user.id).select('id').single()
+      if (result.error) throw result.error
+      setItems(prev => prev.map(item => item.id === editing.id ? { ...item, ...changes } : item))
+      setEditing(null)
+    } catch (err) { alert('Could not save: ' + err.message) }
+    finally { setMovingId(null) }
+  }
 
   async function handleOwnIt(item) {
     setMovingId(item.id)
@@ -59,7 +78,8 @@ export default function Wishlist() {
         reading_status: 'unread',
       })
       if (error) throw error
-      await supabase.from('wishlist').delete().eq('id', item.id)
+      const removed = await supabase.from('wishlist').delete().eq('id', item.id).eq('user_id', user.id)
+      if (removed.error) { alert('The book was added to your Library, but could not be removed from your wishlist. Use Remove to finish.'); return }
       setItems((prev) => prev.filter((i) => i.id !== item.id))
     } catch (err) {
       alert('Error moving to library: ' + err.message)
@@ -70,7 +90,7 @@ export default function Wishlist() {
 
   async function handleRemove(item) {
     if (!confirm(`Remove "${item.title}" from your wishlist?`)) return
-    const { error } = await supabase.from('wishlist').delete().eq('id', item.id)
+    const { error } = await supabase.from('wishlist').delete().eq('id', item.id).eq('user_id', user.id)
     if (error) {
       alert('Error removing: ' + error.message)
       return
@@ -79,7 +99,7 @@ export default function Wishlist() {
   }
 
   return (
-    <div className="max-w-[900px] mx-auto page">
+    <div className="max-w-[1100px] mx-auto page wishlist-page">
       <div className="card-meta mb-2">
         <Link to="/shelf" className="hover:underline">
           ← My Library
@@ -89,19 +109,22 @@ export default function Wishlist() {
         <div>
           <div className="card-kicker mb-1">{items ? `${items.length} books` : ' '}</div>
           <h2 className="!mb-0">Wishlist</h2>
+          <p className="wishlist-subtitle">Good books for the next chapter of your study.</p>
         </div>
         <Link to="/shelf/wishlist/add" className="btn btn-primary">
-          + Add
+          + Add a book
         </Link>
       </div>
 
+      <div className="wishlist-intro">Save a book, choose what’s next, and move it into your Library when you own it.<small>Amazon links search by ISBN, or title and author. Purchases happen on Amazon.</small></div>
       <div className="flex items-center gap-3 flex-wrap mb-4">
-        <div className="relative" style={{ width: 260 }}>
+        <div className="relative wishlist-search">
           <SearchIcon size={15} strokeWidth={2.75} className="absolute top-1/2 -translate-y-1/2" style={{ left: 14, opacity: 0.5 }} />
           <input
             className="input"
             style={{ paddingLeft: 36 }}
-            placeholder="Search title or author…"
+            placeholder="Search title, author, ISBN, or notes…"
+            aria-label="Search wishlist"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -119,11 +142,14 @@ export default function Wishlist() {
             </button>
           ))}
         </div>
+        <select className="input wishlist-sort" aria-label="Sort wishlist" value={sort} onChange={event => setSort(event.target.value)}><option value="priority">Priority first</option><option value="newest">Recently added</option><option value="title">Title A–Z</option></select>
       </div>
+
+      {error && <div className="card p-4" role="alert">Could not load your wishlist: {error} <button className="btn btn-secondary" onClick={load}>Retry</button></div>}
 
       {items === null ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          Loading…
+          {error ? 'Your wishlist is temporarily unavailable.' : 'Loading…'}
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
@@ -131,10 +157,10 @@ export default function Wishlist() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          No books match that search.
+          No books match that search. <button className="btn btn-secondary" onClick={() => { setQuery(''); setPriorityFilter('All') }}>Clear filters</button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="wishlist-grid">
           {filtered.map((item) => (
             <div key={item.id} className="card" style={{ padding: '14px 16px' }}>
               <div className="flex gap-3">
@@ -152,21 +178,23 @@ export default function Wishlist() {
                   {item.notes && <p className="card-body mt-1">{item.notes}</p>}
                 </div>
               </div>
-              <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--color-divider)' }}>
+              {editing?.id === item.id && <form className="wishlist-edit" onSubmit={saveEdit}><label>Priority<select className="input" value={editing.priority} onChange={event => setEditing({ ...editing, priority: event.target.value })}>{Object.entries(PRIORITY_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Notes<textarea className="input" rows={3} value={editing.notes} onChange={event => setEditing({ ...editing, notes: event.target.value })} /></label><div><button className="btn btn-primary" disabled={!!movingId}>Save changes</button> <button type="button" className="btn btn-secondary" disabled={!!movingId} onClick={() => setEditing(null)}>Cancel</button></div></form>}
+              <div className="wishlist-actions flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--color-divider)' }}>
                 <a href={amazonSearchUrl(item)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost !px-2">
                   <ExternalLink size={13} strokeWidth={2.75} />
-                  Find it
+                  Find on Amazon
                 </a>
                 <button
                   type="button"
                   className="btn btn-secondary"
                   style={{ marginLeft: 'auto' }}
                   onClick={() => handleOwnIt(item)}
-                  disabled={movingId === item.id}
+                  disabled={!!movingId || editing?.id === item.id}
                 >
-                  {movingId === item.id ? 'Moving…' : 'Own it → move to library'}
+                  {movingId === item.id ? 'Working…' : 'I own it → Library'}
                 </button>
-                <button type="button" className="btn btn-ghost" style={{ color: 'var(--color-accent-700)' }} onClick={() => handleRemove(item)}>
+                <button type="button" className="btn btn-ghost" disabled={!!movingId} onClick={() => setEditing({ id: item.id, priority: item.priority || 'medium', notes: item.notes || '' })}>Edit</button>
+                <button type="button" className="btn btn-ghost" disabled={!!movingId} style={{ color: 'var(--color-accent-700)' }} onClick={() => handleRemove(item)}>
                   Remove
                 </button>
               </div>

@@ -1,3 +1,5 @@
+import UserAvatar from '../components/UserAvatar'
+import { restoreBibleSelection, saveBibleSelection } from '../lib/bibleSelection'
 import {preferencesFor,orderedTranslations} from '../lib/preferences'
 import SermonBiblePanel from '../components/SermonStudy'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -183,6 +185,12 @@ export default function BibleStudy() {
   const navigate = useNavigate()
   const user = useAuth()
   const prefs = preferencesFor(user)
+  const [savedSelection] = useState(() => {
+    let storage
+    try { storage = window.localStorage } catch { /* Browser may block storage. */ }
+    return restoreBibleSelection(storage, user.id, prefs)
+  })
+  const [selectionSaveError, setSelectionSaveError] = useState(false)
   const availableTranslations = orderedTranslations(ALL_TRANSLATIONS,prefs)
   const [toolNotice, setToolNotice] = useState('')
   const [searchParams] = useSearchParams()
@@ -192,7 +200,7 @@ export default function BibleStudy() {
   const [refError, setRefError] = useState('')
   const [book, setBook] = useState('John')
   const [chapter, setChapter] = useState(3)
-  const [readingTranslation, setReadingTranslation] = useState(prefs.translation)
+  const [readingTranslation, setReadingTranslation] = useState(savedSelection.translation)
   const [verses, setVerses] = useState(null) // null = loading
   const [chapterCount, setChapterCount] = useState(null)
   const [selectedVerses, setSelectedVerses] = useState(new Set())
@@ -212,8 +220,17 @@ export default function BibleStudy() {
   const [crossRefData, setCrossRefData] = useState(null)
   const [crossRefLoading, setCrossRefLoading] = useState(false)
 
-  const [showCompare, setShowCompare] = useState(prefs.parallel)
-  const [compareIds, setCompareIds] = useState(prefs.compare)
+  const [showCompare, setShowCompare] = useState(savedSelection.parallel)
+  const [compareIds, setCompareIds] = useState(savedSelection.compare)
+  useEffect(() => {
+    let storage
+    try { storage = window.localStorage } catch { /* Report blocked storage below. */ }
+    setSelectionSaveError(!saveBibleSelection(storage, user.id, {
+      translation: readingTranslation,
+      compare: compareIds.filter(id => id !== readingTranslation),
+      parallel: showCompare,
+    }))
+  }, [user.id, readingTranslation, compareIds, showCompare])
   const [compareData, setCompareData] = useState({}) // translationId -> { status: 'loading'|'ready'|'error', verses }
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -512,7 +529,7 @@ export default function BibleStudy() {
         <SearchIcon size={19}/><input aria-label="Passage or Bible search" value={quickRef} onChange={e=>setQuickRef(e.target.value)} placeholder="Enter a passage (e.g. John 3:16) or search the Bible…"/>
         <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{availableTranslations.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
       </form>
-      <Link className="bible-account" to="/settings/profile"><span>{name.slice(0,2).toUpperCase()}</span>{name}<ChevronDown size={14}/></Link>
+      <Link className="bible-account" to="/settings/profile"><UserAvatar user={user}/>{name}<ChevronDown size={14}/></Link>
       <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
     </div>
     <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>
@@ -529,6 +546,7 @@ export default function BibleStudy() {
         {fullscreenError && <p role="alert">{fullscreenError}</p>}
         <div className="card bible-reader-card">
           <div className="bible-reader-heading"><h2>{passageRef}</h2><div><button className="btn btn-icon" onClick={()=>copy('passage',`${passageRef} (${readingMeta.short})\n${(displayedVerses||[]).map(v=>`${v.number} ${v.text}`).join('\n')}`)} aria-label="Copy passage"><Copy size={17}/></button><button className="btn btn-icon" onClick={()=>draftNote()} aria-label="Create study note"><NotebookPen size={17}/></button></div></div>
+          {selectionSaveError && <p role="status">Your browser could not save these translation choices. Allow site storage to remember them next time.</p>}
           {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}
           <div className={`bible-parallel ${showCompare?'':'is-single'}`} tabIndex={0} role="region" aria-label="Bible translation text">
             {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0):<p>No text is available for this passage.</p>}{(entry?.copyright||entry?.verses?.copyright)&&<small className="bible-attribution">{entry.copyright||entry.verses.copyright}</small>}</article>)}

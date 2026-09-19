@@ -1,9 +1,14 @@
+import {BookOpen,ArrowRight,Search,NotebookPen,LibraryBig} from 'lucide-react'
+import './Reading.css'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { createEntry, listEntriesForBook, formatEntryNum } from '../lib/entries'
 import { stanceClass } from '../lib/stance'
+
+const statusLabel = value => ({'in-progress':'Reading',read:'Completed',unread:'To Read',reference:'Reference',paused:'Paused'}[value] || 'To Read')
+function Cover({book}) { return <div className="reading-cover">{book.cover_url ? <img src={book.cover_url} alt="" loading="lazy"/> : <><BookOpen aria-hidden="true"/><span>{book.title}</span></>}</div> }
 
 const STANCES = [
   { value: '', label: 'No stance' },
@@ -26,6 +31,8 @@ export default function Reading() {
   const [ref, setRef] = useState('')
   const [stance, setStance] = useState('')
   const [saving, setSaving] = useState(false)
+  const [query,setQuery] = useState('')
+  const [filter,setFilter] = useState('all')
 
   useEffect(() => {
     if (bookId) return
@@ -102,82 +109,19 @@ export default function Reading() {
     }
   }
 
-  // Picker: no book chosen yet
+  // Keep the existing session and note flows; the dashboard helps choose a book.
   if (!bookId) {
-    const inProgress = (candidates || []).filter((b) => b.reading_status === 'in-progress')
-    const others = (candidates || []).filter((b) => b.reading_status !== 'in-progress')
-
-    return (
-      <div className="max-w-[900px] mx-auto page">
-        <h2 className="!mb-1">Reading now</h2>
-        <p className="card-meta mb-5">Pick a book to start a focused session — a running note stream sits right beside it.</p>
-
-        {candidates === null ? (
-          <div className="text-center py-16" style={{ opacity: 0.5 }}>
-            Loading…
-          </div>
-        ) : candidates.length === 0 ? (
-          <div className="text-center py-16" style={{ opacity: 0.5 }}>
-            No books in your library yet.{' '}
-            <Link to="/shelf/add" className="hover:underline">
-              Add one
-            </Link>{' '}
-            to start a reading session.
-          </div>
-        ) : (
-          <>
-            {inProgress.length > 0 && (
-              <div className="mb-6">
-                <div className="card-kicker mb-2">Continue reading</div>
-                <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
-                  {inProgress.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      className="card !flex-row items-center gap-3 text-left hover:shadow-sm"
-                      style={{ padding: '12px 16px' }}
-                      onClick={() => handleStart(b)}
-                    >
-                      <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 40, height: 60 }}>
-                        {b.cover_url && <img src={b.cover_url} alt="" className="w-full h-full object-cover" />}
-                      </div>
-                      <div>
-                        <div className="card-title !text-[14px]">{b.title}</div>
-                        <div className="card-meta">{b.author}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className="card-kicker mb-2">Or start something else</div>
-              <div className="flex flex-col">
-                {others.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    className="flex items-center gap-2.5 py-2 w-full text-left hover:bg-black/[0.02]"
-                    style={{ borderBottom: '1px solid var(--color-divider)' }}
-                    onClick={() => handleStart(b)}
-                  >
-                    <div className="rounded-sm shrink-0 overflow-hidden bg-neutral-200" style={{ width: 26, height: 39 }}>
-                      {b.cover_url && <img src={b.cover_url} alt="" className="w-full h-full object-cover" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="card-title !text-[14px]">{b.title}</div>
-                      <div className="card-meta">{b.author}</div>
-                    </div>
-                    <span style={{ opacity: 0.4, fontSize: 12 }}>{b.reading_status}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    )
+    const all=candidates || []
+    const inProgress=all.filter(b=>b.reading_status==='in-progress')
+    const matching=all.filter(b=>(filter==='all'||statusLabel(b.reading_status)===filter)&&`${b.title} ${b.author||''}`.toLowerCase().includes(query.trim().toLowerCase()))
+    return <div className="page reading-page">
+      <header className="reading-heading"><div><p className="reading-eyebrow">Your reading life</p><h1>Reading Now</h1><p>Read thoughtfully. Capture insight. Grow in understanding.</p></div><Link to="/shelf" className="btn btn-secondary"><LibraryBig size={17}/>My Library</Link></header>
+      <section className="reading-banner"><div><BookOpen aria-hidden="true" size={32}/><h2>Make room for a good book.</h2><p>Pick up where you left off, with a place to gather your thoughts as you read.</p></div><div className="reading-counts"><div><strong>{candidates===null?'—':inProgress.length}</strong><span>Currently reading</span></div><div><strong>{candidates===null?'—':all.filter(b=>b.reading_status==='read').length}</strong><span>Completed</span></div></div></section>
+      {candidates===null?<p role="status" className="card">Loading your reading list…</p>:!all.length?<section className="card reading-empty"><LibraryBig size={32}/><h2>Your next chapter starts here</h2><p>Add a book to your Library to begin reading and collecting notes.</p><Link to="/shelf/add" className="btn btn-primary">Add your first book</Link></section>:<>
+      <section className="reading-continue"><div className="reading-section-title"><h2>Continue reading</h2><span>{inProgress.length} {inProgress.length===1?'book':'books'}</span></div>{inProgress.length?<div className="reading-book-grid">{inProgress.map(b=><article className="card reading-book-card" key={b.id}><Cover book={b}/><div><span className="reading-status">Reading</span><h3>{b.title}</h3><p>{b.author}</p><button className="btn btn-primary" onClick={()=>handleStart(b)}>Continue <ArrowRight size={16}/></button><Link className="reading-details" to={`/shelf/${b.id}`}>Book details</Link></div></article>)}</div>:<div className="card reading-empty"><BookOpen size={28}/><h3>Choose something to read</h3><p>Start a session from your Library below. Your current books will appear here.</p></div>}</section>
+      <section className="reading-browse"><div className="reading-section-title"><h2>Find your next read</h2><Link to="/shelf/add">Add books →</Link></div><div className="reading-toolbar"><label className="reading-search"><Search size={18} aria-hidden="true"/><input type="search" aria-label="Search reading list" placeholder="Search by title or author…" value={query} onChange={e=>setQuery(e.target.value)}/></label><label>Show<select className="input" value={filter} onChange={e=>setFilter(e.target.value)}>{['all','Reading','To Read','Completed','Reference','Paused'].map(v=><option key={v} value={v}>{v==='all'?'All books':v}</option>)}</select></label></div><p className="card-meta" role="status">{matching.length} {matching.length===1?'book':'books'}</p><div className="reading-library-list">{matching.map(b=><article key={b.id} className="reading-library-row"><Cover book={b}/><div><h3><Link to={`/shelf/${b.id}`}>{b.title}</Link></h3><p>{b.author}</p><span className="reading-status">{statusLabel(b.reading_status)}</span></div><button className="btn btn-secondary" onClick={()=>handleStart(b)}>{b.reading_status==='in-progress'?'Continue':'Start reading'}<ArrowRight size={16}/></button></article>)}</div>{!matching.length&&<div className="card reading-empty"><h3>No matching books</h3><p>Try a different title, author, or reading status.</p><button className="btn btn-secondary" onClick={()=>{setQuery('');setFilter('all')}}>Clear filters</button></div>}</section>
+      </>}
+    </div>
   }
 
   if (book === null) {
@@ -189,7 +133,7 @@ export default function Reading() {
   }
   if (book === false) {
     return (
-      <div className="max-w-[1180px] mx-auto page">
+      <div className="page reading-page reading-session">
         <p>Book not found.</p>
         <Link to="/reading" className="btn btn-secondary">
           ← Reading now
@@ -199,7 +143,7 @@ export default function Reading() {
   }
 
   return (
-    <div className="max-w-[1180px] mx-auto page">
+    <div className="page reading-page reading-session">
       <div className="card-meta mb-3">
         <Link to="/reading" className="hover:underline">
           Reading now
@@ -207,16 +151,14 @@ export default function Reading() {
         / {book.title}
       </div>
 
-      <div className="grid gap-6 md:gap-9 grid-cols-1 md:grid-cols-[220px_1fr]">
+      <div className="reading-session-grid">
         {/* Book */}
-        <div>
-          <div className="rounded-sm overflow-hidden bg-neutral-200" style={{ width: '100%', maxWidth: 220, aspectRatio: '2/3' }}>
-            {book.cover_url && <img src={book.cover_url} alt="" className="w-full h-full object-cover" />}
-          </div>
+        <aside className="card reading-session-book">
+          <Cover book={book}/>
           <h3 className="mt-3 !mb-1">{book.title}</h3>
           <div className="card-meta mb-3">{book.author}</div>
           <div className="flex gap-1.5 flex-wrap mb-4">
-            <span className="tag tag-neutral">{book.reading_status}</span>
+            <span className="tag tag-neutral">{statusLabel(book.reading_status)}</span>
             {book.tradition && <span className="tag tag-neutral">{book.tradition}</span>}
           </div>
           <div className="flex flex-col gap-2 items-start">
@@ -229,16 +171,17 @@ export default function Reading() {
               Full book details →
             </Link>
           </div>
-        </div>
+        </aside>
 
         {/* Note stream */}
         <div>
-          <div className="card-kicker mb-2">Note stream{notes ? ` · ${notes.length}` : ''}</div>
+          <header className="reading-session-title"><NotebookPen size={25}/><div><h1>Reading notes</h1><p>Capture a thought, a question, or a passage to revisit.</p></div></header>
 
           <form id="reading-note" onSubmit={handleAddNote} className="card mb-5" style={{ padding: '16px 18px' }}>
             <textarea
               className="input !border-none !bg-transparent !px-0"
               style={{ fontSize: 15.5, lineHeight: 1.6, minHeight: 80 }}
+              aria-label="Reading note"
               placeholder="What are you noticing as you read?"
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -269,6 +212,7 @@ export default function Reading() {
             </div>
           </form>
 
+          <div className="reading-section-title"><h2>Your note stream</h2><span>{notes ? `${notes.length} notes` : ''}</span></div>
           {notes === null ? (
             <div className="text-center py-12" style={{ opacity: 0.5 }}>
               Loading…

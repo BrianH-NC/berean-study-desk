@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, BookOpen, LibraryBig, NotebookPen, Search, ShieldCheck, Tags, BookMarked } from 'lucide-react'
@@ -67,7 +68,7 @@ export default function Home() {
       <form className="desk-search" role="search" onSubmit={e=>{e.preventDefault();if(query.trim())navigate(`/search?q=${encodeURIComponent(query.trim())}`)}}>
         <Search size={21} aria-hidden="true"/><label className="sr-only" htmlFor="home-search">Search Scripture, books, and notes</label><input id="home-search" type="search" placeholder="Search Scripture, books, topics, or questions…" value={query} onChange={e=>setQuery(e.target.value)} required/><button className="btn btn-primary" type="submit">Search</button>
       </form>
-      <Link to="/settings/profile" className="desk-profile"><span aria-hidden="true">{name.slice(0,2).toUpperCase()}</span><span>{name}</span></Link>
+      <Link to="/settings/profile" className="desk-profile"><UserAvatar user={user}/><span>{name}</span></Link>
       <p className="desk-motto">Search diligently<br/>and with discernment.<small>Inspired by Acts 17:11</small></p>
     </header>
     {error && <div className="card" role="alert">Study activity could not be loaded.<button className="btn btn-secondary" onClick={()=>setReload(n=>n+1)}>Retry</button></div>}

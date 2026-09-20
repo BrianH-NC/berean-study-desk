@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Camera, ChevronDown, ChevronUp, Loader2, Maximize2, Minimize2, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { createEntry, updateEntry, setRelated, listEntries, formatEntryNum, nextGapNumber, nextSuffixedNumber } from '../lib/entries'
-import { uploadEntryPhoto, deleteEntryPhoto } from '../lib/entryPhotos'
+import { uploadEntryPhoto } from '../lib/entryPhotos'
 
 // The full original digging-deep-notebook composer, ported and extended for
 // BSD: Title/Reference/Topics/Body (with an insert-reference quick action),
@@ -51,7 +51,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
   }, [isEdit, initial, allEntries])
 
   useEffect(() => {
-    listEntries(userId).then(setAllEntries)
+    listEntries(userId, true).then(setAllEntries).catch(err=>setError(err.message))
     supabase
       .from('books')
       .select('id, title')
@@ -65,7 +65,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
     if (!q) return []
     const selectedIds = new Set(relatedSelections.map((r) => r.id))
     return allEntries
-      .filter((e) => e.id !== initial?.id && !selectedIds.has(e.id))
+      .filter((e) => !e.deleted_at && e.id !== initial?.id && !selectedIds.has(e.id))
       .filter((e) => (e.title || '').toLowerCase().includes(q) || String(e.number).includes(q))
       .slice(0, 6)
   }, [relatedQuery, allEntries, relatedSelections, initial])
@@ -99,7 +99,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
 
   async function removePhoto(url) {
     setPhotos((prev) => prev.filter((p) => p !== url))
-    deleteEntryPhoto(url).catch(() => {})
+    // Historical versions may still reference this photo. Keep the stored asset.
   }
 
   async function handleSave(e) {

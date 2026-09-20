@@ -45,11 +45,11 @@ export default function Home() {
       try {
         const results=await Promise.all([
           supabase.from('books').select('id,title,author,cover_url,reading_status,updated_at').eq('user_id',user.id).eq('reading_status','in-progress').order('updated_at',{ascending:false}).limit(3),
-          supabase.from('entries').select('id,title,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(4),
+          supabase.from('entries').select('id,title,created_at').is('deleted_at',null).eq('user_id',user.id).order('created_at',{ascending:false}).limit(4),
           supabase.from('theology_checks').select('id,title,name,created_at').order('created_at',{ascending:false}).limit(4),
           supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('reading_status','read'),
           supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id),
-          supabase.from('entries').select('id',{count:'exact',head:true}).eq('user_id',user.id),
+          supabase.from('entries').select('id',{count:'exact',head:true}).is('deleted_at',null).eq('user_id',user.id),
         ])
         if(results.some(r=>r.error))throw new Error('Could not load activity')
         if(!active)return

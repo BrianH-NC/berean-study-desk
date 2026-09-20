@@ -59,7 +59,7 @@ export default function Entry() {
   }, [entry?.ref, editing])
 
   async function handleDelete() {
-    if (!confirm(`Delete entry no. ${formatEntryNum(entry.number)}? This can't be undone.`)) return
+    if (!confirm(`Move note no. ${formatEntryNum(entry.number)} to Trash? You can restore it later.`)) return
     try {
       await deleteEntry(id)
       navigate('/notebook')
@@ -102,7 +102,7 @@ export default function Entry() {
             </button>
           )}
           <button type="button" className="btn btn-ghost" style={{ color: 'var(--color-accent-700)' }} onClick={handleDelete}>
-            Delete
+            Move to Trash
           </button>
         </div>
       </div>

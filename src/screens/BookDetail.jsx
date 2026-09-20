@@ -67,7 +67,7 @@ export default function BookDetail() {
       })
       const [checkResult, noteResult] = await Promise.all([
         data.isbn ? supabase.from('theology_checks').select('*').eq('isbn',data.isbn).eq('kind','book').order('created_at',{ascending:false}).limit(1).maybeSingle() : Promise.resolve({data:null}),
-        supabase.from('entries').select('id, title, body, ref, created_at').eq('shelf_book_id',id).order('created_at',{ascending:false}),
+        supabase.from('entries').select('id, title, body, ref, created_at').is('deleted_at',null).eq('shelf_book_id',id).order('created_at',{ascending:false}),
       ])
       setContextError(!!(checkResult.error || noteResult.error))
       setCheck(checkResult.data || null)

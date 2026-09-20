@@ -1,3 +1,5 @@
+import StudySessionBar from '../components/StudySessionBar'
+import SessionNote from '../components/SessionNote'
 import AccountLink from '../components/AccountLink'
 import { restoreBibleSelection, saveBibleSelection } from '../lib/bibleSelection'
 import {preferencesFor,orderedTranslations} from '../lib/preferences'
@@ -194,6 +196,11 @@ export default function BibleStudy() {
   const availableTranslations = orderedTranslations(ALL_TRANSLATIONS,prefs)
   const [toolNotice, setToolNotice] = useState('')
   const [searchParams] = useSearchParams()
+  const sessionMode=searchParams.has('session')||searchParams.has('study')
+  const sessionSaveRef=useRef(null)
+  const [sessionReady,setSessionReady]=useState(!searchParams.has('session'))
+  const [sessionNoteId,setSessionNoteId]=useState('')
+  const [sessionSermonId,setSessionSermonId]=useState(searchParams.get('sermon')||'')
   const [viewMode, setViewMode] = useState('Read')
 
   const [quickRef, setQuickRef] = useState('')
@@ -518,6 +525,16 @@ export default function BibleStudy() {
   const interlinearUrl = `https://biblehub.com/interlinear/${hubBook}/${chapter}.htm`
   const draftNote = (analysis = false) => navigate('/notebook/new', {state:{sermon_id:searchParams.get('sermon'),ref:selectionRef || passageRef, body:analysis ? 'Observations\n\nThemes and repeated words:\n\nPeople and places:\n\nWhat does this reveal about God?\n\nApplication:\n' : selectionText ? `“${selectionText}”` : ''}})
   const columns = [{id:readingTranslation, meta:readingMeta, entry:{status:verses === null?'loading':'ready', verses:displayedVerses, copyright:verses?.copyright}}, ...(showCompare ? compareIds.filter(id=>id!==readingTranslation).map(id=>({id,meta:ALL_TRANSLATIONS.find(t=>t.id===id),entry:compareData[id]})) : [])]
+  const sessionState={book,chapter,verseRange,translation:readingTranslation,compare:compareIds,parallel:showCompare,commentaryId,showCommentary,showCrossRefs,sermonId:sessionSermonId,noteId:sessionNoteId}
+  function restoreSession(state){
+    const validBook=CANONICAL_BOOKS.includes(state.book)?state.book:'John'
+    goTo(validBook,Math.max(1,Number(state.chapter)||1),state.verseRange?.start,state.verseRange?.end)
+    setReadingTranslation(ALL_TRANSLATIONS.some(t=>t.id===state.translation)?state.translation:'BSB')
+    setCompareIds((state.compare||[]).filter(id=>ALL_TRANSLATIONS.some(t=>t.id===id)))
+    setShowCompare(Boolean(state.parallel));setShowCommentary(Boolean(state.showCommentary));setShowCrossRefs(Boolean(state.showCrossRefs))
+    setCommentaryId(COMMENTARIES.some(c=>c.id===state.commentaryId)?state.commentaryId:prefs.commentary)
+    setSessionNoteId(state.noteId||'');setSessionSermonId(state.sermonId||'')
+  }
   function renderVerses(rows, anchor) {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
     return <div className="bible-verse-text">{scoped.map(v=><span key={v.number} className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>)}</div>
@@ -532,8 +549,9 @@ export default function BibleStudy() {
       <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
     </div>
     <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>
+    {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
-    {viewMode === 'Read' ? <div className="bible-grid">
+    {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         <div className="card bible-toolbar">
           <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
@@ -557,6 +575,7 @@ export default function BibleStudy() {
         </div>
       </section>
       <aside className="bible-tools-column" aria-label="Study tools">
+        {sessionMode&&sessionSermonId&&<SermonBiblePanel sermonId={sessionSermonId} onClose={()=>setSessionSermonId('')} onPassage={goTo}/>}
         <StudySection title="Study Tools for This Passage"><div className="bible-tool-grid">
           <button aria-pressed={showCrossRefs} onClick={()=>setShowCrossRefs(v=>!v)}><Link2/>Cross-References</button>
           <a href={interlinearUrl} target="_blank" rel="noreferrer"><Languages/>Word Study <small>External ↗</small></a>
@@ -678,7 +697,7 @@ export default function BibleStudy() {
           )}
 
       </aside>
-      {searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
+      {sessionMode?(sessionNoteId?<SessionNote key={sessionNoteId} id={sessionNoteId} saveRef={sessionSaveRef}/>:<aside className="card"><h2>Study notes</h2><p>Select a note or choose New note in the session bar to write alongside your passage.</p></aside>):searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
     </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <div className="relative flex-1" style={{ minWidth: 220 }}>

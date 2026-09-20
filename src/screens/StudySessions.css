@@ -1,0 +1,32 @@
+.study-sessions { max-width:1400px; margin:auto; }
+.study-sessions>header,.study-dialog>header,.session-bar>header {display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.study-sessions h1,.study-dialog h2,.session-bar h2 {font-family:var(--font-body);font-variant:normal;letter-spacing:normal}
+.session-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1rem;margin-top:1rem}
+.session-list .card {padding:1.25rem;gap:.6rem}
+.session-list h2 {font-size:1.2rem}
+.session-actions {display:flex;gap:.5rem;flex-wrap:wrap}
+.study-dialog {width:min(960px,94vw);max-height:90dvh;overflow:auto;padding:1.5rem;background:var(--color-bg);color:var(--color-text);border:1px solid var(--color-divider);border-radius:12px}
+.study-dialog::backdrop {background:#001b16a8}
+.history-layout {display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,2fr);gap:1.5rem;margin-top:1rem}
+.history-layout nav {display:flex;flex-direction:column;gap:.5rem;max-height:60vh;overflow:auto}
+.history-layout nav button {padding:.6rem;text-align:left;border:1px solid var(--color-divider);border-radius:6px;display:flex;flex-direction:column}
+.history-layout nav button[aria-pressed=true] {background:var(--color-accent-100);border-color:var(--color-accent)}
+.history-preview {white-space:pre-wrap;overflow-wrap:anywhere;max-height:45vh;overflow:auto;font-family:var(--font-body)}
+.session-bar {padding:1rem!important;margin-bottom:1rem;gap:.75rem}
+.session-bar h2 {font-size:1.15rem;margin:0}
+.session-controls {display:flex;gap:.75rem;flex-wrap:wrap;align-items:end}
+.session-controls label {display:flex;flex-direction:column;gap:.25rem;flex:1;min-width:170px;font-size:.85rem}
+.session-note {margin-top:1rem;min-width:0}
+.session-note .notes-editor {padding:1rem;min-width:0}
+.session-note .notes-context {display:none}
+.session-note .notes-editor header {flex-wrap:wrap}
+.session-note .tiptap {min-height:220px}
+.session-note .notes-back {display:none}
+.session-note .notes-details-toggle {display:none}
+.bible-grid.is-session {grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr) minmax(320px,1.15fr);align-items:start}
+.is-session .bible-parallel {max-height:65vh;overflow:auto}
+.is-session .session-note {margin:0}
+.is-session .sermon-transcript {max-height:40vh;overflow:auto}
+@media(max-width:1500px){.bible-grid.is-session{grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr)}.is-session .session-note{grid-column:2;grid-row:1}.is-session .bible-tools-column{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}}
+@media(max-width:760px){.bible-grid.is-session{grid-template-columns:1fr}.is-session .session-note{grid-column:1;grid-row:2}.is-session .bible-tools-column{grid-column:1;grid-row:3;grid-template-columns:1fr}}
+@media(max-width:640px){.history-layout{grid-template-columns:1fr}.history-layout nav{max-height:22vh}.session-controls{align-items:stretch}.session-controls label{min-width:100%}}

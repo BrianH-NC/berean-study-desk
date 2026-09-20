@@ -13,6 +13,7 @@ const PRIMARY = [
   { to: '/shelf', label: 'Library', icon: LibraryBig },
 ]
 const SECONDARY = [
+  { to: '/study-sessions', label: 'Study Sessions', icon: BookOpenText },
   { to: '/checks', label: 'Doctrine Check', icon: ShieldCheck },
   { to: '/notebook', label: 'Notes', icon: NotebookPen },
   { to: '/sermons', label: 'Sermons', icon: Mic },

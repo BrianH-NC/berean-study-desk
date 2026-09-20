@@ -52,7 +52,7 @@ export default function NoteContext({draft,note,notes,books,checks,links,version
       <button onClick={async()=>{try{if(navigator.share){await navigator.share({title:draft.title||'Study note',text:noteMarkdown(draft)});setMessage('Share completed.')}else{await navigator.clipboard.writeText(noteMarkdown(draft));setMessage('Note copied, ready to share.')}}catch(error){if(error.name!=='AbortError')setMessage('Sharing is unavailable. Export as Markdown to share the note.')}}}>Share note</button>
       {message&&<p role="status" className="card-meta">{message}</p>}
       <button onClick={()=>onNavigate(`/notebook/${note.id}/advanced`)}>Photos, numbering & manual links →</button>
-      <button className="notes-delete" onClick={onDelete}>Delete note</button>
+      <button className="notes-delete" onClick={onDelete}>Move to Trash</button>
     </section>
     <section className="card" ref={related} tabIndex={-1}><h2>Related Content</h2>
       {candidates.slice(0,all?candidates.length:4).map(n=><button className="notes-related-note" key={n.id} onClick={()=>onOpen(n.id)}><FileText size={18}/><span>{n.title||'Untitled'}<small>{n.reasons.join(' · ')}</small></span></button>)}

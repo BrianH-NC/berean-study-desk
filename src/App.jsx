@@ -16,6 +16,8 @@ const NotebookHome = lazy(() => import('./screens/NotesWorkspace'))
 import Entry from './screens/Entry'
 import Reading from './screens/Reading'
 import BibleStudy from './screens/BibleStudy'
+import NotesTrash from './screens/NotesTrash'
+import StudySessions from './screens/StudySessions'
 import Search from './screens/Search'
 import TopicIndex from './screens/TopicIndex'
 const SermonIndex = lazy(() => import('./screens/SermonIndex'))
@@ -51,10 +53,12 @@ function ProtectedLayout() {
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />
           <Route path="/notebook" element={<NotebookHome />} />
           <Route path="/notebook/new" element={<NotebookHome />} />
+          <Route path="/notebook/trash" element={<NotesTrash />} />
           <Route path="/notebook/:id" element={<NotebookHome />} />
           <Route path="/notebook/:id/advanced" element={<Entry />} />
           <Route path="/reading" element={<Reading />} />
           <Route path="/reading/:bookId" element={<Reading />} />
+          <Route path="/study-sessions" element={<StudySessions />} />
           <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />
           <Route path="/sermons" element={<SermonIndex />} />

@@ -2,8 +2,8 @@ import { supabase } from './supabase'
 
 // Entry-numbering algorithm ported verbatim from digging-deep-notebook
 // (index.html:1786-1831): a new entry takes the lowest whole number not
-// currently in use, rather than always counting up — deleting an entry frees
-// its number for reuse immediately. Manual collisions get a lettered suffix
+// currently in use, rather than always counting up. Notes in Trash reserve
+// their numbers so restoring a note cannot cause a collision. Manual collisions get a lettered suffix
 // (125, 125a, 125b, ...) stored as a small decimal (125 + 0.001*n) so normal
 // numeric sort/compare still works everywhere; only display formatting knows
 // about the letters.
@@ -144,14 +144,16 @@ export function canonicalIndex(bookName) {
   return i === -1 ? 999 : i
 }
 
-export async function listEntries(userId) {
-  const { data, error } = await supabase.from('entries').select('*').eq('user_id', userId).order('number')
+export async function listEntries(userId, includeTrash = false) {
+  let query = supabase.from('entries').select('*').eq('user_id', userId).order('number')
+  if (!includeTrash) query = query.is('deleted_at', null)
+  const { data, error } = await query
   if (error) throw new Error(error.message)
   return data || []
 }
 
 export async function getEntry(id) {
-  const { data, error } = await supabase.from('entries').select('*').eq('id', id).single()
+  const { data, error } = await supabase.from('entries').select('*').eq('id', id).is('deleted_at', null).single()
   if (error) return null
   return data
 }
@@ -163,7 +165,7 @@ export async function listEntriesForBook(userId, bookId) {
     .from('entries')
     .select('*')
     .eq('user_id', userId)
-    .eq('shelf_book_id', bookId)
+    .eq('shelf_book_id', bookId).is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw new Error(error.message)
   return data || []
@@ -175,12 +177,12 @@ export async function listEntriesForBook(userId, bookId) {
 // from digging-deep-notebook (index.html:2891-2904) as a proper join table.
 export async function getLinksFor(entryId) {
   const [{ data: seeAlso }, { data: referencedBy }] = await Promise.all([
-    supabase.from('entry_links').select('related_entry_id, entries:related_entry_id(id, number, title)').eq('entry_id', entryId),
-    supabase.from('entry_links').select('entry_id, entries:entry_id(id, number, title)').eq('related_entry_id', entryId),
+    supabase.from('entry_links').select('related_entry_id, entries:related_entry_id(id, number, title, deleted_at)').eq('entry_id', entryId),
+    supabase.from('entry_links').select('entry_id, entries:entry_id(id, number, title, deleted_at)').eq('related_entry_id', entryId),
   ])
   return {
-    seeAlso: (seeAlso || []).map((r) => r.entries).filter(Boolean),
-    referencedBy: (referencedBy || []).map((r) => r.entries).filter(Boolean),
+    seeAlso: (seeAlso || []).map((r) => r.entries).filter(note => note && !note.deleted_at),
+    referencedBy: (referencedBy || []).map((r) => r.entries).filter(note => note && !note.deleted_at),
   }
 }
 
@@ -198,12 +200,12 @@ export async function createEntry(userId, fields) {
 }
 
 export async function updateEntry(id, values) {
-  const { error } = await supabase.from('entries').update(values).eq('id', id)
+  const { error } = await supabase.from('entries').update({...values, updated_at: new Date().toISOString()}).eq('id', id).is('deleted_at', null).select('id').single()
   if (error) throw new Error(error.message)
 }
 
 export async function deleteEntry(id) {
-  const { error } = await supabase.from('entries').delete().eq('id', id)
+  const { error } = await supabase.from('entries').update({deleted_at: new Date().toISOString(), updated_at: new Date().toISOString()}).eq('id', id).is('deleted_at', null).select('id').single()
   if (error) throw new Error(error.message)
 }
 

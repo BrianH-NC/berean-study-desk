@@ -2,7 +2,7 @@
 
 ## Digital reader work — 2026-09-19
 
-See [DIGITAL_READER.md](DIGITAL_READER.md) for PDF/EPUB uploads and reading inside Reading Now, implementation details, validation, and required deployment order. This feature is on `feature/pdf-epub-reader`; its private storage/database migration has not been applied to production. Apply the documented migration before deploying the frontend. Current Modern Heritage and authentication conventions are preserved.
+See [DIGITAL_READER.md](DIGITAL_READER.md) for PDF/EPUB uploads and reading inside Reading Now, implementation details, validation, and required deployment order. The user approved production deployment. Its private storage/database migration was applied to production on 2026-09-19 and verified; the frontend publishes when `feature/pdf-epub-reader` merges to main. Current Modern Heritage and authentication conventions are preserved.
 
 ## Current Sermons work — 2026-09-14
 

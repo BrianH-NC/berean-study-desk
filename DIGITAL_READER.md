@@ -1,6 +1,6 @@
 # PDF and EPUB reader
 
-Status: implemented on `feature/pdf-epub-reader`; production migration and deployment pending.
+Status: production migration applied on 2026-09-19 to `dswwzziwtbyzxojrnxvg` and verified (private bucket, RLS, explicit grants, six policies). User approved production deployment; frontend publishes when this branch merges to main.
 
 Open a Library book and choose Start reading / Continue, or use Reading Now. The reader above the existing notes accepts private PDF and DRM-free EPUB attachments (50 MB each). It supports multiple files per book, PDF pages/zoom/extractable page text, EPUB chapters/text size/spacing, saved positions, and bookmarks. Position and bookmarks are specific to each attachment and stored in the signed-in account. An internet connection is required for uploads, downloads and saving; failed saves offer Retry. This release does not add a public-domain catalog, DRM handling, offline caching or text highlighting.
 

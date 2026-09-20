@@ -14,4 +14,8 @@
 .digital-progress{border-top:1px solid var(--bsd-border,#ddd);padding-top:14px;font-size:13px}
 .digital-bookmarks summary,.pdf-text summary{cursor:pointer;color:var(--bsd-forest)}
 .digital-bookmarks ul{list-style:none;padding:0}.digital-bookmarks li{display:flex;justify-content:space-between;border-bottom:1px solid var(--bsd-border,#ddd)}
+.reader-page-controls{position:sticky;bottom:16px;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;margin:12px 0;background:var(--bsd-surface,#fff);border:1px solid var(--bsd-border,#ddd);border-radius:12px;box-shadow:0 4px 20px rgb(15 61 46 / 12%);font-family:Inter,system-ui,sans-serif}
+.reader-page-controls>div{text-align:center;min-width:0}.reader-page-position{display:block;font-size:13px;font-weight:600}.reader-page-hint{display:block;font-size:11px;color:var(--bsd-muted);margin-top:3px}.reader-page-controls .btn{min-height:44px;border-radius:8px}
+.pdf-reader:focus-visible,.epub-reader:focus-visible{outline:2px solid var(--bsd-forest);outline-offset:4px}
+@media(max-width:767px){.reader-page-controls{bottom:calc(76px + env(safe-area-inset-bottom));gap:8px;padding:8px}.reader-page-controls .btn{padding:10px}.reader-page-controls .btn span{display:none}.reader-page-hint{font-size:10px}}
 @media(max-width:700px){.digital-book-reader{padding:12px}.digital-reader-heading{align-items:flex-start;flex-direction:column}.digital-toolbar{gap:8px}.digital-toolbar select{max-width:200px}.digital-toolbar .btn{font-size:13px}.epub-pages{height:620px}}

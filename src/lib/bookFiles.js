@@ -8,12 +8,31 @@ export async function listBookFiles(bookId) {
   return checked(await supabase.from('book_files').select('*').eq('book_id', bookId).order('created_at', { ascending: false }))
 }
 
-export async function uploadBookFile(userId, bookId, file) {
+async function validateBookFile(file) {
   const format = bookFileFormat(file)
   const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer())
   if (format === 'pdf' ? String.fromCharCode(...signature) !== '%PDF-' : signature[0] !== 80 || signature[1] !== 75) {
     throw new Error('The file contents do not match its PDF or EPUB extension.')
   }
+  return format
+}
+
+export async function importBookFile(userId, file) {
+  await validateBookFile(file)
+  const title = file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_]+/g, ' ').trim() || 'Untitled book'
+  const book = checked(await supabase.from('books').insert({ user_id: userId, title, reading_status: 'in-progress', tags: [] }).select('id').single())
+  try {
+    await uploadBookFile(userId, book.id, file)
+    return book.id
+  } catch (error) {
+    const cleanup = await supabase.from('books').delete().eq('id', book.id).eq('user_id', userId)
+    if (cleanup.error) throw new Error(`${error.message} An empty Library entry remains; you can retry attaching the file there.`)
+    throw error
+  }
+}
+
+export async function uploadBookFile(userId, bookId, file) {
+  const format = await validateBookFile(file)
   const id = crypto.randomUUID(), path = `${userId}/${id}.${format}`
   checked(await bucket().upload(path, file, { contentType: format === 'pdf' ? 'application/pdf' : 'application/epub+zip', upsert: false }))
   try {

@@ -1,4 +1,5 @@
 import AccountLink from '../components/AccountLink'
+import UploadBookButton from '../components/UploadBookButton'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, BookOpen, LibraryBig, NotebookPen, Search, ShieldCheck, Tags, BookMarked } from 'lucide-react'
@@ -70,6 +71,7 @@ export default function Home() {
       <AccountLink user={user}/>
       <p className="desk-motto">Search diligently<br/>and with discernment.<small>Inspired by Acts 17:11</small></p>
     </header>
+    <section className="card mb-5" aria-label="Upload a book"><UploadBookButton userId={user.id}/></section>
     {error && <div className="card" role="alert">Study activity could not be loaded.<button className="btn btn-secondary" onClick={()=>setReload(n=>n+1)}>Retry</button></div>}
     <div className="desk-layout">
       <div className="desk-primary">

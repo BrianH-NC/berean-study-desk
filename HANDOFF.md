@@ -2,6 +2,8 @@
 
 ## Digital reader work — 2026-09-19
 
+Upload PDF or EPUB is now directly available on Home and the main Reading Now page. It creates the Library entry and opens the reader; users do not need to create a book first.
+
 See [DIGITAL_READER.md](DIGITAL_READER.md) for PDF/EPUB uploads and reading inside Reading Now, implementation details, validation, and required deployment order. The user approved production deployment. Its private storage/database migration was applied to production on 2026-09-19 and verified; the frontend publishes when `feature/pdf-epub-reader` merges to main. Current Modern Heritage and authentication conventions are preserved.
 
 ## Current Sermons work — 2026-09-14

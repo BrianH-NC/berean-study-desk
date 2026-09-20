@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import NoteRichEditor from './NoteRichEditor'
+import '../screens/Notes.css'
+import './EntryComposerForm.css'
+import { useEffect, useMemo, useState } from 'react'
 import { Camera, ChevronDown, ChevronUp, Loader2, Maximize2, Minimize2, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { createEntry, updateEntry, setRelated, listEntries, formatEntryNum, nextGapNumber, nextSuffixedNumber } from '../lib/entries'
@@ -16,6 +19,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
 
   const [title, setTitle] = useState(initial?.title || '')
   const [body, setBody] = useState(initial?.body || presetBody || '')
+  const [richDoc,setRichDoc] = useState(initial?.rich_doc || null)
   const [ref, setRef] = useState(initial?.ref || presetRef || '')
   const [tagsInput, setTagsInput] = useState((initial?.tags || []).join(', '))
   const [photos, setPhotos] = useState(initial?.photos || [])
@@ -26,9 +30,6 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
   const [relatedSelections, setRelatedSelections] = useState(initialRelated || [])
   const [relatedQuery, setRelatedQuery] = useState('')
 
-  const [showRefInsert, setShowRefInsert] = useState(false)
-  const [refInsertValue, setRefInsertValue] = useState('')
-  const bodyRef = useRef(null)
 
   const [advanced, setAdvanced] = useState(false)
   const [shelfBookId, setShelfBookId] = useState(initial?.shelf_book_id || '')
@@ -78,17 +79,6 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
     setRelatedSelections((prev) => prev.filter((r) => r.id !== id))
   }
 
-  function insertReferenceIntoBody() {
-    const text = refInsertValue.trim()
-    if (!text) return
-    const el = bodyRef.current
-    const pos = el && document.activeElement === el ? el.selectionStart : body.length
-    setBody((prev) => prev.slice(0, pos) + text + prev.slice(pos))
-    setRefInsertValue('')
-    setShowRefInsert(false)
-    requestAnimationFrame(() => el?.focus())
-  }
-
   async function handlePhotoFiles(e) {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
@@ -121,7 +111,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
       const fields = {
         title: title.trim() || null,
         body: body.trim(),
-        ...(initial?.rich_doc && body.trim() !== initial.body ? {rich_doc:null} : {}),
+        rich_doc: richDoc,
         ref: ref.trim() || null,
         tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
         photos,
@@ -164,7 +154,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
     <>
       <div className="flex items-center justify-between gap-2 mb-3">
         <h2 className="!mb-0">
-          {isEdit ? 'Edit entry' : 'New entry'}, no. {formatEntryNum(previewNumber)}
+          {isEdit ? 'Edit note' : 'New note'} <small>no. {formatEntryNum(previewNumber)}</small>
         </h2>
         <button
           type="button"
@@ -176,54 +166,22 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
         </button>
       </div>
 
-      {initial?.rich_doc && <p className="card-meta">This advanced editor shows plain text. Changing the body here replaces its rich formatting; use the Notes workspace for formatted writing.</p>}
-      <form onSubmit={handleSave}>
-        <div className="card mb-4" style={{ padding: '18px 20px' }}>
+<p className="card-meta">Capture. Connect. Grow. Format your writing, scan a page, and keep your study connections together.</p>
+      <div className="entry-compose-fields">
+        <div className="card notes-editor entry-writing mb-4" style={{ padding: '18px 20px' }}>
           <input
             className="input !border-none !bg-transparent !text-[23px] font-heading !px-0 mb-2"
             placeholder="Title (optional)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <div className="flex items-center justify-between mb-1">
-            <label htmlFor="entry-body" style={{ fontSize: 12, opacity: 0.7 }}>
-              Entry
-            </label>
-            <button type="button" className="btn btn-ghost !text-[12px] !px-1" onClick={() => setShowRefInsert((v) => !v)}>
-              insert reference…
-            </button>
-          </div>
-          {showRefInsert && (
-            <div className="flex gap-2 mb-2">
-              <input
-                className="input flex-1"
-                style={{ minHeight: 32, padding: '4px 12px' }}
-                placeholder="e.g. Romans 8:28"
-                value={refInsertValue}
-                onChange={(e) => setRefInsertValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    insertReferenceIntoBody()
-                  }
-                }}
-                autoFocus
-              />
-              <button type="button" className="btn btn-secondary" onClick={insertReferenceIntoBody}>
-                Insert
-              </button>
-            </div>
-          )}
-          <textarea
-            id="entry-body"
-            ref={bodyRef}
-            className="input !border-none !bg-transparent !px-0"
-            style={{ fontFamily: "Lora, Georgia, serif", fontSize: "1.0625rem", lineHeight: 1.65, minHeight: 220 }}
-            placeholder="Write it out…"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            required
-          />
+          <NoteRichEditor userId={userId} books={myBooks} note={{body,rich_doc:richDoc,ref,shelf_book_id:shelfBookId,page}} onChange={fields=>{
+            if('body' in fields)setBody(fields.body)
+            if('rich_doc' in fields)setRichDoc(fields.rich_doc)
+            if('shelf_book_id' in fields)setShelfBookId(fields.shelf_book_id||'')
+            if('page' in fields)setPage(fields.page||'')
+          }}/>
+
         </div>
 
         <div className="flex gap-3 flex-wrap mb-4">
@@ -376,24 +334,24 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
         )}
 
         <div className="flex gap-2">
-          <button type="submit" className="btn btn-primary" disabled={saving || !body.trim() || uploadingCount > 0}>
-            {saving ? 'Filing…' : isEdit ? 'Save entry' : 'File entry'}
+          <button type="button" onClick={handleSave} className="btn btn-primary" disabled={saving || !body.trim() || uploadingCount > 0}>
+            {saving ? 'Saving…' : 'Save note'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
             Cancel
           </button>
         </div>
-      </form>
+      </div>
     </>
   )
 
   if (focusMode) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'var(--color-bg)', overflowY: 'auto' }}>
-        <div className="max-w-[900px] mx-auto page">{formBody}</div>
+        <div className="max-w-[1100px] mx-auto page modern-entry-composer">{formBody}</div>
       </div>
     )
   }
 
-  return <div>{formBody}</div>
+  return <div className="modern-entry-composer">{formBody}</div>
 }

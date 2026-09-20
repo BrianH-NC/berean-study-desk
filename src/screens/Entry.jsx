@@ -62,7 +62,7 @@ export default function Entry() {
     if (!confirm(`Delete entry no. ${formatEntryNum(entry.number)}? This can't be undone.`)) return
     try {
       await deleteEntry(id)
-      navigate('/topics')
+      navigate('/notebook')
     } catch (err) {
       alert('Error deleting: ' + err.message)
     }
@@ -79,8 +79,8 @@ export default function Entry() {
     return (
       <div className="max-w-[1080px] mx-auto page">
         <p>Entry not found.</p>
-        <Link to="/topics" className="btn btn-secondary">
-          ← Topics
+        <Link to="/notebook" className="btn btn-secondary">
+          ← My Notes
         </Link>
       </div>
     )
@@ -90,8 +90,8 @@ export default function Entry() {
     <div className="max-w-[1080px] mx-auto page">
       <div className="flex items-center justify-between mb-4">
         <div className="card-meta">
-          <Link to="/topics" className="hover:underline">
-            Notebook / Miscellanies
+          <Link to="/notebook" className="hover:underline">
+            My Notes
           </Link>{' '}
           · no. {formatEntryNum(entry.number)}
         </div>
@@ -107,7 +107,7 @@ export default function Entry() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:gap-9 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid gap-6 md:gap-9 grid-cols-1">
         <div>
           {editing ? (
             <EntryComposerForm

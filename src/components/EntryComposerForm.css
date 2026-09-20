@@ -1,0 +1,12 @@
+.modern-entry-composer h2,.modern-entry-composer .font-heading { font-family:Lora,Georgia,serif!important; font-variant:normal; text-transform:none; }
+.modern-entry-composer h2 { font-size:28px; line-height:1.3; }
+.modern-entry-composer h2 small { display:inline-block; font:13px Inter,sans-serif; margin-left:10px; opacity:.65; }
+.modern-entry-composer .entry-writing { border-radius:8px; }
+.modern-entry-composer .entry-writing .tiptap { min-height:320px; max-height:none; padding:18px 0; font-family:Lora,Georgia,serif; font-size:18px; line-height:1.7; }
+.modern-entry-composer .entry-writing .tiptap p { margin:0 0 14px; }
+.modern-entry-composer .entry-writing .tiptap:focus { outline:none; }
+.modern-entry-composer .entry-writing .notes-toolbar { position:sticky; top:0; z-index:2; background:var(--bsd-surface); }
+.modern-entry-composer .field { flex:1; }
+.modern-entry-composer .field label { font:13px Inter,sans-serif; }
+.modern-entry-composer .entry-compose-fields > .flex:last-child { position:sticky; bottom:0; padding:12px; background:var(--bsd-parchment); border-top:1px solid var(--bsd-border); }
+@media(max-width:600px){.modern-entry-composer h2{font-size:24px}.modern-entry-composer .field{min-width:0!important;flex-basis:100%}.modern-entry-composer .entry-writing{padding:14px!important}}

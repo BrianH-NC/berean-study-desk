@@ -1,0 +1,14 @@
+.note-scan { width:min(740px,94vw); max-height:90dvh; overflow:auto; padding:24px; border:1px solid var(--bsd-border); border-radius:10px; color:var(--bsd-charcoal); background:var(--bsd-surface); }
+.note-scan::backdrop { background:#08291fcc; }
+.note-scan h2 { font-family:Lora,Georgia,serif; }
+.note-scan label { display:grid; gap:6px; font:14px Inter,sans-serif; margin:12px 0; }
+.note-scan input,.note-scan textarea,.note-scan select { max-width:100%; min-width:0; padding:8px; border:1px solid var(--bsd-border); border-radius:4px; background:var(--bsd-parchment); }
+.note-scan textarea { width:100%; line-height:1.5; }
+.note-scan-inputs { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.note-scan-preview { max-height:220px; max-width:100%; object-fit:contain; margin:12px auto; }
+.note-scan .note-scan-keep { display:flex; align-items:center; }
+.note-scan footer { display:flex; flex-wrap:wrap; gap:12px; margin-top:20px; }
+.notes-toolbar .note-highlight { display:inline-flex; gap:3px; align-items:center; }
+.notes-toolbar .note-highlight button { border:1px solid #b4b0a4; border-radius:4px; min-width:26px; height:28px; }
+.notes-editor mark { color:inherit; border-radius:2px; }
+@media(max-width:520px){.note-scan-inputs{grid-template-columns:1fr;gap:0}.note-scan{padding:16px}}

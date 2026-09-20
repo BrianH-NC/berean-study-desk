@@ -17,7 +17,7 @@ export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSa
   const [savedAt,setSavedAt]=useState(note.updated_at)
   const [recovery,setRecovery]=useState(()=>{try{return JSON.parse(localStorage.getItem(key))}catch{return null}})
   const [queue]=useState(()=>createNoteSaveQueue(async value=>{
-    const fields={title:value.title,body:value.body,rich_doc:value.rich_doc||null,ref:value.ref||null,tags:value.tags||[],note_type:value.note_type,shelf_book_id:value.shelf_book_id||null,doctrine_check_id:value.doctrine_check_id||null,resource_title:value.resource_title||null,resource_url:value.resource_url||null,updated_at:new Date().toISOString()}
+    const fields={page:value.page||null,title:value.title,body:value.body,rich_doc:value.rich_doc||null,ref:value.ref||null,tags:value.tags||[],note_type:value.note_type,shelf_book_id:value.shelf_book_id||null,doctrine_check_id:value.doctrine_check_id||null,resource_title:value.resource_title||null,resource_url:value.resource_url||null,updated_at:new Date().toISOString()}
     let query=supabase.from('entries').update(fields).eq('id',note.id).eq('user_id',userId)
     query=version.current?query.eq('updated_at',version.current):query.is('updated_at',null)
     const {data,error}=await query.select('updated_at').maybeSingle()
@@ -42,7 +42,7 @@ export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSa
     {recovery&&<div role="alert" className="notes-save-warning"><p>A local draft is available from an unfinished edit.</p><button onClick={()=>{change(recovery);setRecovery(null)}}>Restore draft</button><button onClick={()=>{localStorage.removeItem(key);setRecovery(null)}}>Use saved version</button></div>}
     {error&&<div role="alert" className="notes-save-warning">{error}<button onClick={()=>queue.flush().catch(()=>{})}>Retry save</button><button onClick={exportNote}>Export current draft</button></div>}
     <input className="notes-title-input" aria-label="Note title" value={draft.title||''} placeholder="Untitled note" onChange={e=>change({title:e.target.value})}/><div className="notes-source-line">{draft.ref}{book&&<span> · {book.title}</span>}{check&&<span> · {check.title||check.name}</span>}</div><div className="notes-tags">{(draft.tags||[]).map(tag=><span key={tag}>{tag}<button aria-label={`Remove tag ${tag}`} onClick={()=>change({tags:draft.tags.filter(t=>t!==tag)})}>×</button></span>)}</div>
-    <NoteRichEditor key={recovery?'recovery-pending':note.id} note={draft} userId={userId} onChange={change}/>
+    <NoteRichEditor key={recovery?'recovery-pending':note.id} note={draft} userId={userId} books={books} onChange={change}/>
     {!!draft.photos?.length&&<div className="notes-photos">{draft.photos.map(url=><a href={safeNoteUrl(url)||undefined} key={url} target="_blank" rel="noreferrer"><img src={safeNoteUrl(url)||undefined} alt="Attached note photograph"/></a>)}</div>}{draft.video_url&&safeNoteUrl(draft.video_url)&&<a href={draft.video_url} target="_blank" rel="noreferrer">Watch linked video →</a>}{draft.page&&<p className="card-meta">Book page {draft.page}</p>}{draft.stance&&<p className="card-meta">Stance: {draft.stance}</p>}
   </section><NoteContext draft={draft} note={note} notes={notes} books={books} checks={checks} links={links} version={savedAt} change={change} details={details} setDetails={setDetails} onOpen={onOpen} onNavigate={go} onExport={exportNote} onDuplicate={duplicate} onDelete={()=>onDelete(latest.current)}/></>
 }

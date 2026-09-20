@@ -1,3 +1,4 @@
+import AccountLink from './AccountLink'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic } from 'lucide-react'
@@ -72,7 +73,7 @@ export default function Sidebar({user}) {
       </div>
     </aside>
 
-    <header className="heritage-header"><Logo size={32} /><span className="font-heading text-sm">Berean Study Desk</span></header>
+    <header className="heritage-header"><Logo size={32} /><span className="font-heading text-sm">Berean Study Desk</span><AccountLink user={user}/></header>
     <nav className="heritage-bottom" aria-label="Phone navigation">
       {PRIMARY.map(item => {
         const Icon = item.icon

@@ -1,3 +1,4 @@
+import AccountLink from '../components/AccountLink'
 import {preferencesFor} from '../lib/preferences'
 import LibrarySummary from '../components/LibrarySummary'
 import LibraryBookEditor from '../components/LibraryBookEditor'
@@ -127,7 +128,7 @@ export default function Shelf() {
   const dropdown=(label,key,values,value)=><details><summary>{label}</summary><select className="input" aria-label={label} value={value} onChange={e=>update({[key]:e.target.value})}><option value="">All</option>{values.map(v=><option key={v} value={v}>{v}</option>)}</select></details>
   const selectedGroup=(key,value)=>update({[key]:value,browse:''})
   return <div className="page library-page heritage-library">
-    <div className="library-search-top"><input className="input" type="search" aria-label="Search your library" placeholder="Search your library (title, author, topic, tag, or ISBN)…" value={query} onChange={e=>update({q:e.target.value})}/><Link to="/settings/profile">{user.user_metadata?.display_name || 'My profile'}</Link><blockquote>“Study to show yourself approved to God…”<cite>2 Timothy 2:15</cite></blockquote></div>
+    <div className="library-search-top"><input className="input" type="search" aria-label="Search your library" placeholder="Search your library (title, author, topic, tag, or ISBN)…" value={query} onChange={e=>update({q:e.target.value})}/><AccountLink user={user}/><blockquote>“Study to show yourself approved to God…”<cite>2 Timothy 2:15</cite></blockquote></div>
     <div className="library-workspace"><div className="library-workspace-main">
     <header className="library-banner"><h1>Library</h1><p>Build a faithful library for a deeper walk with God.</p><blockquote>Good books feed<br/>a lifetime of faith.</blockquote></header>
     <div className="library-primary-actions"><Link to="/shelf/add" className="btn btn-primary">+ Add books</Link><FindMissingCovers books={books} saveCover={saveCover} onComplete={loadBooks}/><button className="btn btn-ghost" onClick={handleExport} disabled={!books?.length}>Export</button></div>

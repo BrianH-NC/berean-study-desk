@@ -1,5 +1,6 @@
+import AccountLink from './components/AccountLink'
 import { createContext, useContext, useEffect, useState, lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import Auth from './components/Auth'
 import Sidebar from './components/Sidebar'
@@ -31,11 +32,14 @@ export const useAuth = () => useContext(AuthContext)
 
 function ProtectedLayout() {
   const user=useAuth()
+  const { pathname } = useLocation()
+  const hasPageAccount = pathname === '/' || pathname === '/shelf' || pathname === '/bible' || pathname === '/sermons' || pathname.startsWith('/checks') || (pathname.startsWith('/notebook') && !pathname.endsWith('/advanced')) || (pathname.startsWith('/topics') && pathname !== '/topics/index')
   return (
     <div className="flex flex-col md:flex-row min-h-dvh">
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar user={user} />
       <main id="main-content" tabIndex={-1} className="app-main flex-1 min-w-0">
+        {!hasPageAccount && <div className="bsd-account-row"><AccountLink user={user}/></div>}
         <Suspense fallback={<p role="status">Loading workspace…</p>}><Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />

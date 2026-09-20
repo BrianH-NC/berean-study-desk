@@ -1,0 +1,6 @@
+a.bsd-account-link { display:inline-flex; align-items:center; gap:9px; flex-shrink:0; color:var(--bsd-forest); font:13px Inter,sans-serif; text-decoration:none; max-width:230px; }
+a.bsd-account-link .bsd-account-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bsd-account-link:focus-visible { outline:2px solid var(--bsd-forest); outline-offset:4px; border-radius:5px; }
+.bsd-account-row { display:flex; justify-content:flex-end; padding:18px 28px 0; }
+.heritage-header .bsd-account-link { margin-left:auto; color:inherit; }
+@media(max-width:767px) { .bsd-account-row,.app-main .bsd-account-link { display:none; } .heritage-header .bsd-account-name { display:none; } }

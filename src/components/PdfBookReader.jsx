@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
+import { getDocument, GlobalWorkerOptions, TextLayer } from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { highlightColors } from '../lib/bookAnnotations'
 import ReaderPageControls from './ReaderPageControls'
 import { handlePageKey } from '../lib/readerNavigation'
 
 GlobalWorkerOptions.workerSrc = workerUrl
 
-export default function PdfBookReader({ data, initialLocation, jump, onLocation }) {
+export default function PdfBookReader({ data, initialLocation, jump, onLocation, annotations = [], onSelection }) {
   const canvas = useRef(null)
+  const surface = useRef(null)
+  const textLayer = useRef(null)
+  const captureRef = useRef(null)
   const container = useRef(null)
   const pageViewport = useRef(null)
   const [document, setDocument] = useState(null)
@@ -38,13 +42,17 @@ export default function PdfBookReader({ data, initialLocation, jump, onLocation 
 
   useEffect(() => {
     if (!document) return
-    let active = true, renderTask
+    let active = true, renderTask, layer
     setRendering(true)
+    textLayer.current.replaceChildren()
     setError('')
     document.getPage(page).then(async pdfPage => {
       if (!active) return
       const original = pdfPage.getViewport({ scale: 1 })
       const viewport = pdfPage.getViewport({ scale: width / original.width * zoom })
+      surface.current.style.width = `${viewport.width}px`
+      surface.current.style.height = `${viewport.height}px`
+      surface.current.style.setProperty('--total-scale-factor', viewport.scale)
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
       const target = canvas.current
       target.width = Math.floor(viewport.width * pixelRatio)
@@ -57,10 +65,35 @@ export default function PdfBookReader({ data, initialLocation, jump, onLocation 
       setRendering(false)
       onLocation({ page })
       const content = await pdfPage.getTextContent()
-      if (active) setText(content.items.map(item => item.str + (item.hasEOL ? '\n' : ' ')).join(''))
+      if (!active) return
+      setText(content.items.map(item => item.str + (item.hasEOL ? '\n' : ' ')).join(''))
+      layer = new TextLayer({ textContentSource: content, container: textLayer.current, viewport })
+      await layer.render()
     }).catch(err => { if (active && err.name !== 'RenderingCancelledException') { setError(err.message); setRendering(false) } })
-    return () => { active = false; renderTask?.cancel() }
-  }, [document, page, width, zoom, onLocation])
+    return () => { active = false; renderTask?.cancel(); layer?.cancel() }
+  }, [document, page, width, zoom, onLocation, onSelection])
+
+  function capture(event, addNote = false) {
+    const selected = window.getSelection()
+    if (!selected?.rangeCount || !selected.toString().trim() || rendering) return
+    const range = selected.getRangeAt(0)
+    if (!textLayer.current.contains(range.commonAncestorContainer)) return
+    const box = surface.current.getBoundingClientRect()
+    const rects = Array.from(range.getClientRects()).filter(r => r.width > 0 && r.height > 0).map(r => ({
+      x: Math.max(0, (r.left - box.left) / box.width), y: Math.max(0, (r.top - box.top) / box.height),
+      width: Math.min(r.width / box.width, 1), height: Math.min(r.height / box.height, 1),
+    })).slice(0, 200)
+    if (!rects.length) return
+    if (addNote) event.preventDefault()
+    onSelection?.({ quote: selected.toString().trim(), location: { page, rects }, addNote })
+  }
+  useEffect(() => {
+    let timer
+    const changed = () => { clearTimeout(timer); timer = setTimeout(() => captureRef.current?.(), 180) }
+    window.document.addEventListener('selectionchange', changed)
+    return () => { clearTimeout(timer); window.document.removeEventListener('selectionchange', changed) }
+  }, [])
+  useEffect(() => { captureRef.current = () => capture(null) })
 
   function turn(direction) {
     if (!document) return
@@ -74,7 +107,10 @@ export default function PdfBookReader({ data, initialLocation, jump, onLocation 
     </div>
     {error && <p role="alert">{error}</p>}
     {rendering && !error && <p role="status">Loading page…</p>}
-    <div className="pdf-page" ref={pageViewport}><canvas ref={canvas} aria-label={`PDF page ${page}`}/></div>
+    <div className="pdf-page" ref={pageViewport}><div className="pdf-surface" ref={surface} onPointerUp={capture} onContextMenu={event => capture(event, true)} onKeyUp={capture}>
+      <canvas ref={canvas} aria-label={`PDF page ${page}`}/><div ref={textLayer} className="textLayer"/>
+      <div className="pdf-highlights" aria-hidden="true">{!rendering && annotations.filter(row => row.location.page === page).flatMap(row => (row.location.rects || []).map((rect, i) => <span key={`${row.id}-${i}`} style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%`, background: highlightColors[row.color] || highlightColors.yellow }}/>))}</div>
+    </div></div>
     <ReaderPageControls previousDisabled={!document || page <= 1} nextDisabled={!document || page >= document.numPages} turn={turn} label={document ? `Page ${page} of ${document.numPages}` : 'Opening PDF…'}/>
     <details className="pdf-text"><summary>Page text</summary><p>{text || 'This page has no extractable text. It may be a scanned image.'}</p></details>
   </div>

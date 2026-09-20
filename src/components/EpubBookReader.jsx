@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ePub from 'epubjs'
 import DOMPurify from 'dompurify'
+import { highlightColors } from '../lib/bookAnnotations'
 import ReaderPageControls from './ReaderPageControls'
 import { handlePageKey } from '../lib/readerNavigation'
 
@@ -15,7 +16,7 @@ function flattenToc(items, level = 0) {
   return items.flatMap(item => [{ ...item, depth: level }, ...flattenToc(item.subitems || [], level + 1)])
 }
 
-export default function EpubBookReader({ data, initialLocation, jump, onLocation }) {
+export default function EpubBookReader({ data, initialLocation, jump, onLocation, annotations = [], onSelection, onEscape }) {
   const host = useRef(null)
   const rendition = useRef(null)
   const turnPage = useRef(() => {})
@@ -51,7 +52,11 @@ export default function EpubBookReader({ data, initialLocation, jump, onLocation
         catch (err) { if (active) setError(err.message) }
         finally { turning = false }
       }
-      reader.on('keydown', event => handlePageKey(event, direction => turnPage.current(direction)))
+      reader.on('keydown', event => { if (event.key === 'Escape') onEscape?.(); handlePageKey(event, direction => turnPage.current(direction)) })
+      reader.on('selected', (cfi, contents) => {
+        const quote = contents.window.getSelection()?.toString().trim()
+        if (quote) onSelection?.({ quote, location: { cfi } })
+      })
       reader.themes.fontSize('110%')
       reader.themes.override('line-height', '1.6', true)
       reader.on('relocated', location => {
@@ -64,6 +69,13 @@ export default function EpubBookReader({ data, initialLocation, jump, onLocation
       })
       reader.on('displayError', err => { if (active) setError(`Unable to display this chapter: ${err.message || err}`) })
       reader.hooks.content.register(contents => {
+        contents.document.addEventListener('contextmenu', event => {
+          const selection = contents.window.getSelection()
+          const quote = selection?.toString().trim()
+          if (!quote || !selection.rangeCount) return
+          event.preventDefault()
+          onSelection?.({ quote, location: { cfi: contents.cfiFromRange(selection.getRangeAt(0)) }, addNote: true })
+        })
         let touchStart = null
         contents.document.addEventListener('touchstart', event => {
           touchStart = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null
@@ -99,10 +111,31 @@ export default function EpubBookReader({ data, initialLocation, jump, onLocation
       if (active) setError(`Unable to open this EPUB. Encrypted or damaged books are not supported. ${err.message || ''}`)
     })
     return () => { active = false; clearTimeout(timeout); rendition.current = null; turnPage.current = () => {}; if (opened) book.destroy() }
-  }, [data, initialLocation, onLocation])
+  }, [data, initialLocation, onLocation, onSelection, onEscape])
 
   useEffect(() => { if (ready && jump?.location?.cfi) rendition.current?.display(jump.location.cfi).catch(err => setError(err.message)) }, [jump, ready])
   useEffect(() => { rendition.current?.themes.fontSize(`${fontSize}%`); rendition.current?.themes.override('line-height', String(spacing), true) }, [fontSize, spacing])
+
+  useEffect(() => {
+    if (!ready) return
+    const reader = rendition.current
+    const ranges = new Map(annotations.filter(row => row.location.cfi).map(row => [row.location.cfi, row]))
+    for (const [cfi, row] of ranges) {
+      try { reader.annotations.highlight(cfi, {}, null, 'saved-passage', { fill: highlightColors[row.color] || highlightColors.yellow, 'fill-opacity': '0.35', 'mix-blend-mode': 'multiply' }) }
+      catch { setError('One saved highlight could not be displayed. It is still available in Highlights & notes.') }
+    }
+    return () => { for (const cfi of ranges.keys()) reader.annotations.remove(cfi, 'highlight') }
+  }, [annotations, ready])
+  useEffect(() => {
+    if (!ready) return
+    let frame
+    const observer = new ResizeObserver(([entry]) => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => rendition.current?.resize(entry.contentRect.width, entry.contentRect.height))
+    })
+    observer.observe(host.current)
+    return () => { observer.disconnect(); cancelAnimationFrame(frame) }
+  }, [ready])
 
   function move(action) { setError(''); Promise.resolve(action()).catch(err => setError(err.message)) }
   return <div className="epub-reader" tabIndex={0} aria-label="EPUB reader" onKeyDown={event => handlePageKey(event, direction => turnPage.current(direction))}>

@@ -19,3 +19,22 @@
 .pdf-reader:focus-visible,.epub-reader:focus-visible{outline:2px solid var(--bsd-forest);outline-offset:4px}
 @media(max-width:767px){.reader-page-controls{bottom:calc(76px + env(safe-area-inset-bottom));gap:8px;padding:8px}.reader-page-controls .btn{padding:10px}.reader-page-controls .btn span{display:none}.reader-page-hint{font-size:10px}}
 @media(max-width:700px){.digital-book-reader{padding:12px}.digital-reader-heading{align-items:flex-start;flex-direction:column}.digital-toolbar{gap:8px}.digital-toolbar select{max-width:200px}.digital-toolbar .btn{font-size:13px}.epub-pages{height:620px}}
+
+.reader-workspace-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.reader-workspace-heading>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.reader-workspace-heading .btn{flex-shrink:0}
+.reader-selection-hint{font-size:13px;color:var(--bsd-muted);margin:10px 0}
+.reader-expanded{position:fixed;inset:0;z-index:10000;background:var(--bsd-surface,#fff);padding:20px;overflow:auto;height:100dvh;box-sizing:border-box}
+.reader-expanded .reader-page-controls{bottom:12px}.reader-expanded .epub-pages{height:calc(100dvh - 250px);min-height:240px}.reader-expanded .pdf-page{max-height:calc(100dvh - 250px)}
+.epub-pages{height:620px}
+.reader-selection-tools{position:sticky;bottom:12px;z-index:30;padding:16px;background:var(--bsd-surface,#fff);border:1px solid var(--bsd-border,#ddd);border-radius:12px;box-shadow:0 4px 24px #0003}
+.reader-selection-tools blockquote{margin:0;max-height:70px;overflow:auto;border-left:3px solid var(--bsd-forest);padding-left:12px;font-size:14px}
+.reader-selection-tools textarea{display:block;width:100%;min-height:90px;max-height:30vh;padding:10px;margin:8px 0;border:1px solid var(--bsd-border,#ddd);border-radius:8px;font:inherit}
+.reader-highlights{margin-top:12px}.reader-highlights summary{cursor:pointer}.reader-highlights ul{list-style:none;padding:0}.reader-highlights li{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bsd-border,#ddd);padding:8px 0}.reader-highlights .passage-quote{flex:1;text-align:left;max-height:90px;overflow:auto;white-space:normal}.reader-highlights a{flex-shrink:0}
+.pdf-surface{position:relative;margin:auto;background:#fff}.pdf-highlights{position:absolute;inset:0;pointer-events:none}.pdf-highlights span{position:absolute;opacity:.35;mix-blend-mode:multiply}
+/* Minimal PDF.js 6 text-layer styles (Apache-2.0), scoped to the book reader. */
+.pdf-surface .textLayer{position:absolute;inset:0;overflow:clip;line-height:1;letter-spacing:normal;word-spacing:normal;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0;--min-font-size:1;--text-scale-factor:calc(var(--total-scale-factor) * var(--min-font-size));--min-font-size-inv:calc(1 / var(--min-font-size))}
+.pdf-surface .textLayer :is(span,br){color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0 0;user-select:text}
+.pdf-surface .textLayer>:not(.markedContent),.pdf-surface .textLayer .markedContent span:not(.markedContent){z-index:1;--font-height:0;font-size:calc(var(--text-scale-factor) * var(--font-height));--scale-x:1;--rotate:0deg;transform:rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv))}
+.pdf-surface .textLayer .markedContent{display:contents}.pdf-surface .textLayer ::selection{background:rgb(50 110 200 / 35%)}
+@media(max-width:767px){.reader-selection-tools{bottom:calc(76px + env(safe-area-inset-bottom))}.reader-expanded{padding:12px}.reader-expanded .reader-selection-tools{bottom:12px}.reader-highlights li{flex-wrap:wrap}}
+
+.reader-workspace-heading,.reader-selection-hint,.reader-selection-tools,.reader-highlights{font-family:Inter,system-ui,sans-serif}

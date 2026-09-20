@@ -154,7 +154,7 @@ export default function Reading() {
         / {book.title}
       </div>
 
-      <DigitalBookReader key={book.id} bookId={book.id} userId={user.id}/>
+      <DigitalBookReader key={book.id} bookId={book.id} userId={user.id} onNoteCreated={entry => setNotes(previous => [entry, ...(previous || [])])}/>
       <div className="reading-session-grid">
         {/* Book */}
         <aside className="card reading-session-book">

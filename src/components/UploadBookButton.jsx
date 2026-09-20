@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Upload } from 'lucide-react'
 import { importBookFile } from '../lib/bookFiles'
 
@@ -21,7 +21,10 @@ export default function UploadBookButton({ userId }) {
     finally { pending.current = false; setBusy(false) }
   }
   return <div>
+    <div className="flex flex-wrap gap-3">
     <button className="btn btn-primary" disabled={busy} onClick={() => input.current.click()}><Upload size={17} aria-hidden="true"/>{busy ? 'Uploading book…' : 'Upload PDF or EPUB'}</button>
+    {!busy && <Link to="/reading/free-books" className="btn btn-secondary">Find Free Books</Link>}
+    </div>
     <input ref={input} type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onChange={upload}/>
     <p className="card-meta mt-2" role="status">{busy ? 'Adding your book to the Library and opening the reader…' : 'Choose a file to add it to your Library and start reading. Up to 50 MB.'}</p>
   </div>

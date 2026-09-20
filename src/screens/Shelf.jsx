@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
+import { removeBookWithFiles } from '../lib/bookFiles'
 import FindMissingCovers from '../components/FindMissingCovers'
 import { primaryCategory, readingStatus, sortLibrary } from '../lib/libraryPresentation'
 import LibraryCollection from '../components/LibraryCollection'
@@ -76,9 +77,9 @@ export default function Shelf() {
     setBooks(current=>current.map(b=>b.id===editing.id?{...b,...values}:b))
   }
   async function removeBook(book) {
-    if(!window.confirm(`Remove “${book.title}” from your Library? This removes your library record, not the shared Doctrine Check.`)) return
-    const {error}=await supabase.from('books').delete().eq('user_id',user.id).eq('id',book.id)
-    if(error) {window.alert('Could not remove book: '+error.message);return}
+    if(!window.confirm(`Remove “${book.title}” from your Library, including uploaded files and their bookmarks? The shared Doctrine Check will remain.`)) return
+    try { await removeBookWithFiles(book.id,user.id) }
+    catch(error) {window.alert('Could not remove book: '+error.message);return}
     setBooks(current=>current.filter(b=>b.id!==book.id))
   }
   async function saveGoal(target) {

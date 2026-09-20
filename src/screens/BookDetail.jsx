@@ -2,8 +2,10 @@ import { CreationAssessment } from '../components/DoctrineChrome'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../App'
 import AssessmentBadge from '../components/AssessmentBadge'
 import BookCover from '../components/BookCover'
+import { removeBookWithFiles } from '../lib/bookFiles'
 import { primaryCategory, readingStatus } from '../lib/libraryPresentation'
 import { parseReference } from '../lib/bsb'
 import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
@@ -23,6 +25,7 @@ function scriptureUrl(reference) {
 }
 
 export default function BookDetail() {
+  const user = useAuth()
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -117,9 +120,10 @@ export default function BookDetail() {
   }
 
   async function handleDelete() {
-    if (!confirm(`Remove "${book.title}" from your shelf?`)) return
-    const { error } = await supabase.from('books').delete().eq('id', id)
-    if (error) {
+    if (!confirm(`Remove "${book.title}" from your shelf, including uploaded files and their bookmarks?`)) return
+    try {
+      await removeBookWithFiles(id, user.id)
+    } catch (error) {
       alert('Error deleting: ' + error.message)
       return
     }

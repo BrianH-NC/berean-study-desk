@@ -14,6 +14,8 @@ Do not deploy the frontend before the migration: the reader and Library deletion
 
 ## Design and security
 
+- Page navigation: a bottom toolbar stays in reach while reading PDFs and EPUBs. Focus the reader and use Left/Right arrow keys; EPUB keys work inside the book frame too. EPUBs also accept horizontal swipes, excluding selected text and vertical scrolling. Typing and reader setting controls retain their normal keyboard behavior. PDF page turns reset the page's internal scroll position. Navigation changes were verified with real PDF/EPUB fixtures in headless Edge, including first/last-page boundaries, iframe keyboard events, swipe events, mobile control visibility and saved locations.
+
 - `src/lib/bookFiles.js` handles authenticated Storage/database operations. Removing an attachment deletes its Storage object before its metadata. Both existing Library delete actions remove attachments first; partial failures are reported and can be retried. Direct database/admin deletions bypass that application cleanup and can leave private Storage objects requiring administrative removal.
 - `DigitalBookReader` restores state before mounting a viewer. Position writes are serialized and pending rapid changes coalesced to avoid out-of-order requests within a session. Concurrent devices use the last completed write. Allow “Place saved” before closing a tab; offline writes are not persisted locally.
 - Viewers load lazily. PDF.js runs with eval disabled. EPUB content is sanitized after archive asset replacement, scripts/popups are disabled in its iframe, and a chapter CSP blocks network resources. Internal links are resolved within the book. External links/assets are intentionally unavailable.

@@ -1,5 +1,9 @@
 # Berean Study Desk — Handoff
 
+## Digital reader work — 2026-09-19
+
+See [DIGITAL_READER.md](DIGITAL_READER.md) for PDF/EPUB uploads and reading inside Reading Now, implementation details, validation, and required deployment order. This feature is on `feature/pdf-epub-reader`; its private storage/database migration has not been applied to production. Apply the documented migration before deploying the frontend. Current Modern Heritage and authentication conventions are preserved.
+
 ## Current Sermons work — 2026-09-14
 
 See [SERMONS.md](SERMONS.md) for the new Sermons workspace, integration details, applied database migrations, and validation. The user approved promotion of `feature/sermons-workspace` to main, including Primary Text and suggested topic linking. Current design is **Modern Heritage**, single light theme; BSB is the default Scripture source. Keep sidebar expansion button-controlled. These user-approved decisions supersede the historical Organic/hover-peek/direct-to-main descriptions below. The actual installed React version is 19; preserve the current package versions rather than reverting to this old stack snapshot.

@@ -6,6 +6,7 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { createEntry, listEntriesForBook, formatEntryNum } from '../lib/entries'
 import { stanceClass } from '../lib/stance'
+import DigitalBookReader from '../components/DigitalBookReader'
 
 const statusLabel = value => ({'in-progress':'Reading',read:'Completed',unread:'To Read',reference:'Reference',paused:'Paused'}[value] || 'To Read')
 function Cover({book}) { return <div className="reading-cover">{book.cover_url ? <img src={book.cover_url} alt="" loading="lazy"/> : <><BookOpen aria-hidden="true"/><span>{book.title}</span></>}</div> }
@@ -151,6 +152,7 @@ export default function Reading() {
         / {book.title}
       </div>
 
+      <DigitalBookReader key={book.id} bookId={book.id} userId={user.id}/>
       <div className="reading-session-grid">
         {/* Book */}
         <aside className="card reading-session-book">

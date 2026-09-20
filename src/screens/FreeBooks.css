@@ -1,0 +1,9 @@
+.free-books-page{max-width:1160px;margin:auto}.free-books-heading{margin:24px 0}.free-books-heading h1{font-size:36px;color:var(--bsd-forest)}
+.free-books-page>.card-meta{display:block}.free-books-page .free-book-card{flex-direction:row}.free-books-page .free-book-close{align-self:flex-end}
+.free-book-sources,.free-book-topics,.free-book-actions,.free-book-pagination{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.free-book-search label{display:block;margin-bottom:8px;font-weight:600}.free-book-search>div{display:flex;gap:10px}.free-book-search input{flex:1;min-width:0}
+.free-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:20px}
+.free-book-card{display:flex;align-items:flex-start;gap:18px;padding:20px;min-width:0}.free-book-card h2{font-size:19px;line-height:1.35;overflow-wrap:anywhere}.free-book-card p{font-size:14px;margin:8px 0 16px}.free-book-card a{display:block;font-size:13px;margin-top:12px}
+.free-book-cover{width:78px;min-width:78px;height:116px;background:var(--bsd-parchment,#f3ebda);color:var(--bsd-forest);display:flex;align-items:center;justify-content:center;border-radius:4px;overflow:hidden}.free-book-cover img{width:100%;height:100%;object-fit:contain}
+.free-book-detail{margin:24px 0;padding:24px;border:2px solid var(--bsd-forest)}.free-book-detail h2{font-size:25px;margin:12px 0}.free-book-detail-body{display:flex;gap:22px;margin-bottom:18px}.free-book-detail-body>div:last-child{min-width:0}.free-book-description{margin:14px 0;line-height:1.65;overflow-wrap:anywhere}.free-book-close{float:right}.free-book-pagination{justify-content:center;margin-top:28px}
+@media(max-width:700px){.free-book-grid{grid-template-columns:1fr}.free-book-card{padding:15px;gap:12px}.free-book-detail-body{flex-direction:column}.free-book-detail{padding:16px}.free-book-search>div{flex-wrap:wrap}.free-book-close{float:none}.free-books-heading h1{font-size:29px}}

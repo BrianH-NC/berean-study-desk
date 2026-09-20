@@ -1,5 +1,9 @@
 # Berean Study Desk — Handoff
 
+## Free-book catalogs — 2026-09-19
+
+See [FREE_BOOKS.md](FREE_BOOKS.md). Home and Reading Now now link to Find Free Books (`/reading/free-books`), with Project Gutenberg and CCEL search and source-supported imports into the existing private reader. Deploy the authenticated `free-books` Edge Function before its frontend. No new database migration or AI key is needed.
+
 ## Digital reader work — 2026-09-19
 
 Upload PDF or EPUB is now directly available on Home and the main Reading Now page. It creates the Library entry and opens the reader; users do not need to create a book first.

@@ -17,10 +17,10 @@ async function validateBookFile(file) {
   return format
 }
 
-export async function importBookFile(userId, file) {
+export async function importBookFile(userId, file, metadata = {}) {
   await validateBookFile(file)
   const title = file.name.replace(/\.(pdf|epub)$/i, '').replace(/[_]+/g, ' ').trim() || 'Untitled book'
-  const book = checked(await supabase.from('books').insert({ user_id: userId, title, reading_status: 'in-progress', tags: [] }).select('id').single())
+  const book = checked(await supabase.from('books').insert({ user_id: userId, title: metadata.title?.trim().slice(0, 1000) || title, author: metadata.author?.slice(0, 1000) || null, cover_url: metadata.cover || null, description: metadata.description?.slice(0, 2000) || null, notes: metadata.url ? `Source: ${metadata.url}` : null, reading_status: 'in-progress', tags: [] }).select('id').single())
   try {
     await uploadBookFile(userId, book.id, file)
     return book.id

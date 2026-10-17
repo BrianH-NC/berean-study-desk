@@ -697,7 +697,7 @@ export default function BibleStudy() {
           )}
 
       </aside>
-      {sessionMode?(sessionNoteId?<SessionNote key={sessionNoteId} id={sessionNoteId} saveRef={sessionSaveRef}/>:<aside className="card"><h2>Study notes</h2><p>Select a note or choose New note in the session bar to write alongside your passage.</p></aside>):searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
+      {sessionMode?(sessionNoteId?<SessionNote key={sessionNoteId} id={sessionNoteId} saveRef={sessionSaveRef} currentPassage={passageRef}/>:<aside className="card"><h2>Study notes</h2><p>Select a note or choose New note in the session bar to write alongside your passage.</p></aside>):searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
     </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <div className="relative flex-1" style={{ minWidth: 220 }}>

@@ -12,7 +12,8 @@
 .bible-desk cite { display:block; margin-top:5px; font:12px/1.5 Lora,serif; }
 .bible-title h1 { font:600 30px/1.2 Lora,serif; margin:0; }
 .bible-title p { font:italic 17px/1.6 Lora,serif; margin:3px 0 14px; }
-.bible-grid { display:grid; grid-template-columns:minmax(0,2.3fr) minmax(240px,1fr) minmax(190px,.75fr); align-items:start; gap:12px; }
+.bible-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:12px; }
+.bible-grid>.bible-reading { grid-column:1/-1; width:100%; }
 .bible-desk .card { border-radius:5px; box-shadow:none; padding:14px; min-width:0; }
 .bible-reading,.bible-tools-column,.bible-personal { min-width:0; display:flex; flex-direction:column; gap:12px; }
 .bible-toolbar { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px; }
@@ -75,7 +76,7 @@
 .bible-related-item small { font:11px/1.5 Inter,sans-serif; color:var(--bsd-muted); margin-top:4px; }
 .bible-related-item img { width:32px; height:46px; object-fit:contain; }
 .bible-image-quote { padding:30px 15px; background-size:cover; background-position:center; text-align:center; color:#fff; border-radius:4px; font:italic 21px/1.4 'EB Garamond',serif; margin:0; }
-@media(max-width:1399px) { .bible-grid { grid-template-columns:minmax(0,1fr) 280px; } .bible-personal { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; } .bible-image-quote { grid-column:1/-1; } .bible-header-quote { display:none; } }
+@media(max-width:1399px) { .bible-header-quote { display:none; } }
 @media(max-width:1099px) { .bible-grid { grid-template-columns:minmax(0,1fr); } .bible-tools-column { display:grid; grid-template-columns:1fr 1fr; align-items:start; } .bible-tools-column>.card { margin:0; } }
 @media(max-width:767px) { .bible-desk { padding:12px; } .bible-title h1 { font-size:26px; } .bible-topbar { gap:0; } .bible-account { display:none; } .bible-lookup { gap:6px; padding-left:8px; } .bible-lookup input { font-size:16px; } .bible-lookup .btn { padding:8px 12px; } .bible-lookup select { width:62px; padding:10px 3px; } .bible-parallel { grid-auto-columns:85%; scroll-snap-type:x proximity; } .bible-translation { scroll-snap-align:start; } .bible-tools-column,.bible-personal { display:flex; flex-direction:column; } .bible-tools-column>.card,.bible-personal>.card { width:100%; } .bible-verse-text { font-size:22px; } .bible-toolbar { gap:8px; } .bible-reader-heading h2 { font-size:19px; } }
 

@@ -6,6 +6,7 @@ import Auth from './components/Auth'
 import Sidebar from './components/Sidebar'
 import Home from './screens/Home'
 import Shelf from './screens/Shelf'
+import LibraryImport from './screens/LibraryImport'
 import BookDetail from './screens/BookDetail'
 import AddBooks from './screens/AddBooks'
 import Wishlist from './screens/Wishlist'
@@ -46,6 +47,7 @@ function ProtectedLayout() {
         <Suspense fallback={<p role="status">Loading workspace…</p>}><Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shelf" element={<Shelf />} />
+          <Route path="/shelf/import" element={<LibraryImport />} />
           <Route path="/shelf/add" element={<AddBooks />} />
           <Route path="/shelf/wishlist" element={<Wishlist />} />
           <Route path="/shelf/wishlist/add" element={<WishlistAdd />} />

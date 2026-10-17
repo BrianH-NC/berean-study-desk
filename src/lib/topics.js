@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { checksList } from './theologyCheck'
 export async function topicRows(table,userId){
   const rows=[]
-  for(let offset=0;;offset+=500){const {data,error}=await supabase.from(table).select('*').eq('user_id',userId).order(table==='topic_preferences'?'topic_key':'id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)return rows}
+  for(let offset=0;;offset+=500){const {data,error}=await (table === 'entries' ? supabase.from(table).select('*').is('deleted_at',null) : supabase.from(table).select('*')).eq('user_id',userId).order(table==='topic_preferences'?'topic_key':'id').range(offset,offset+499);if(error)throw error;rows.push(...data);if(data.length<500)return rows}
 }
 export async function loadTopicData(userId){
   const names=['personal','links','preferences','notes','books','checks','sermons']

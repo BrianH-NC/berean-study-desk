@@ -7,18 +7,22 @@ import { createNoteSaveQueue } from '../lib/noteSaveQueue'
 import NoteContext from './NoteContext'
 import NoteMenu from './NoteMenu'
 import NoteRichEditor from './NoteRichEditor'
-export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSaved,onOpen,onDuplicate,onDelete,saveRef}) {
+import NoteHistory from './NoteHistory'
+export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSaved,onOpen,onDuplicate,onDelete,saveRef,sessionMode=false}) {
   const location=useLocation(), navigate=useNavigate()
   const key=`bsd-note-draft:${userId}:${note.id}`
   const [draft,setDraft]=useState({...note,note_type:noteType(note)})
   const latest=useRef(draft), version=useRef(note.updated_at)
+  const [history,setHistory]=useState(false),[editorVersion,setEditorVersion]=useState(0)
+  async function openHistory(){try{await queue.flush();setHistory(true)}catch{/* The save warning explains the failure. */}}
+  function restored(row){latest.current=row;version.current=row.updated_at;setDraft(row);setSavedAt(row.updated_at);setRecovery(null);setStatus('Saved');try{localStorage.removeItem(key)}catch{/* Restoration is already saved. */}setEditorVersion(v=>v+1);onSaved(row)}
   const [status,setStatus]=useState('Saved'), [error,setError]=useState(''), [details,setDetails]=useState(false), [links,setLinks]=useState({seeAlso:[],referencedBy:[]})
   useEffect(()=>{if(new URLSearchParams(location.search).has('details'))setDetails('edit')},[location.search])
   const [savedAt,setSavedAt]=useState(note.updated_at)
   const [recovery,setRecovery]=useState(()=>{try{return JSON.parse(localStorage.getItem(key))}catch{return null}})
   const [queue]=useState(()=>createNoteSaveQueue(async value=>{
     const fields={page:value.page||null,title:value.title,body:value.body,rich_doc:value.rich_doc||null,ref:value.ref||null,tags:value.tags||[],note_type:value.note_type,shelf_book_id:value.shelf_book_id||null,doctrine_check_id:value.doctrine_check_id||null,resource_title:value.resource_title||null,resource_url:value.resource_url||null,updated_at:new Date().toISOString()}
-    let query=supabase.from('entries').update(fields).eq('id',note.id).eq('user_id',userId)
+    let query=supabase.from('entries').update(fields).eq('id',note.id).eq('user_id',userId).is('deleted_at',null)
     query=version.current?query.eq('updated_at',version.current):query.is('updated_at',null)
     const {data,error}=await query.select('updated_at').maybeSingle()
     if(error)throw error
@@ -38,11 +42,13 @@ export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSa
   function exportNote(){downloadNote(latest.current)}
   async function go(url){try{await queue.flush();navigate(url)}catch{/* Save error stays visible. */}}
   async function duplicate(){try{await queue.flush();onDuplicate(latest.current)}catch{/* Save error stays visible. */}}
-  return <><section className="notes-editor card"><header><button className="notes-back btn btn-ghost" onClick={()=>onOpen(null)}>← Notes</button><span className="card-meta">no. {formatEntryNum(note.number)}</span><span className="notes-save" role="status">{status}</span><button className="btn btn-ghost notes-details-toggle" onClick={()=>setDetails(!details)}>Details</button><NoteMenu label="Editor actions" actions={[{label:'Edit note details',run:()=>setDetails('edit')},{label:'Export as Markdown',run:exportNote},{label:'Duplicate note',run:duplicate},{label:'Delete note',danger:true,run:()=>onDelete(latest.current)}]}/></header>
+  return <><section className="notes-editor card"><header><button className="notes-back btn btn-ghost" onClick={()=>onOpen(null)}>← Notes</button><span className="card-meta">no. {formatEntryNum(note.number)}</span><span className="notes-save" role="status">{status}</span><button className="btn btn-ghost notes-details-toggle" onClick={()=>setDetails(!details)}>Details</button><NoteMenu label="Editor actions" actions={sessionMode?[{label:'Export as Markdown',run:exportNote}]:[{label:'Edit note details',run:()=>setDetails('edit')},{label:'Export as Markdown',run:exportNote},{label:'Duplicate note',run:duplicate},{label:'Move to Trash',danger:true,run:()=>onDelete(latest.current)}]}/></header>
     {recovery&&<div role="alert" className="notes-save-warning"><p>A local draft is available from an unfinished edit.</p><button onClick={()=>{change(recovery);setRecovery(null)}}>Restore draft</button><button onClick={()=>{localStorage.removeItem(key);setRecovery(null)}}>Use saved version</button></div>}
     {error&&<div role="alert" className="notes-save-warning">{error}<button onClick={()=>queue.flush().catch(()=>{})}>Retry save</button><button onClick={exportNote}>Export current draft</button></div>}
     <input className="notes-title-input" aria-label="Note title" value={draft.title||''} placeholder="Untitled note" onChange={e=>change({title:e.target.value})}/><div className="notes-source-line">{draft.ref}{book&&<span> · {book.title}</span>}{check&&<span> · {check.title||check.name}</span>}</div><div className="notes-tags">{(draft.tags||[]).map(tag=><span key={tag}>{tag}<button aria-label={`Remove tag ${tag}`} onClick={()=>change({tags:draft.tags.filter(t=>t!==tag)})}>×</button></span>)}</div>
-    <NoteRichEditor key={recovery?'recovery-pending':note.id} note={draft} userId={userId} books={books} onChange={change}/>
+    <button className="btn btn-ghost" onClick={openHistory}>History — restore a previous version</button>
+    {history&&<NoteHistory entryId={note.id} getNote={()=>({...latest.current,updated_at:version.current})} onRestored={restored} onClose={()=>setHistory(false)}/>}
+    <NoteRichEditor key={recovery?'recovery-pending':`${note.id}:${editorVersion}`} note={draft} userId={userId} books={books} onChange={change}/>
     {!!draft.photos?.length&&<div className="notes-photos">{draft.photos.map(url=><a href={safeNoteUrl(url)||undefined} key={url} target="_blank" rel="noreferrer"><img src={safeNoteUrl(url)||undefined} alt="Attached note photograph"/></a>)}</div>}{draft.video_url&&safeNoteUrl(draft.video_url)&&<a href={draft.video_url} target="_blank" rel="noreferrer">Watch linked video →</a>}{draft.page&&<p className="card-meta">Book page {draft.page}</p>}{draft.stance&&<p className="card-meta">Stance: {draft.stance}</p>}
-  </section><NoteContext draft={draft} note={note} notes={notes} books={books} checks={checks} links={links} version={savedAt} change={change} details={details} setDetails={setDetails} onOpen={onOpen} onNavigate={go} onExport={exportNote} onDuplicate={duplicate} onDelete={()=>onDelete(latest.current)}/></>
+  </section>{!sessionMode&&<NoteContext draft={draft} note={note} notes={notes} books={books} checks={checks} links={links} version={savedAt} change={change} details={details} setDetails={setDetails} onOpen={onOpen} onNavigate={go} onExport={exportNote} onDuplicate={duplicate} onDelete={()=>onDelete(latest.current)}/>}</>
 }

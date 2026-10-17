@@ -10,7 +10,7 @@ import { dailyHero } from '../lib/dailyHero'
 async function loadOwned(table, userId) {
   const rows = []
   for (let start = 0; ; start += 500) {
-    const { data, error } = await supabase.from(table).select('*').eq('user_id', userId).order('id').range(start, start + 499)
+    const { data, error } = await (table === 'entries' ? supabase.from(table).select('*').is('deleted_at',null) : supabase.from(table).select('*')).eq('user_id', userId).order('id').range(start, start + 499)
     if (error) throw new Error(error.message)
     rows.push(...data)
     if (data.length < 500) return rows

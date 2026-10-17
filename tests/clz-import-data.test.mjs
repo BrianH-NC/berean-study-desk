@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {blankPatch} from '../src/lib/clzImport.js'
-const source=fs.readFileSync(new URL('../src/lib/clzImportData.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replace(/export /g,'')
+const source=fs.readFileSync(new URL('../src/lib/clzImportData.js',import.meta.url),'utf8').replace(/^import .*\r?\n/gm,'').replace(/export /g,'')
 const {fillBookBlanks,loadImportBooks}=new Function('blankPatch','supabase',source+';return {fillBookBlanks,loadImportBooks}')(blankPatch,{})
 test('import scopes reads and writes to the owner and compares every blank field before updating',async()=>{
  const calls=[];let phase=0

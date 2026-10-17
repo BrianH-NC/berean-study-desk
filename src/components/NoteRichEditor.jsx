@@ -1,4 +1,5 @@
 import Highlight from '@tiptap/extension-highlight'
+import NoteScripture from './NoteScripture'
 import NoteScan from './NoteScan'
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -13,7 +14,7 @@ const ScriptureQuote=Node.create({name:'scriptureQuote',group:'block',content:'b
   parseHTML:()=>[{tag:'blockquote[data-scripture]',contentElement:element=>element.querySelector('.scripture-content')||element}],
   renderHTML:({node})=>['blockquote',{'data-scripture':'true','data-reference':node.attrs.reference,class:'notes-scripture'},['div',{class:'scripture-content'},0],['cite',{contenteditable:'false'},node.attrs.reference||'Scripture quotation']]
 })
-export default function NoteRichEditor({note,onChange,userId,books}) {
+export default function NoteRichEditor({note,onChange,userId,books,currentPassage}) {
   const upload=useRef(null), [error,setError]=useState(''),[tool,setTool]=useState(null),[value,setValue]=useState('')
   const editor=useEditor({extensions:[StarterKit.configure({heading:{levels:[2,3]},link:{openOnClick:false}}),Image,ScriptureQuote,Highlight.configure({multicolor:true})],content:note.rich_doc || plainDocument(note.body),editorProps:{attributes:{'aria-label':'Note content',role:'textbox','aria-multiline':'true'}},onUpdate:({editor})=>onChange({rich_doc:editor.getJSON(),body:editor.getText()})})
   const active=useEditorState({editor,selector:({editor:e})=>e?{style:e.isActive('heading',{level:2})?'2':e.isActive('heading',{level:3})?'3':'paragraph',...Object.fromEntries(['bold','italic','underline','bulletList','orderedList','blockquote','scriptureQuote','link'].map(k=>[k,e.isActive(k)])),undo:e.can().undo(),redo:e.can().redo()}:null})
@@ -21,7 +22,7 @@ export default function NoteRichEditor({note,onChange,userId,books}) {
   const icons={Bold,Italic,Underline,Bullets:List,'Numbered list':ListOrdered,Quote,Scripture:BookOpen,Link:LinkIcon,Image:ImageIcon,Undo:Undo2,Redo:Redo2}
   const keys={Bold:'bold',Italic:'italic',Underline:'underline',Bullets:'bulletList','Numbered list':'orderedList',Quote:'blockquote',Scripture:'scriptureQuote',Link:'link'}
   const action=(label,command)=> {const Icon=icons[label];return <button type="button" key={label} title={label} aria-label={label} aria-pressed={keys[label]?!!active?.[keys[label]]:undefined} disabled={label==='Undo'?!active?.undo:label==='Redo'?!active?.redo:false} onClick={command}><Icon size={17}/></button>}
-  return <><div className="notes-toolbar" role="group" aria-label="Formatting">
+  return <><NoteScripture editor={editor} note={note} onChange={onChange} currentPassage={currentPassage}/><div className="notes-toolbar" role="group" aria-label="Formatting">
     <select aria-label="Paragraph style" value={active?.style||'paragraph'} onChange={e=>e.target.value==='paragraph'?editor.chain().focus().setParagraph().run():editor.chain().focus().setHeading({level:Number(e.target.value)}).run()}><option value="paragraph">Paragraph</option><option value="2">Heading</option><option value="3">Subheading</option></select>
     {action('Bold',()=>editor.chain().focus().toggleBold().run())}{action('Italic',()=>editor.chain().focus().toggleItalic().run())}{action('Underline',()=>editor.chain().focus().toggleUnderline().run())}{action('Bullets',()=>editor.chain().focus().toggleBulletList().run())}{action('Numbered list',()=>editor.chain().focus().toggleOrderedList().run())}{action('Quote',()=>editor.chain().focus().toggleBlockquote().run())}{action('Scripture',()=>{setTool('scripture');setValue(editor.getAttributes('scriptureQuote').reference||note.ref||'')})}
     {active?.scriptureQuote&&<button title="Remove Scripture callout" aria-label="Remove Scripture callout" onClick={()=>editor.chain().focus().lift('scriptureQuote').run()}>×</button>}

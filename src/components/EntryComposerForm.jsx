@@ -1,3 +1,5 @@
+import { useFormRecovery } from '../lib/useFormRecovery'
+import QuotationBookPicker from './QuotationBookPicker'
 import NoteRichEditor from './NoteRichEditor'
 import '../screens/Notes.css'
 import './EntryComposerForm.css'
@@ -44,6 +46,8 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
   const [focusMode, setFocusMode] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const recovery=useFormRecovery(`${userId}:entry:${initial?.id||'new'}`,{title,body,richDoc,ref,tagsInput,photos,relatedSelections,shelfBookId,page,videoUrl,numberOverride},saved=>{setTitle(saved.title||'');setBody(saved.body||'');setRichDoc(saved.richDoc||null);setRef(saved.ref||'');setTagsInput(saved.tagsInput||'');setPhotos(saved.photos||[]);setRelatedSelections(saved.relatedSelections||[]);setShelfBookId(saved.shelfBookId||'');setPage(saved.page||'');setVideoUrl(saved.videoUrl||'');setNumberOverride(saved.numberOverride||'')})
 
   const previewNumber = useMemo(() => {
     if (isEdit) return initial.number
@@ -142,6 +146,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
       }
 
       await setRelated(entryId, relatedSelections.map((r) => r.id))
+      recovery.clear()
       onSaved(entryId)
     } catch (err) {
       setError(err.message)
@@ -297,15 +302,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
           <div className="card mb-4 flex flex-col gap-3" style={{ padding: '16px 20px' }}>
             <div className="flex gap-3 flex-wrap">
               <div className="field" style={{ minWidth: 220 }}>
-                <label htmlFor="entry-shelfbook">Link to a book in My Library</label>
-                <select id="entry-shelfbook" className="input" value={shelfBookId} onChange={(e) => setShelfBookId(e.target.value)}>
-                  <option value="">— none —</option>
-                  {myBooks.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.title}
-                    </option>
-                  ))}
-                </select>
+                <QuotationBookPicker books={myBooks} label="Link to a book in My Library" value={shelfBookId} onChange={setShelfBookId}/>
               </div>
               <div className="field" style={{ minWidth: 120 }}>
                 <label htmlFor="entry-page">Page</label>
@@ -327,6 +324,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
           </div>
         )}
 
+        {recovery.error && <p role="alert">{recovery.error}</p>}
         {error && (
           <div className="mb-3 text-sm" style={{ color: 'var(--color-accent-800)' }}>
             {error}

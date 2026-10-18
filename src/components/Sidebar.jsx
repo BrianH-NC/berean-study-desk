@@ -1,7 +1,7 @@
 import AccountLink from './AccountLink'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic } from 'lucide-react'
+import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic, CalendarDays, Layers, Quote, Heart, RotateCcw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import Logo, { BrandLockup } from './Logo'
 
@@ -13,20 +13,26 @@ const PRIMARY = [
   { to: '/shelf', label: 'Library', icon: LibraryBig },
 ]
 const SECONDARY = [
-  { to: '/study-tools', label: 'Study Tools', icon: BookOpenText },
-  { to: '/study-sessions', label: 'Study Sessions', icon: BookOpenText },
+  { to: '/study-tools', label: 'Review & Study Tools', icon: RotateCcw },
+  { to: '/study-sessions', label: 'Saved Study Sessions', icon: Layers },
   { to: '/checks', label: 'Doctrine Check', icon: ShieldCheck },
   { to: '/notebook', label: 'Notes', icon: NotebookPen },
   { to: '/sermons', label: 'Sermons', icon: Mic },
   { to: '/topics', label: 'Topics', icon: Tags },
   { to: '/reading', label: 'Reading now', icon: BookOpenText },
-  { to: '/reading-plans', label: 'Reading Plans', icon: BookText },
-  { to: '/quotations', label: 'Quotations', icon: NotebookPen },
-  { to: '/prayer', label: 'Prayer Journal', icon: BookOpenText },
+  { to: '/reading-plans', label: 'Reading Plans', icon: CalendarDays },
+  { to: '/quotations', label: 'Quotations', icon: Quote },
+  { to: '/prayer', label: 'Prayer Journal', icon: Heart },
 ]
 const ACCOUNT = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
+
+const GROUPS = [
+  {label:'Study',paths:['/bible','/notebook','/study-sessions','/sermons','/topics','/checks']},
+  {label:'Library',paths:['/shelf','/reading','/quotations']},
+  {label:'Daily practice',paths:['/reading-plans','/prayer','/study-tools']},
+].map(group=>({...group,items:group.paths.map(path=>[...PRIMARY,...SECONDARY].find(item=>item.to===path))}))
 
 function NavigationLink({ item, onClick }) {
   const Icon = item.icon
@@ -41,7 +47,7 @@ export default function Sidebar({user}) {
   useEffect(()=>{let active=true;const refresh=()=>supabase.from('sermons').select('id',{count:'exact',head:true}).eq('user_id',user.id).then(({count,error})=>{if(active)setSermonCount(error?null:count)});refresh();window.addEventListener('sermons-changed',refresh);return()=>{active=false;window.removeEventListener('sermons-changed',refresh)}},[user.id])
   const dialog = useRef(null)
   const trigger = useRef(null)
-  const [railExpanded, setRailExpanded] = useState(null)
+  const [railExpanded, setRailExpanded] = useState(()=>{try{return JSON.parse(localStorage.getItem('bsd-navigation-expanded')||'null')}catch{return null}})
   const expanded = railExpanded === true
   const collapsed = railExpanded === false
   const [menuOpen, setMenuOpen] = useState(false)
@@ -58,7 +64,7 @@ export default function Sidebar({user}) {
     trigger.current?.focus()
   }
   function toggleRail() {
-    setRailExpanded(value => !(value ?? window.matchMedia('(min-width: 1280px)').matches))
+    setRailExpanded(value => {const next=!(value ?? window.matchMedia('(min-width: 1280px)').matches);try{localStorage.setItem('bsd-navigation-expanded',JSON.stringify(next))}catch{}return next})
   }
 
   return <>
@@ -67,10 +73,10 @@ export default function Sidebar({user}) {
         <Logo size={40} />
         <div className="brand-detail text-center"><BrandLockup /><p className="font-ui text-xs mt-3 mb-0 text-gold">Search. Study. Discern.</p><p className="font-ui text-xs mb-0">Acts 17:11</p></div>
       </div>
-      <nav aria-label="Main navigation" className="flex flex-col gap-1 flex-1">
-        {[...PRIMARY, ...SECONDARY].map(item => <NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}} />)}
+      <nav aria-label="Main navigation" className="sidebar-destinations">
+        {PRIMARY.slice(0,2).map(item=><NavigationLink key={item.to} item={item}/>)}{GROUPS.map(group=><section className="nav-group" key={group.label} aria-label={group.label}><h2 className="nav-group-label">{group.label}</h2>{group.items.map(item=><NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}}/>)}</section>)}
       </nav>
-      <div className="flex flex-col gap-1">
+      <div className="sidebar-footer">
         {ACCOUNT.map(item => <NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}} />)}
         <button type="button" className="nav-item" title="Resize navigation" aria-label="Expand or collapse navigation" onClick={toggleRail}>
           <PanelLeft size={22} aria-hidden="true" /><span className="nav-label">Resize navigation</span>
@@ -90,7 +96,7 @@ export default function Sidebar({user}) {
     </nav>
     <dialog ref={dialog} className="nav-sheet" aria-labelledby="navigation-title" onClose={restoreFocus}>
       <div className="flex items-center justify-between gap-4 mb-4"><h2 id="navigation-title" className="text-xl mb-0">Your study desk</h2><button type="button" className="btn btn-icon" aria-label="Close navigation" onClick={closeMenu}><X size={22} /></button></div>
-      <nav aria-label="More destinations" className="flex flex-col gap-1">{[...SECONDARY, ...ACCOUNT].map(item => <NavigationLink key={item.to} item={item} onClick={closeMenu} />)}</nav>
+      <nav aria-label="More destinations" className="flex flex-col gap-1">{GROUPS.map(group=><section className="nav-group" key={group.label}><h2 className="nav-group-label">{group.label}</h2>{group.items.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</section>)}{ACCOUNT.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</nav>
     </dialog>
   </>
 }

@@ -1,8 +1,9 @@
+import { takeDestination } from './lib/signInDestination'
 import AccountLink from './components/AccountLink'
 import StudyReminderBanner from './components/StudyReminderBanner'
 const StudyTools = lazy(() => import('./screens/StudyTools'))
 import { createContext, useContext, useEffect, useState, lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import Auth from './components/Auth'
 import Sidebar from './components/Sidebar'
@@ -92,6 +93,8 @@ function ProtectedLayout() {
 }
 
 function SessionApp() {
+  const navigate=useNavigate()
+  const location=useLocation()
   const [user, setUser] = useState(undefined) // undefined = loading
 
   useEffect(() => {
@@ -107,6 +110,12 @@ function SessionApp() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(()=>{
+    if(!user) return
+    const destination=takeDestination()
+    if(location.pathname==='/' && destination!=='/') navigate(destination,{replace:true})
+  },[user,navigate,location.pathname])
 
   if (user === undefined) {
     return (

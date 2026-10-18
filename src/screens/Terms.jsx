@@ -1,3 +1,4 @@
+import PublicFooter from '../components/PublicFooter'
 import {Link} from 'react-router-dom'
 import Logo,{BrandLockup} from '../components/Logo'
 import './Privacy.css'
@@ -46,5 +47,5 @@ export default function Terms(){
  <h2>Contact</h2>
  <p>Questions about these Terms may be sent to:</p>
  <p><strong>Berean Study Desk</strong><br/><strong>Email:</strong> <a href="mailto:bereanstudydesk+terms@gmail.com">bereanstudydesk+terms@gmail.com</a></p>
- </main></div>
+ </main><PublicFooter/></div>
 }

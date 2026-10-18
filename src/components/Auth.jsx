@@ -1,4 +1,5 @@
-import {Link} from 'react-router-dom'
+import PublicFooter from './PublicFooter'
+import { rememberDestination } from '../lib/signInDestination'
 import {useRef,useState} from 'react'
 import {BookOpen,ShieldCheck,Leaf,LoaderCircle} from 'lucide-react'
 import {supabase} from '../lib/supabase'
@@ -11,11 +12,12 @@ export default function Auth(){
  async function handleGoogleSignIn(){
   if(pending.current)return;pending.current=true;setLoading(true);setError('')
   try{
+   rememberDestination(window.location.pathname + window.location.search)
    const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin,queryParams:{prompt:'select_account'}}})
    if(error)throw error
    // Supabase redirects; App's existing listener handles the returning session.
   }catch{pending.current=false;setLoading(false);setError('We couldn’t connect to Google. Please check your connection and try again.')}
  }
  return <main className="auth-page"><section className="auth-visual" aria-label="Welcome to Berean Study Desk"><div className="auth-brand"><Logo transparent size={100}/><BrandLockup/><p className="auth-tagline">Search. Study. Discern.</p><blockquote className="scripture-text">“Your word is a lamp<br/>to my feet and a light<br/>to my path.”<cite>Psalm 119:105</cite></blockquote></div><div className="auth-values">{[[BookOpen,'Build Your Library','Keep good books close'],[ShieldCheck,'Compare with Truth','Test ideas carefully'],[Leaf,'Grow in Understanding','All for the glory of Christ']].map(([Icon,title,copy])=><div key={title}><Icon aria-hidden="true"/><div><strong>{title}</strong><span>{copy}</span></div></div>)}</div></section>
- <section className="auth-panel" aria-labelledby="auth-title"><div className="auth-card"><header><Logo transparent size={64}/><p className="auth-welcome">Welcome to</p><h1 id="auth-title">Berean Study Desk</h1><div className="auth-rule" aria-hidden="true">◆</div><p className="auth-tagline">Search. Study. Discern.</p></header><div className="auth-action"><button type="button" className="btn btn-primary auth-google" disabled={loading} aria-busy={loading} onClick={handleGoogleSignIn}>{loading?<LoaderCircle className="auth-spinner" aria-hidden="true"/>:<GoogleMark/>}<span>{loading?'Connecting to Google…':'Continue with Google'}</span></button><div aria-live="polite" role="status">{loading&&<p className="auth-status">Opening Google’s secure sign-in…</p>}</div>{error&&<p className="auth-error" role="alert">{error}</p>}</div><blockquote className="auth-verse scripture-text">“Search the Scriptures daily<br/>to see if these things are so.”<cite>Acts 17:11</cite></blockquote><footer className="auth-footer"><Link to="/privacy">Privacy Policy</Link><span aria-hidden="true"> · </span><Link to="/terms">Terms of Service</Link></footer></div></section></main>
+ <section className="auth-panel" aria-labelledby="auth-title"><div className="auth-card"><header><Logo transparent size={64}/><p className="auth-welcome">Welcome to</p><h1 id="auth-title">Berean Study Desk</h1><div className="auth-rule" aria-hidden="true">◆</div><p className="auth-tagline">Search. Study. Discern.</p></header><div className="auth-action"><button type="button" className="btn btn-primary auth-google" disabled={loading} aria-busy={loading} onClick={handleGoogleSignIn}>{loading?<LoaderCircle className="auth-spinner" aria-hidden="true"/>:<GoogleMark/>}<span>{loading?'Connecting to Google…':'Continue with Google'}</span></button><div aria-live="polite" role="status">{loading&&<p className="auth-status">Opening Google’s secure sign-in…</p>}</div>{error&&<p className="auth-error" role="alert">{error}</p>}</div><blockquote className="auth-verse scripture-text">“Search the Scriptures daily<br/>to see if these things are so.”<cite>Acts 17:11</cite></blockquote><PublicFooter/></div></section></main>
 }

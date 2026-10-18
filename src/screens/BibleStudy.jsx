@@ -1,3 +1,4 @@
+import WordStudy, { StudyWords } from '../components/WordStudy'
 import PassageConnections, { usePassageConnections, PassageNoteDialog } from '../components/PassageConnections'
 import StudySessionBar from '../components/StudySessionBar'
 import SessionNote from '../components/SessionNote'
@@ -168,6 +169,7 @@ function BookPickerDialog({ initialBook, onPick, onClose }) {
 }
 
 export default function BibleStudy() {
+  const [wordStudy,setWordStudy]=useState(null)
   const readerRef = useRef(null)
   const [readerFullscreen, setReaderFullscreen] = useState(false)
   const [fullscreenError, setFullscreenError] = useState('')
@@ -539,9 +541,12 @@ export default function BibleStudy() {
     setCommentaryId(COMMENTARIES.some(c=>c.id===state.commentaryId)?state.commentaryId:prefs.commentary)
     setSessionNoteId(state.noteId||'');setSessionSermonId(state.sermonId||'')
   }
-  function renderVerses(rows, anchor) {
+  function openWordStudy(v,translation,word='',index=-1) {
+    setWordStudy({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:v.number,text:v.text,translation,word,index})
+  }
+  function renderVerses(rows, anchor, translation) {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
-    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number}><span className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>{anchor && connections.notesAtVerse(v.number).map(note=><button className="verse-note-indicator" key={note.id} title={note.title||'Verse note'} aria-label={`Read or edit note on verse ${v.number}: ${note.title||'Untitled'}`} onClick={()=>openVerseNote(note)}><NotebookPen size={12}/></button>)}</span>)}</div>
+    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number}><span className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onContextMenu={e=>{e.preventDefault();openWordStudy(v,translation)}} onKeyDown={anchor?e=>{if(e.key==='F10'&&e.shiftKey){e.preventDefault();openWordStudy(v,translation);return}if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup><StudyWords text={v.text} onStudy={(word,index)=>openWordStudy(v,translation,word,index)}/>{' '}</span><button className="verse-word-study" aria-label={`Word study for ${book} ${chapter}:${v.number} (${translation})`} onClick={()=>openWordStudy(v,translation)}>Word study</button>{anchor && connections.notesAtVerse(v.number).map(note=><button className="verse-note-indicator" key={note.id} title={note.title||'Verse note'} aria-label={`Read or edit note on verse ${v.number}: ${note.title||'Untitled'}`} onClick={()=>openVerseNote(note)}><NotebookPen size={12}/></button>)}</span>)}</div>
   }
   return <div className="page bible-desk" style={{'--reading-size':prefs.fontSize+'px','--reading-line':prefs.lineHeight}}>
     <div className="bible-topbar">
@@ -557,6 +562,7 @@ export default function BibleStudy() {
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
+        {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
         <div className="card bible-toolbar">
           <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
           <button className="btn btn-secondary" onClick={()=>setShowPicker(true)}>{passageRef}<ChevronDown size={14}/></button>
@@ -570,9 +576,9 @@ export default function BibleStudy() {
           {selectionSaveError && <p role="status">Your browser could not save these translation choices. Allow site storage to remember them next time.</p>}
           {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}
           <div className={`bible-parallel ${showCompare?'':'is-single'}`} tabIndex={0} role="region" aria-label="Bible translation text">
-            {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0):<p>No text is available for this passage.</p>}{(entry?.copyright||entry?.verses?.copyright)&&<small className="bible-attribution">{entry.copyright||entry.verses.copyright}</small>}</article>)}
+            {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0,id):<p>No text is available for this passage.</p>}{(entry?.copyright||entry?.verses?.copyright)&&<small className="bible-attribution">{entry.copyright||entry.verses.copyright}</small>}</article>)}
           </div>
-          <div className="bible-reader-footer"><span>Select verses in {readingMeta.short} to study or save them.</span>{verseRange && <button className="btn btn-ghost" onClick={()=>setVerseRange(null)}>Show whole chapter</button>}</div>
+          <div className="bible-reader-footer"><span>Select verses in {readingMeta.short} to study or save them. Right-click or hold a word for Strong’s details.</span>{verseRange && <button className="btn btn-ghost" onClick={()=>setVerseRange(null)}>Show whole chapter</button>}</div>
           {selectedSorted.length>0 && <div className="bible-selection"><strong>{selectionRef}</strong><button className="btn btn-secondary" onClick={()=>copy('text',selectionText)}>Copy text</button><button className="btn btn-secondary" onClick={()=>copy('ref',selectionRef)}>Copy reference</button><button className="btn btn-primary" onClick={handleCreateEntry}>Create Note</button><button className="btn btn-ghost" onClick={()=>setSelectedVerses(new Set())}>Clear</button></div>}
           {copied && <p role="status">Copied!</p>}
           <small className="bible-attribution">BSB is public domain. ESV® via Crossway; NIV/NLT/CSB/NKJV/MSG/AMP/CEV/NASB 2020 via API.Bible; other translations via Free Use Bible API.</small>
@@ -582,7 +588,7 @@ export default function BibleStudy() {
         {sessionMode&&sessionSermonId&&<SermonBiblePanel sermonId={sessionSermonId} onClose={()=>setSessionSermonId('')} onPassage={goTo}/>}
         <StudySection title="Study Tools for This Passage"><div className="bible-tool-grid">
           <button aria-pressed={showCrossRefs} onClick={()=>setShowCrossRefs(v=>!v)}><Link2/>Cross-References</button>
-          <a href={interlinearUrl} target="_blank" rel="noreferrer"><Languages/>Word Study <small>External ↗</small></a>
+          <button onClick={()=>{const v=displayedVerses?.find(v=>selectedVerses.has(v.number))||displayedVerses?.[0];if(v)openWordStudy(v,readingTranslation)}} disabled={!displayedVerses?.length}><Languages/>Word Study <small>Strong’s details</small></button>
           <button onClick={()=>setToolNotice(toolNotice?'':'Textual variants require a dedicated manuscript source. This tool is not connected yet.')}><FileText/>Textual Variants <small>Not connected</small></button>
           <button aria-pressed={showCompare} onClick={()=>setShowCompare(v=>!v)}><BookOpen/>Translation Compare</button>
           <button onClick={()=>draftNote()}><NotebookPen/>Study Notes</button>

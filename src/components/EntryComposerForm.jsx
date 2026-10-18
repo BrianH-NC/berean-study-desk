@@ -180,7 +180,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <NoteRichEditor userId={userId} books={myBooks} note={{body,rich_doc:richDoc,ref,shelf_book_id:shelfBookId,page}} onChange={fields=>{
+          <NoteRichEditor key={recovery.revision} userId={userId} books={myBooks} note={{body,rich_doc:richDoc,ref,shelf_book_id:shelfBookId,page}} onChange={fields=>{
             if('body' in fields)setBody(fields.body)
             if('rich_doc' in fields)setRichDoc(fields.rich_doc)
             if('shelf_book_id' in fields)setShelfBookId(fields.shelf_book_id||'')

@@ -11,6 +11,7 @@ export function readRecovery(key) {
 export function useFormRecovery(key, value, restore, ready = true) {
   const session = useRef(null)
   const [error, setError] = useState('')
+  const [revision, setRevision] = useState(0)
   const restoreDraft = useEffectEvent(restore)
   useEffect(() => {
     if (!ready) return
@@ -22,6 +23,9 @@ export function useFormRecovery(key, value, restore, ready = true) {
         // Do not overwrite recovery with pre-hydration values under StrictMode.
         session.current.restoring = serialized
         restoreDraft(saved)
+        // Remount rich editors only when hydrating an external recovery snapshot.
+        // eslint-disable-next-line react/set-state-in-effect
+        setRevision(n=>n+1)
         return
       }
     }
@@ -47,5 +51,5 @@ export function useFormRecovery(key, value, restore, ready = true) {
     session.current = { key, baseline: JSON.stringify(nextValue), restoring: false }
     try { sessionStorage.removeItem(`bsd-draft:${key}`) } catch { /* The explicit save still succeeds. */ }
   }
-  return { clear, error }
+  return { clear, error, revision }
 }

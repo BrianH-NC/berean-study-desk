@@ -44,7 +44,7 @@ export async function fetchCommentaryChapter(commentaryId, bookName, chapter, op
   const code = bookCodeFor(bookName)
   if (!code) throw new Error(`No book code for "${bookName}"`)
   const res = await fetch(`${API_BASE}/c/${commentaryId}/${code}/${chapter}.json`, options)
-  if (!res.ok) throw new Error(`Commentary lookup failed (${res.status})`)
+  if (!res.ok) throw new Error(res.status===404 ? "No commentary chapter available from this source. Try another commentary." : `Commentary temporarily unavailable (${res.status}). Try again.`)
   return res.json()
 }
 

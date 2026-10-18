@@ -1,5 +1,5 @@
 .daily-study{max-width:1500px;margin:auto;padding:clamp(16px,3vw,40px)}
-.daily-study h1,.daily-study h2,.daily-study h3{font-family:var(--font-body,Georgia,serif);font-variant:normal}
+.daily-study h1,.daily-study h2,.daily-study h3{font-family:'Lora',Georgia,serif;font-variant:normal}
 .daily-study header,.study-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .study-actions{justify-content:flex-start;margin:12px 0}
 .study-columns{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:20px;align-items:start;margin-top:20px}

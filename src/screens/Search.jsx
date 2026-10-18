@@ -118,8 +118,8 @@ function SearchContent(){
   const loading=localLoading||bible.loading||resources.loading
   useEffect(()=>{
     if(loading||bible.query!==query||restoredScroll.current)return
-    let frame=requestAnimationFrame(()=>{restoredScroll.current=true;window.scrollTo({top:returnView.scroll||0,behavior:'instant'})})
-    return()=>cancelAnimationFrame(frame)
+    const timer=setTimeout(()=>{restoredScroll.current=true;window.scrollTo({top:returnView.scroll||0,behavior:'instant'})},150)
+    return()=>clearTimeout(timer)
   },[loading,bible.query,query,returnView])
   useEffect(()=>{
     if(loading||bible.query!==query)return

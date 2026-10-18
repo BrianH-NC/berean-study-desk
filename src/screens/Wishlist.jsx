@@ -108,7 +108,7 @@ export default function Wishlist() {
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <div className="card-kicker mb-1">{items ? `${items.length} books` : ' '}</div>
-          <h2 className="!mb-0">Wishlist</h2>
+          <h1 className="!mb-0">Wishlist</h1>
           <p className="wishlist-subtitle">Good books for the next chapter of your study.</p>
         </div>
         <Link to="/shelf/wishlist/add" className="btn btn-primary">
@@ -117,7 +117,7 @@ export default function Wishlist() {
       </div>
 
       <div className="wishlist-intro">Save a book, choose what’s next, and move it into your Library when you own it.<small>Amazon links search by ISBN, or title and author. Purchases happen on Amazon.</small></div>
-      <div className="flex items-center gap-3 flex-wrap mb-4">
+      {!!items?.length && <div className="flex items-center gap-3 flex-wrap mb-4">
         <div className="relative wishlist-search">
           <SearchIcon size={15} strokeWidth={2.75} className="absolute top-1/2 -translate-y-1/2" style={{ left: 14, opacity: 0.5 }} />
           <input
@@ -143,7 +143,7 @@ export default function Wishlist() {
           ))}
         </div>
         <select className="input wishlist-sort" aria-label="Sort wishlist" value={sort} onChange={event => setSort(event.target.value)}><option value="priority">Priority first</option><option value="newest">Recently added</option><option value="title">Title A–Z</option></select>
-      </div>
+      </div>}
 
       {error && <div className="card p-4" role="alert">Could not load your wishlist: {error} <button className="btn btn-secondary" onClick={load}>Retry</button></div>}
 
@@ -153,7 +153,7 @@ export default function Wishlist() {
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>
-          Nothing on the wishlist yet — scan a book in the store to save it here for later.
+          <h2>Save a book for later</h2><p>Scan a book in the store or look it up by ISBN.</p><Link className="btn btn-primary" to="/shelf/wishlist/add">Add your first book</Link>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-24" style={{ opacity: 0.5 }}>

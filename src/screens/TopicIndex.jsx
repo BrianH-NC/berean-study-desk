@@ -49,12 +49,12 @@ export default function Topics() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="card-kicker mb-1">
-            {entries.length} entries · {tagNames.length} topics · {bookNames.length} books of scripture cited
+            {entries.length} notes · {tagNames.length} topics · {bookNames.length} books of scripture cited
           </div>
-          <h2 className="!mb-4">The index</h2>
+          <Link to="/topics">← Topics</Link><h1 className="!mb-4">Notes by Scripture or Tag</h1>
         </div>
         <Link to="/notebook/new" className="btn btn-primary">
-          + New entry
+          + New note
         </Link>
       </div>
 

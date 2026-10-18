@@ -1,3 +1,4 @@
+import CreatePanel from '../components/CreatePanel'
 import FindMissingCovers from '../components/FindMissingCovers'
 import { useAuth } from '../App'
 import { loadCheckLibrary } from '../lib/checkLibrary'
@@ -254,6 +255,7 @@ export default function DoctrineCheckIndex() {
       <div className="doctrine-layout"><div className="doctrine-main">
 
       {/* New check card */}
+      <CreatePanel title="+ New Doctrine Check" editing={!!topicContext}>
       <div className="card mb-5 doctrine-new-check" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
           <div className="seg self-start">
@@ -458,6 +460,7 @@ export default function DoctrineCheckIndex() {
         )}
       </div>
 
+      </CreatePanel>
       <div className="mb-4"><FindMissingCovers books={checks} saveCover={async (book, cover) => { await checksUpdate(book.id, {cover_url: cover}) }} onComplete={loadChecks}/></div>
       {/* Stat cells */}
       {stats && (

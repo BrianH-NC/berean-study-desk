@@ -206,7 +206,7 @@ export default function AddBooks() {
           ← My Library
         </Link>
       </div>
-      <h2 className="!mb-4">Add to My Library</h2>
+      <h1 className="!mb-4">Add to My Library</h1>
 
       {/* Add one book: scan or type it in */}
       <div className="card mb-5" style={{ padding: '18px 20px' }}>

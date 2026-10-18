@@ -5,40 +5,40 @@ import './Privacy.css'
 
 export default function Privacy(){
  return <div className="privacy-page"><a className="skip-link" href="#privacy-content">Skip to Privacy Policy</a><header className="privacy-header"><Link to="/" className="privacy-brand" aria-label="Berean Study Desk home"><Logo transparent size={52}/><BrandLockup/></Link><Link to="/" className="btn btn-secondary">Return to Berean Study Desk</Link></header><main id="privacy-content" tabIndex={-1} className="card privacy-document">
- <h1>Privacy Policy</h1>
+ <h1>Privacy Policy</h1><details className="policy-contents"><summary>On this page</summary><ul><li><a href="#information-we-collect">Information We Collect</a></li><li><a href="#how-we-use-your-information">How We Use Your Information</a></li><li><a href="#google-sign-in">Google Sign-In</a></li><li><a href="#google-user-data">Google User Data</a></li><li><a href="#data-storage-and-service-providers">Data Storage and Service Providers</a></li><li><a href="#data-security">Data Security</a></li><li><a href="#data-retention-and-deletion">Data Retention and Deletion</a></li><li><a href="#children-s-privacy">Children's Privacy</a></li><li><a href="#changes-to-this-privacy-policy">Changes to This Privacy Policy</a></li><li><a href="#contact">Contact</a></li></ul></details>
  <p><strong>Berean Study Desk</strong><br/><em>Last updated: September 15, 2026</em></p>
  <p>Berean Study Desk (“BSD”) is a Bible study and theological research application designed to help users organize study materials, notes, resources, and related information. This Privacy Policy explains what information Berean Study Desk collects, how that information is used, and the services involved in providing the application.</p>
- <h2>Information We Collect</h2>
+ <h2 id="information-we-collect">Information We Collect</h2>
  <p>When you sign in to Berean Study Desk using Google, Google provides the application with basic account information necessary to authenticate you. This may include your name, email address, profile image, and a unique identifier associated with your Google account.</p>
  <p>Berean Study Desk does not receive or store your Google password.</p>
  <p>The application may also store information that you intentionally create or provide while using Berean Study Desk, such as Bible study notes, library information, study progress, preferences, sermon-related information, and other content associated with features of the application.</p>
- <h2>How We Use Your Information</h2>
+ <h2 id="how-we-use-your-information">How We Use Your Information</h2>
  <p>Information collected by Berean Study Desk is used to authenticate your account, provide application features, associate your saved content with your account, maintain application security, and improve the operation and reliability of the application.</p>
  <p>Berean Study Desk does not sell your personal information or use your personal information for advertising.</p>
- <h2>Google Sign-In</h2>
+ <h2 id="google-sign-in">Google Sign-In</h2>
  <p>Berean Study Desk uses Google OAuth to provide Google account authentication. When you choose “Continue with Google,” authentication is handled by Google according to Google's own privacy policies and terms. Berean Study Desk receives only the account information authorized through the Google authentication process.</p>
  <p>Berean Study Desk's use of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements where applicable.</p>
- <h2>Google User Data</h2>
+ <h2 id="google-user-data">Google User Data</h2>
  <p>When you choose to sign in to Berean Study Desk using Google, Berean Study Desk requests only the basic Google account information necessary to identify and authenticate your account. This includes your Google account email address, display name, profile image when available, and the unique account identifier provided through Google authentication.</p>
  <p>Berean Study Desk uses this information solely to authenticate you, create or identify your Berean Study Desk account, display basic account information within the application, and associate your saved Berean Study Desk content with your account.</p>
  <p>Berean Study Desk requests only the basic Google account permissions necessary for authentication: your identity, email address, and basic profile information. Berean Study Desk does not request access to Gmail messages, Google Drive files, Google Calendar, contacts, photos, or other Google account content.</p>
  <p>Authentication is provided using Google OAuth and Supabase authentication infrastructure. Information received from Google may therefore be processed and stored by Supabase as necessary to provide authentication and account-management services.</p>
  <p>Berean Study Desk does not sell Google user data, use Google user data for advertising, or transfer Google user data to third parties for advertising or marketing purposes. Google user data is shared with service providers only when necessary to operate and secure Berean Study Desk.</p>
  <p>If you request deletion of your Berean Study Desk account, personal information associated with your account will be deleted subject to any limited retention necessary for security, legal, or operational purposes. Revoking Berean Study Desk's access through your Google Account does not by itself delete information previously stored in your Berean Study Desk account.</p>
- <h2>Data Storage and Service Providers</h2>
+ <h2 id="data-storage-and-service-providers">Data Storage and Service Providers</h2>
  <p>Berean Study Desk uses third-party infrastructure and service providers to operate the application. These currently include Supabase for application backend services, database functionality, and authentication infrastructure, and Vercel for application hosting and delivery.</p>
  <p>These providers may process information as necessary to provide their services and are governed by their respective privacy policies and terms.</p>
- <h2>Data Security</h2>
+ <h2 id="data-security">Data Security</h2>
  <p>Reasonable technical and organizational measures are used to protect information stored by Berean Study Desk. However, no method of electronic storage or transmission over the Internet can be guaranteed to be completely secure.</p>
- <h2>Data Retention and Deletion</h2>
+ <h2 id="data-retention-and-deletion">Data Retention and Deletion</h2>
  <p>Information associated with your Berean Study Desk account may be retained while your account remains active or as necessary to provide the application.</p>
  <p>You may request deletion of your Berean Study Desk account and associated personal data by contacting the application owner at the email address below. Deleting your Berean Study Desk account does not delete your Google account.</p>
  <p>You may also manage Berean Study Desk's access to your Google account through your Google Account security settings.</p>
- <h2>Children's Privacy</h2>
+ <h2 id="children-s-privacy">Children's Privacy</h2>
  <p>Berean Study Desk is not directed toward children under 13 and does not knowingly collect personal information from children under 13.</p>
- <h2>Changes to This Privacy Policy</h2>
+ <h2 id="changes-to-this-privacy-policy">Changes to This Privacy Policy</h2>
  <p>This Privacy Policy may be updated as Berean Study Desk changes or new features and services are introduced. The current version will always be available on this page, with the most recent revision date shown above.</p>
- <h2>Contact</h2>
+ <h2 id="contact">Contact</h2>
  <p>Questions about this Privacy Policy or requests concerning your Berean Study Desk data may be sent to:</p>
  <p><strong>Berean Study Desk</strong><br/><strong>Email:</strong> <a href="mailto:bereanstudydesk+privacy@gmail.com">bereanstudydesk+privacy@gmail.com</a></p>
  </main><PublicFooter/></div>

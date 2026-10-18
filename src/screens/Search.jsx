@@ -7,7 +7,7 @@ import { checksList } from '../lib/theologyCheck'
 import { CANONICAL_BOOKS } from '../lib/entries'
 import { parseReference, fetchChapter, searchVerses } from '../lib/bsb'
 import { COMMENTARIES, fetchCommentaryChapter } from '../lib/helloao'
-import { SEARCH_TYPES, matchesSearch, sortSearchResults, commentarySections } from '../lib/searchModel'
+import { SEARCH_TYPES, matchesSearch, sortSearchResults, commentarySections, searchExcerpt } from '../lib/searchModel'
 import { fetchRecommendations } from '../lib/searchRecommendations'
 import { dailyHero } from '../lib/dailyHero'
 
@@ -129,7 +129,7 @@ export default function SearchWorkspace(){
         <div className="search-results-title"><div><h2>Search Results</h2><p role="status">{loading?'Searching…':query?`${filtered.length} loaded results for “${query}”`:'Enter a word or Bible reference to begin.'}</p></div><label className="sr-only" htmlFor="result-sort">Sort results</label><select id="result-sort" className="input" value={sort} onChange={e=>update({sort:e.target.value})}><option value="relevance">Most relevant</option><option value="title">Title A–Z</option><option value="recent">Newest saved</option></select></div>
         {parseReference(query)&&rows.some(r=>r.type==='Sermons')&&<button className="search-context-link" onClick={()=>update({type:'Sermons'})}>Also in Sermons: {rows.filter(r=>r.type==='Sermons').length} →</button>}
         {query&&!loading&&!filtered.length&&<p>No results match your search and filters.</p>}
-        {filtered.slice(0,visible).map(row=><button key={row.id} type="button" className={`search-result ${selected?.id===row.id?'is-selected':''}`} aria-pressed={selected?.id===row.id} onClick={()=>choose(row)}>{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<ResultIcon type={row.type}/>}<span><strong>{row.title}</strong><span className="search-snippet">{row.text.slice(0,240)}</span><span className="search-result-meta"><span>{row.type}</span><span>{row.source}</span></span></span></button>)}
+        {filtered.slice(0,visible).map(row=><button key={row.id} type="button" className={`search-result ${selected?.id===row.id?'is-selected':''}`} aria-pressed={selected?.id===row.id} onClick={()=>choose(row)}>{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<ResultIcon type={row.type}/>}<span><strong>{row.title}</strong><span className="search-snippet">{searchExcerpt(row.text,query)}</span><span className="search-result-meta"><span>{row.type}</span><span>{row.source}</span></span></span></button>)}
         {filtered.length>visible&&<button className="btn btn-secondary" onClick={()=>setVisible(n=>n+30)}>Load more results</button>}
         {bible.rows.length>=bibleLimit&&!parseReference(query)&&<button className="btn btn-secondary" onClick={()=>setBibleLimit(n=>n+60)}>Search more Bible verses</button>}
         {query&&<p className="search-scope">Commentary search covers {commentary.name} in the entered passage, or the first three chapters represented in BSB results. Counts reflect loaded results.</p>}

@@ -23,3 +23,11 @@ export function commentarySections(data, ref, source) {
     return [{id:`resource:${source.id}:${ref.book}:${ref.chapter}:${index}`,type:'Resources',title:`${source.name} · ${ref.book} ${ref.chapter}:${start}`,text,ref:{...ref,verseStart:start,verseEnd:start},source:source.name}]
   })
 }
+
+export function searchExcerpt(text, query, limit=240) {
+  const content=String(text||'')
+  const terms=query.toLowerCase().trim().split(/\s+/).filter(Boolean)
+  const positions=terms.map(t=>content.toLowerCase().indexOf(t)).filter(i=>i>=0)
+  const start=Math.max(0,(positions.length?Math.min(...positions):0)-60)
+  return `${start?'…':''}${content.slice(start,start+limit)}${start+limit<content.length?'…':''}`
+}

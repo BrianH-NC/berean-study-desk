@@ -17,3 +17,13 @@ test('commentary includes a verse covered by an earlier section',()=>{
  assert.equal(rows.length,1)
  assert.equal(rows[0].text,'One through four')
 })
+
+
+test('search excerpts include matches beyond the start of a long report', async()=>{
+ const {searchExcerpt}=await import('./searchModel.js')
+ const text='Introduction. '.repeat(70)+'Discipleship is discussed here. '+ 'Details. '.repeat(70)
+ const excerpt=searchExcerpt(text,'discipleship')
+ assert.match(excerpt,/Discipleship/)
+ assert.ok(excerpt.startsWith('…'))
+ assert.ok(excerpt.length<=242)
+})

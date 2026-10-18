@@ -107,7 +107,7 @@ export default function WishlistAdd() {
           ← Wishlist
         </Link>
       </div>
-      <h2 className="!mb-4">Add to the wishlist</h2>
+      <h1 className="!mb-4">Add to the wishlist</h1>
 
       <div className="card mb-5" style={{ padding: '18px 20px' }}>
         <div className="flex gap-2 mb-3 flex-wrap">

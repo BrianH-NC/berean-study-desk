@@ -106,11 +106,12 @@ export default function DigitalBookReader({ bookId, userId, onNoteCreated }) {
     catch (err) { alert('Error removing book file: ' + err.message) }
     finally { setBusy(false) }
   }
-  return <section className="card digital-book-reader" aria-label="Digital book reader">
+  const Shell=files?.length ? 'section' : 'details'
+  return <Shell className="card digital-book-reader" aria-label="Digital book reader">{!files?.length&&<summary>Digital copy (optional) — upload a PDF or EPUB</summary>}
     <div className="digital-reader-heading"><div><h2>Read your book</h2><p>Upload a PDF or EPUB you own or have permission to use. Files are private to your account. Up to 50 MB per file.</p></div><button className="btn btn-primary" disabled={busy || !files} onClick={() => input.current.click()}>{busy ? 'Working…' : 'Upload PDF or EPUB'}</button><input ref={input} type="file" accept=".pdf,.epub,application/pdf,application/epub+zip" hidden onChange={upload}/></div>
     {error ? <div role="alert"><p>{error}</p><button className="btn btn-secondary" onClick={() => setAttempt(n => n + 1)}>Retry</button></div> : files === null ? <p role="status">Loading book files…</p> : !files.length ? <p>Add a digital copy to read here. Your reading notes are below.</p> : <>
       <div className="digital-toolbar"><label>Book file <select aria-label="Book file" value={selected} disabled={busy} onChange={event => setSelected(event.target.value)}>{files.map(item => <option key={item.id} value={item.id}>{item.filename}</option>)}</select></label><button className="btn btn-ghost" disabled={busy} onClick={remove}>Remove file</button></div>
       {file && <ReaderSession key={file.id} file={file} userId={userId} onNoteCreated={onNoteCreated}/>}
     </>}
-  </section>
+  </Shell>
 }

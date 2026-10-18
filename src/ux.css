@@ -127,3 +127,8 @@ body .modern-entry-composer .entry-writing .tiptap:focus-visible { outline:3px s
  html:focus-within, html, body { scroll-behavior:auto; }
  *,*::before,*::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; }
 }
+@media (max-width:700px) {
+ .notes-editor>header { flex-wrap:wrap; }
+ .notes-extra-tools { position:static; }
+ .notes-extra-tools[data-open="true"]>.notes-extra-tools-content { left:0; max-width:100%; box-sizing:border-box; }
+}

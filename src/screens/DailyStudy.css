@@ -1,4 +1,6 @@
 .daily-study{max-width:1500px;margin:auto;padding:clamp(16px,3vw,40px)}
+.prayer-import{margin-top:20px}.prayer-import-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.prayer-import-item{border-top:1px solid var(--bsd-border);padding:20px 0}.study-form .prayer-check{display:flex;align-items:center;gap:8px}.prayer-check input{width:auto}.prayer-import .notes-save-warning{padding:12px;background:var(--bsd-selected)}
+@media(max-width:600px){.prayer-import-fields{grid-template-columns:1fr}}
 .daily-study h1,.daily-study h2,.daily-study h3{font-family:'Lora',Georgia,serif;font-variant:normal}
 .daily-study header,.study-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .study-actions{justify-content:flex-start;margin:12px 0}

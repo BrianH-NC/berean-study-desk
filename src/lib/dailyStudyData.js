@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 const fieldsByTable = {
   reading_plans:['title','kind','book_id','start_date','interval_days','items','completed','paused'],
-  prayer_requests:['title','body','ref','category','answered_at','updates'],
+  prayer_requests:['title','body','ref','category','answered_at','updates','source','request_date'],
   book_quotations:['book_id','quote','page','reflection','tags'],
 }
 export async function ownedRows(table,userId,columns='*') {

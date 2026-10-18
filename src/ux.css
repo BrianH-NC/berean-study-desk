@@ -103,3 +103,27 @@ body .book-identity h1 { font-size:clamp(24px,2.5vw,32px); }
 @media(max-width:600px){.policy-contents ul { columns:1; }}
 .search-result mark { background:#f3e5ad; color:inherit; border-radius:2px; }
 .search-result:focus-visible, .notes-toolbar button:focus-visible, .study-form button:focus-visible { outline:3px solid var(--bsd-forest, #0f3d2e); outline-offset:3px; }
+/* Keyboard focus remains visible on parchment, dark navigation, and compact controls. */
+body :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible { outline:3px solid var(--bsd-forest); outline-offset:2px; }
+body .heritage-sidebar :is(a,button):focus-visible { outline-color:var(--bsd-parchment); outline-offset:-3px; }
+body :is(.bible-lookup,.doctrine-topbar) input:focus-visible,
+body .bible-lookup select:focus-visible,
+body .modern-entry-composer .entry-writing .tiptap:focus-visible { outline:3px solid var(--bsd-forest); outline-offset:2px; }
+.library-book-menu-panel { max-height:min(70dvh,36rem); overflow-y:auto; }
+.library-book-menu-panel :is(a,button):focus-visible { background:var(--bsd-selected); outline-offset:-2px; }
+.settings-save { flex-wrap:wrap; }
+.settings-check { align-items:flex-start; }
+.settings-check input { flex-shrink:0; }
+.settings-translation { min-width:0; }
+.settings-translation>div { min-width:0; overflow-wrap:anywhere; }
+@media (max-width:700px) {
+ .settings-translation { gap:10px; }
+ .settings-translation label { flex-wrap:wrap; }
+ .settings-connection { flex-wrap:wrap; }
+ .library-book-menu>button,.notes-menu>button { min-width:44px; min-height:44px; }
+ .library-book-menu-panel { top:44px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ html:focus-within, html, body { scroll-behavior:auto; }
+ *,*::before,*::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; }
+}

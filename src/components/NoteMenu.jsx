@@ -1,3 +1,4 @@
+import { menuIndex } from '../lib/keyboardNavigation'
 import { useEffect, useRef, useState } from 'react'
 import { MoreHorizontal } from 'lucide-react'
 import { createPortal } from 'react-dom'
@@ -22,9 +23,9 @@ export default function NoteMenu({ label = 'Note actions', actions, children }) 
       e.preventDefault()
       const buttons = [...panel.current.querySelectorAll('button')]
       const i = buttons.indexOf(document.activeElement)
-      buttons[e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (i + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus()
+      buttons[menuIndex(e.key,i,buttons.length)]?.focus()
     }
-    if (e.key === 'Tab') setOpen(false)
+    if (open && e.key === 'Tab') { trigger.current?.focus(); setOpen(false) }
   }}>
     <button type="button" ref={trigger} aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => {const rect=trigger.current.getBoundingClientRect();setPosition({left:Math.max(8,Math.min(rect.right-240,window.innerWidth-248)),top:Math.max(8,Math.min(rect.bottom,window.innerHeight-Math.min(actions.length*48+12,window.innerHeight-24)-12))});setOpen(!open)}}>{children || <MoreHorizontal size={18}/>}</button>
     {open && createPortal(<div className="notes-menu-panel" style={position} ref={panel} role="menu" aria-label={label}>{actions.map(action => <button role="menuitem" key={action.label} className={action.danger ? 'notes-delete' : ''} onClick={() => { setOpen(false); trigger.current?.focus(); action.run() }}>{action.label}</button>)}</div>,document.body)}

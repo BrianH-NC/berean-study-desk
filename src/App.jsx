@@ -20,6 +20,9 @@ const FreeBooks = lazy(() => import('./screens/FreeBooks'))
 import BibleStudy from './screens/BibleStudy'
 import NotesTrash from './screens/NotesTrash'
 import StudySessions from './screens/StudySessions'
+const ReadingPlans = lazy(() => import('./screens/ReadingPlans'))
+const PrayerJournal = lazy(() => import('./screens/PrayerJournal'))
+import Quotations from './screens/Quotations'
 import Search from './screens/Search'
 import TopicIndex from './screens/TopicIndex'
 const SermonIndex = lazy(() => import('./screens/SermonIndex'))
@@ -62,6 +65,9 @@ function ProtectedLayout() {
           <Route path="/reading" element={<Reading />} />
           <Route path="/reading/free-books" element={<FreeBooks />} />
           <Route path="/reading/:bookId" element={<Reading />} />
+          <Route path="/reading-plans" element={<ReadingPlans />} />
+          <Route path="/prayer" element={<PrayerJournal />} />
+          <Route path="/quotations" element={<Quotations />} />
           <Route path="/study-sessions" element={<StudySessions />} />
           <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />

@@ -1,0 +1,15 @@
+.daily-study{max-width:1500px;margin:auto;padding:clamp(16px,3vw,40px)}
+.daily-study h1,.daily-study h2,.daily-study h3{font-family:var(--font-body,Georgia,serif);font-variant:normal}
+.daily-study header,.study-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.study-actions{justify-content:flex-start;margin:12px 0}
+.study-columns{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:20px;align-items:start;margin-top:20px}
+.daily-study .card{margin-bottom:16px;padding:20px}
+.study-form{display:grid;gap:14px}.study-form label{display:grid;gap:6px;font-family:var(--font-ui,sans-serif);font-size:14px}
+.study-form input,.study-form textarea,.study-form select{width:100%;min-width:0}.study-form textarea{min-height:100px}
+.study-row{border-bottom:1px solid var(--bsd-border);padding:12px 0;display:flex;gap:14px;justify-content:space-between;align-items:center}
+.study-row>div{min-width:0}.study-row small{display:block;opacity:.75}.study-quote{white-space:pre-wrap;border-left:3px solid var(--bsd-forest,#0f3d2e);padding:12px 16px;margin:12px 0;background:var(--bsd-selected)}
+.study-filter{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.study-filter input{flex:1;min-width:180px}
+.passage-connections{grid-column:1/-1}.passage-connection-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.passage-connection-grid ul{list-style:none;padding:0}.passage-connection-grid li{margin:10px 0}.passage-connection-grid button{text-align:left;color:var(--bsd-forest,#0f3d2e)}
+.verse-note-indicator{display:inline-flex;align-items:center;font:12px var(--font-ui,sans-serif);border:1px solid var(--bsd-border);border-radius:4px;padding:2px 5px;margin:0 5px;color:var(--bsd-forest,#0f3d2e);background:var(--bsd-selected);vertical-align:middle}
+.passage-note-dialog{width:min(900px,95vw);max-height:90dvh;overflow:auto;background:var(--bsd-surface);color:var(--bsd-charcoal);border:1px solid var(--bsd-border);border-radius:12px;padding:20px}.passage-note-dialog::backdrop{background:#0007}.passage-note-dialog>header{display:flex;justify-content:space-between;align-items:center}
+@media(max-width:760px){.study-columns{grid-template-columns:1fr}.study-row{align-items:flex-start;flex-wrap:wrap}.study-row .btn{min-height:40px}}

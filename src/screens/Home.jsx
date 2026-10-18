@@ -1,3 +1,4 @@
+import DailyQueue from '../components/DailyQueue'
 import AccountLink from '../components/AccountLink'
 import UploadBookButton from '../components/UploadBookButton'
 import { useEffect, useState } from 'react'
@@ -87,6 +88,7 @@ export default function Home() {
         </div>
       </div>
       <aside className="desk-activity" aria-label="Personal study activity">
+        <DailyQueue/>
         <section className="card"><PanelTitle to="/reading">Continue Studying</PanelTitle>{data ? data.reading.length ? data.reading.map(book=><Link className="desk-activity-row" to={`/reading/${book.id}`} key={book.id}><BookCover book={book} compact/><span><strong>{book.title}</strong><small>{book.author || 'Currently reading'}</small>{book.updated_at && <small>Updated {new Date(book.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small>}</span></Link>) : <p>Start a book in your <Link to="/shelf">Library</Link> to pick up your reading here.</p> : <p>{error?'Activity unavailable.':'Loading your books…'}</p>}</section>
         <section className="card"><PanelTitle>Recent Items</PanelTitle>{data ? data.feed.length ? data.feed.map(item=><Link className="desk-activity-row" to={item.to} key={item.to}><span className="desk-item-icon">{item.kind==='Note'?<NotebookPen size={22}/>:<ShieldCheck size={22}/>}</span><span><strong>{item.title||item.name||'Untitled'}</strong><small>{item.kind} · {new Date(item.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></span></Link>) : <p>Your notes and doctrine checks will appear here.</p> : <p>{error?'Activity unavailable.':'Loading recent items…'}</p>}</section>
         <Link className="desk-closing" to="/bible?book=Romans&chapter=10&verse=15"><span>“How beautiful are the feet<br/>of those who bring good news!”</span><small>Romans 10:15 · BSB</small></Link>

@@ -1,3 +1,4 @@
+import PassageConnections, { usePassageConnections, PassageNoteDialog } from '../components/PassageConnections'
 import StudySessionBar from '../components/StudySessionBar'
 import SessionNote from '../components/SessionNote'
 import AccountLink from '../components/AccountLink'
@@ -212,6 +213,9 @@ export default function BibleStudy() {
   const [chapterCount, setChapterCount] = useState(null)
   const [selectedVerses, setSelectedVerses] = useState(new Set())
   const [verseRange, setVerseRange] = useState(null) // { start, end } -- restricts the reader to just these verses; null shows the whole chapter
+  const connections = usePassageConnections(user.id,book,chapter,verseRange)
+  const [verseNote,setVerseNote] = useState(null)
+  function openVerseNote(note){ if(note.id===sessionNoteId){document.querySelector('.session-note')?.scrollIntoView({behavior:'smooth'});return} setVerseNote(note) }
   const [pendingRange, setPendingRange] = useState(null) // a verseRange to apply once the (possibly still-loading) chapter arrives
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
@@ -537,7 +541,7 @@ export default function BibleStudy() {
   }
   function renderVerses(rows, anchor) {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
-    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number} className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>)}</div>
+    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number}><span className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onKeyDown={anchor?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup>{v.text}{' '}</span>{anchor && connections.notesAtVerse(v.number).map(note=><button className="verse-note-indicator" key={note.id} title={note.title||'Verse note'} aria-label={`Read or edit note on verse ${v.number}: ${note.title||'Untitled'}`} onClick={()=>openVerseNote(note)}><NotebookPen size={12}/></button>)}</span>)}</div>
   }
   return <div className="page bible-desk" style={{'--reading-size':prefs.fontSize+'px','--reading-line':prefs.lineHeight}}>
     <div className="bible-topbar">
@@ -697,7 +701,9 @@ export default function BibleStudy() {
           )}
 
       </aside>
+      
       {sessionMode?(sessionNoteId?<SessionNote key={sessionNoteId} id={sessionNoteId} saveRef={sessionSaveRef} currentPassage={passageRef}/>:<aside className="card"><h2>Study notes</h2><p>Select a note or choose New note in the session bar to write alongside your passage.</p></aside>):searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
+      <PassageConnections connections={connections} passageRef={passageRef} onOpen={openVerseNote}/>{verseNote&&<PassageNoteDialog key={verseNote.id} note={verseNote} books={connections.allBooks} onSaved={()=>{}} onClose={()=>{setVerseNote(null);connections.reload()}}/>}
     </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <div className="relative flex-1" style={{ minWidth: 220 }}>

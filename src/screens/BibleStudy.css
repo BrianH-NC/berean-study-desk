@@ -40,7 +40,7 @@
 .bible-verse-text { padding:12px 10px; font:19px/1.5 'EB Garamond',serif; overflow-wrap:anywhere; }
 .bible-verse-text>span { display:block; margin-bottom:6px; border-radius:3px; }
 .bible-verse-text [role=button] { cursor:pointer; }
-.bible-verse-text>span.is-selected { background:var(--bsd-selected); }
+.bible-verse-text .is-selected { background:var(--bsd-selected); }
 .bible-verse-text sup { font:600 10px Inter,sans-serif; color:var(--bsd-forest); margin-right:4px; }
 .is-single .bible-verse-text { max-width:70ch; margin:auto; font-size:23px; line-height:1.7; }
 .bible-reader-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; font:11px/1.5 Inter,sans-serif; color:var(--bsd-muted); }

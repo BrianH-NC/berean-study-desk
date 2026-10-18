@@ -19,6 +19,9 @@ const SECONDARY = [
   { to: '/sermons', label: 'Sermons', icon: Mic },
   { to: '/topics', label: 'Topics', icon: Tags },
   { to: '/reading', label: 'Reading now', icon: BookOpenText },
+  { to: '/reading-plans', label: 'Reading Plans', icon: BookText },
+  { to: '/quotations', label: 'Quotations', icon: NotebookPen },
+  { to: '/prayer', label: 'Prayer Journal', icon: BookOpenText },
 ]
 const ACCOUNT = [
   { to: '/settings', label: 'Settings', icon: Settings },

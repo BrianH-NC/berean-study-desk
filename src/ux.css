@@ -101,3 +101,5 @@ body .book-identity h1 { font-size:clamp(24px,2.5vw,32px); }
 .policy-contents summary { cursor:pointer; font:14px Inter,sans-serif; }
 .policy-contents ul { columns:2; padding-left:20px; font:13px/1.8 Inter,sans-serif; }
 @media(max-width:600px){.policy-contents ul { columns:1; }}
+.search-result mark { background:#f3e5ad; color:inherit; border-radius:2px; }
+.search-result:focus-visible, .notes-toolbar button:focus-visible, .study-form button:focus-visible { outline:3px solid var(--bsd-forest, #0f3d2e); outline-offset:3px; }

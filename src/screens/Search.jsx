@@ -1,3 +1,4 @@
+import {readSearchView,saveSearchView,searchMatches} from '../lib/searchView'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, BookOpen, LibraryBig, NotebookPen, ShieldCheck, Tags, ScrollText, ArrowRight, ExternalLink, X, Mic } from 'lucide-react'
@@ -25,10 +26,17 @@ async function allOwned(table, userId) {
     if((data||[]).length<500)return rows
   }
 }
+function MatchedText({text,query}) {return searchMatches(text,query).map((part,i)=>part.match?<mark key={i}>{part.text}</mark>:part.text)}
 export default function SearchWorkspace(){
+  const user=useAuth(),[params]=useSearchParams()
+  return <SearchContent key={`${user.id}:${params.toString()}`} />
+}
+function SearchContent(){
   const user=useAuth()
   const [params,setParams]=useSearchParams()
   const query=params.get('q')||''
+  const viewKey=`bsd-search:${user.id}:${params.toString()}`
+  const [returnView]=useState(()=>readSearchView(viewKey))
   const type=SEARCH_TYPES.includes(params.get('type'))?params.get('type'):'All'
   const testament=['OT','NT'].includes(params.get('testament'))?params.get('testament'):''
   const book=CANONICAL_BOOKS.includes(params.get('book'))?params.get('book'):''
@@ -41,16 +49,17 @@ export default function SearchWorkspace(){
   const [localErrors,setLocalErrors]=useState([])
   const [retry,setRetry]=useState(0)
   const [bible,setBible]=useState({query:'',rows:[],loading:false,error:false})
-  const [bibleLimit,setBibleLimit]=useState(60)
+  const [bibleLimit,setBibleLimit]=useState(returnView.bibleLimit||60)
   const [resources,setResources]=useState({rows:[],loading:false,error:false})
   const [recommendations,setRecommendations]=useState({rows:[],loading:false,error:false})
-  const [selectedId,setSelectedId]=useState(null)
-  const [previewOpen,setPreviewOpen]=useState(false)
+  const [selectedId,setSelectedId]=useState(returnView.selectedId||null)
+  const [previewOpen,setPreviewOpen]=useState(!!returnView.previewOpen)
+  const restoredScroll=useRef(false)
   const previewRef=useRef(null)
   const lastResult=useRef(null)
-  const [visible,setVisible]=useState(30)
+  const [visible,setVisible]=useState(returnView.visible||30)
   function update(values){const next=new URLSearchParams(params);for(const [key,value]of Object.entries(values)){if(value)next.set(key,value);else next.delete(key)}setParams(next);setVisible(30);setSelectedId(null);setPreviewOpen(false)}
-  useEffect(()=>{setDraft(query);setBibleLimit(60);setSelectedId(null);setVisible(30)},[query])
+
   useEffect(()=>{
     let active=true
     setLocalLoading(true)
@@ -107,6 +116,18 @@ export default function SearchWorkspace(){
   const filtered=sortSearchResults(rows.filter(r=>type==='All'||r.type===type),query,sort)
   const selected=filtered.find(r=>r.id===selectedId)||filtered[0]
   const loading=localLoading||bible.loading||resources.loading
+  useEffect(()=>{
+    if(loading||bible.query!==query||restoredScroll.current)return
+    let frame=requestAnimationFrame(()=>{restoredScroll.current=true;window.scrollTo({top:returnView.scroll||0,behavior:'instant'})})
+    return()=>cancelAnimationFrame(frame)
+  },[loading,bible.query,query,returnView])
+  useEffect(()=>{
+    if(loading||bible.query!==query)return
+    const save=()=>saveSearchView(viewKey,{selectedId,visible,bibleLimit,previewOpen,scroll:window.scrollY})
+    window.addEventListener('scroll',save,{passive:true})
+    window.addEventListener('pagehide',save)
+    return()=>{save();window.removeEventListener('scroll',save);window.removeEventListener('pagehide',save)}
+  },[viewKey,selectedId,visible,bibleLimit,previewOpen,loading,bible.query,query])
   const relatedTopics=[...new Set(library.notes.filter(n=>matchesSearch([n.title,n.body,...(n.tags||[])],query)).flatMap(n=>n.tags||[]))].slice(0,6)
   function choose(row){lastResult.current=document.activeElement;setSelectedId(row.id);setPreviewOpen(true);requestAnimationFrame(()=>{if(window.matchMedia('(max-width:767px)').matches){previewRef.current?.focus();previewRef.current?.scrollIntoView({block:'start',behavior:'instant'})}})}
   const filters=()=><>
@@ -129,7 +150,7 @@ export default function SearchWorkspace(){
         <div className="search-results-title"><div><h2>Search Results</h2><p role="status">{loading?'Searching…':query?`${filtered.length} loaded results for “${query}”`:'Enter a word or Bible reference to begin.'}</p></div><label className="sr-only" htmlFor="result-sort">Sort results</label><select id="result-sort" className="input" value={sort} onChange={e=>update({sort:e.target.value})}><option value="relevance">Most relevant</option><option value="title">Title A–Z</option><option value="recent">Newest saved</option></select></div>
         {parseReference(query)&&rows.some(r=>r.type==='Sermons')&&<button className="search-context-link" onClick={()=>update({type:'Sermons'})}>Also in Sermons: {rows.filter(r=>r.type==='Sermons').length} →</button>}
         {query&&!loading&&!filtered.length&&<p>No results match your search and filters.</p>}
-        {filtered.slice(0,visible).map(row=><button key={row.id} type="button" className={`search-result ${selected?.id===row.id?'is-selected':''}`} aria-pressed={selected?.id===row.id} onClick={()=>choose(row)}>{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<ResultIcon type={row.type}/>}<span><strong>{row.title}</strong><span className="search-snippet">{searchExcerpt(row.text,query)}</span><span className="search-result-meta"><span>{row.type}</span><span>{row.source}</span></span></span></button>)}
+        {filtered.slice(0,visible).map(row=><button key={row.id} type="button" className={`search-result ${selected?.id===row.id?'is-selected':''}`} aria-pressed={selected?.id===row.id} onClick={()=>choose(row)}>{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<ResultIcon type={row.type}/>}<span><strong><MatchedText text={row.title} query={query}/></strong><span className="search-snippet"><MatchedText text={searchExcerpt(row.text,query)} query={query}/></span><span className="search-result-meta"><span>{row.type}</span><span>{row.source}</span></span></span></button>)}
         {filtered.length>visible&&<button className="btn btn-secondary" onClick={()=>setVisible(n=>n+30)}>Load more results</button>}
         {bible.rows.length>=bibleLimit&&!parseReference(query)&&<button className="btn btn-secondary" onClick={()=>setBibleLimit(n=>n+60)}>Search more Bible verses</button>}
         {query&&<p className="search-scope">Commentary search covers {commentary.name} in the entered passage, or the first three chapters represented in BSB results. Counts reflect loaded results.</p>}
@@ -140,7 +161,7 @@ export default function SearchWorkspace(){
       </section>
       <aside className="search-related">
         <section className="card"><h2>Related Topics</h2>{relatedTopics.length?relatedTopics.map(tag=><Link className="search-related-link" key={tag} to={`/topics?tag=${encodeURIComponent(tag)}`}><Tags size={20}/><span>{tag}<small>From your notes</small></span></Link>):<p>Related tags from your notes appear here.</p>}</section>
-        <section className="card"><h2>Discover Books <ExternalLink size={14}/></h2><p className="search-scope">External suggestions · Google Books / Open Library</p>{recommendations.loading?<p>Finding suggestions…</p>:recommendations.error?<p>Suggestions are unavailable. <button onClick={()=>setRetry(n=>n+1)}>Retry</button></p>:recommendations.rows.map(row=><a key={row.url} className="search-related-book" href={row.url} target="_blank" rel="noopener noreferrer">{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<LibraryBig size={22}/>}<span><strong>{row.title}</strong><small>{row.author}{row.year?` · ${row.year}`:''} · {row.source}</small></span></a>)}{!query&&<p>Search to discover related books beyond your library.</p>}</section>
+        <section className="card"><h2>Discover Books <ExternalLink size={14}/></h2><p className="search-scope">External suggestions · Google Books / Open Library</p>{recommendations.loading?<p>Finding suggestions…</p>:recommendations.error?<p>Suggestions are unavailable. <button onClick={()=>setRetry(n=>n+1)}>Retry</button></p>:recommendations.rows.map(row=><a key={row.url} className="search-related-book" href={row.url} target="_blank" rel="noopener noreferrer">{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<LibraryBig size={22}/>}<span><strong><MatchedText text={row.title} query={query}/></strong><small>{row.author}{row.year?` · ${row.year}`:''} · {row.source}</small></span></a>)}{!query&&<p>Search to discover related books beyond your library.</p>}</section>
         <div className="search-quote" style={{backgroundImage:`linear-gradient(#102d21b3,#102d21b3),url(${dailyHero()})`}}>“The unfolding of Your words gives light; it informs the simple.”<small>Psalm 119:130 · BSB</small></div>
       </aside>
     </div>

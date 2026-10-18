@@ -1,4 +1,6 @@
 import AccountLink from './components/AccountLink'
+import StudyReminderBanner from './components/StudyReminderBanner'
+const StudyTools = lazy(() => import('./screens/StudyTools'))
 import { createContext, useContext, useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
@@ -46,6 +48,7 @@ function ProtectedLayout() {
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar user={user} />
       <main id="main-content" tabIndex={-1} className="app-main flex-1 min-w-0">
+        <StudyReminderBanner userId={user.id}/>
         {!hasPageAccount && <div className="bsd-account-row"><AccountLink user={user}/></div>}
         <Suspense fallback={<p role="status">Loading workspace…</p>}><Routes>
           <Route path="/" element={<Home />} />
@@ -69,6 +72,7 @@ function ProtectedLayout() {
           <Route path="/prayer" element={<PrayerJournal />} />
           <Route path="/quotations" element={<Quotations />} />
           <Route path="/study-sessions" element={<StudySessions />} />
+          <Route path="/study-tools" element={<StudyTools />} />
           <Route path="/bible" element={<BibleStudy />} />
           <Route path="/search" element={<Search />} />
           <Route path="/sermons" element={<SermonIndex />} />

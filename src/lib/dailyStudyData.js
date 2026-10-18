@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 const fieldsByTable = {
+  study_review_cards:['source_key','kind','title','body','citation','due_date','stage','reviews','paused','last_reviewed_at'],
+  study_reminders:['title','destination','due_local','interval_days','paused','completed','last_completed_at'],
   reading_plans:['title','kind','book_id','start_date','interval_days','items','completed','paused'],
   prayer_requests:['title','body','ref','category','answered_at','updates','source','request_date'],
   book_quotations:['book_id','quote','page','reflection','tags'],

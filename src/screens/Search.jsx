@@ -123,11 +123,12 @@ function SearchContent(){
   },[loading,bible.query,query,returnView])
   useEffect(()=>{
     if(loading||bible.query!==query)return
-    const save=()=>saveSearchView(viewKey,{selectedId,visible,bibleLimit,previewOpen,scroll:window.scrollY})
+    const save=()=>saveSearchView(viewKey,{selectedId,visible,bibleLimit,previewOpen,scroll:restoredScroll.current?window.scrollY:(returnView.scroll||0)})
+    save()
     window.addEventListener('scroll',save,{passive:true})
     window.addEventListener('pagehide',save)
-    return()=>{save();window.removeEventListener('scroll',save);window.removeEventListener('pagehide',save)}
-  },[viewKey,selectedId,visible,bibleLimit,previewOpen,loading,bible.query,query])
+    return()=>{window.removeEventListener('scroll',save);window.removeEventListener('pagehide',save)}
+  },[viewKey,selectedId,visible,bibleLimit,previewOpen,loading,bible.query,query,returnView])
   const relatedTopics=[...new Set(library.notes.filter(n=>matchesSearch([n.title,n.body,...(n.tags||[])],query)).flatMap(n=>n.tags||[]))].slice(0,6)
   function choose(row){lastResult.current=document.activeElement;setSelectedId(row.id);setPreviewOpen(true);requestAnimationFrame(()=>{if(window.matchMedia('(max-width:767px)').matches){previewRef.current?.focus();previewRef.current?.scrollIntoView({block:'start',behavior:'instant'})}})}
   const filters=()=><>

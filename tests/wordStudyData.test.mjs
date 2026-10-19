@@ -33,3 +33,9 @@ test('OT unsupported, missing chapter entries, retries, and concordance deduplic
   const rows=await occurrences('G25');assert.equal(rows.length,2);assert.equal(rows[0].bookNumber,40)
  }finally{globalThis.fetch=original}
 })
+test('Hebrew alternate numbering retains the English Psalm reference',async()=>{
+ const chapter=await data('grammar/19/3.json')
+ assert.equal(chapter['1'][0].gloss,'O Yahweh')
+ assert.ok(chapter['1'][0].ids.includes('H3068'))
+ assert.match(chapter['1'][0].editions,/TAHOT/)
+})

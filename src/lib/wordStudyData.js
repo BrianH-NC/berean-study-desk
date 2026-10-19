@@ -1,6 +1,6 @@
 const cache = new Map()
 export async function studyJson(url) {
-  if (!cache.has(url)) cache.set(url, fetch(url, {credentials:'omit',signal:AbortSignal.timeout(20000)}).then(async r=>{
+  if (!cache.has(url)) cache.set(url, fetch(url, {credentials:url.startsWith('/')?'same-origin':'omit',signal:AbortSignal.timeout(20000)}).then(async r=>{
     if (!r.ok) throw new Error('Study source could not load. Please retry.')
     return r.json()
   }).catch(e=>{cache.delete(url);throw e}))

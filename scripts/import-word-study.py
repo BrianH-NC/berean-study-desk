@@ -41,14 +41,14 @@ for path in paths:
  if not path.startswith('Translators Amalgamated OT+NT/') or not re.search('/TA(GNT|HOT) ',path):continue
  greek='/TAGNT' in path
  for line in read(step,sr,path).splitlines():
-  c=line.split('\t');m=re.match(r'([123]?[A-Za-z]+)\.(\d+)\.(\d+)#',c[0])
+  c=line.split('\t');m=re.match(r'([123]?[A-Za-z]+)\.(\d+)\.(\d+)',c[0])
   if not m or len(c)<6 or m[1] not in books:continue
   if greek:
    tag=c[3].split('=',1)
    if len(tag)<2:continue
    ids=re.findall(r'G\d+',tag[0]);form=c[1];gloss=c[2];codes=[tag[1]];editions=c[5]
   else:
-   ids=re.findall(r'H\d+',c[4]);form=c[1]+' ('+c[2]+')';gloss=c[3];language=c[5][:1];codes=[x if x[:1] in 'HA' else language+x for x in c[5].split('/')];editions='Leningrad Codex'
+   ids=re.findall(r'H\d+',c[4]);form=c[1]+' ('+c[2]+')';gloss=c[3];language=c[5][:1];codes=[x if x[:1] in 'HA' else language+x for x in c[5].split('/')];editions='STEP TAHOT (Leningrad-based with editorial readings); '+c[0].split('=')[-1]
   ids=list(dict.fromkeys(i[0]+str(int(i[1:])) for i in ids))
   chapters[f'{books.index(m[1])+1}/{int(m[2])}.json'][str(int(m[3]))].append({'form':form,'gloss':gloss,'ids':ids,'codes':codes,'editions':editions})
  print(path,flush=True)

@@ -1,3 +1,7 @@
+## Word Study expansion — 2026-10-18
+
+Preview branch `feature/word-study-workspace` adds STEP lexicons/morphology, KJV Strong’s concordance, source-cited note drafts, and SBLGNT edition comparisons. See [WORD-STUDY.md](WORD-STUDY.md) for sources, scope, and checks. No schema/auth changes. Not merged to main.
+
 # Berean Study Desk — Handoff
 
 ## Free-book catalogs — 2026-09-19

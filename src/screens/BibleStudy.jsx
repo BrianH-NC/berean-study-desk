@@ -1,3 +1,4 @@
+import TextualVariants from '../components/TextualVariants'
 import WordStudy, { StudyWords } from '../components/WordStudy'
 import PassageConnections, { usePassageConnections, PassageNoteDialog } from '../components/PassageConnections'
 import StudySessionBar from '../components/StudySessionBar'
@@ -197,7 +198,7 @@ export default function BibleStudy() {
   })
   const [selectionSaveError, setSelectionSaveError] = useState(false)
   const availableTranslations = orderedTranslations(ALL_TRANSLATIONS,prefs)
-  const [toolNotice, setToolNotice] = useState('')
+  const [variantRequest,setVariantRequest] = useState(null)
   const [searchParams] = useSearchParams()
   const sessionMode=searchParams.has('session')||searchParams.has('study')
   const sessionSaveRef=useRef(null)
@@ -542,6 +543,7 @@ export default function BibleStudy() {
     setSessionNoteId(state.noteId||'');setSessionSermonId(state.sermonId||'')
   }
   function openWordStudy(v,translation,word='',index=-1) {
+    setVariantRequest(null)
     setWordStudy({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:v.number,text:v.text,translation,word,index})
   }
   function renderVerses(rows, anchor, translation) {
@@ -562,6 +564,7 @@ export default function BibleStudy() {
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
+        {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}
         {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
         <div className="card bible-toolbar">
           <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
@@ -589,13 +592,13 @@ export default function BibleStudy() {
         <StudySection title="Study Tools for This Passage"><div className="bible-tool-grid">
           <button aria-pressed={showCrossRefs} onClick={()=>setShowCrossRefs(v=>!v)}><Link2/>Cross-References</button>
           <button onClick={()=>{const v=displayedVerses?.find(v=>selectedVerses.has(v.number))||displayedVerses?.[0];if(v)openWordStudy(v,readingTranslation)}} disabled={!displayedVerses?.length}><Languages/>Word Study <small>Strong’s details</small></button>
-          <button onClick={()=>setToolNotice(toolNotice?'':'Textual variants require a dedicated manuscript source. This tool is not connected yet.')}><FileText/>Textual Variants <small>Not connected</small></button>
+          <button onClick={()=>{setWordStudy(null);setVariantRequest({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:[...selectedVerses][0]||null})}}><FileText/>Textual Variants <small>Greek edition comparisons</small></button>
           <button aria-pressed={showCompare} onClick={()=>setShowCompare(v=>!v)}><BookOpen/>Translation Compare</button>
           <button onClick={()=>draftNote()}><NotebookPen/>Study Notes</button>
           <button onClick={()=>draftNote(true)}><ChartColumn/>Passage Analysis <small>Guided note</small></button>
           <a href="https://biblehub.com/atlas/" target="_blank" rel="noreferrer"><MapPin/>Biblical Maps <small>External ↗</small></a>
           <a href="https://biblehub.com/timeline/" target="_blank" rel="noreferrer"><Clock/>Timeline <small>External ↗</small></a>
-        </div>{toolNotice && <p role="status">{toolNotice}</p>}<button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button></StudySection>
+        </div><button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button></StudySection>
         <StudySection title="Quick Insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
                 {showCommentary && (
                   <div className="card" style={{ padding: '16px 20px' }}>

@@ -1,3 +1,4 @@
+import PassageSermons from '../components/PassageSermons'
 import TextualVariants from '../components/TextualVariants'
 import WordStudy, { StudyWords } from '../components/WordStudy'
 import PassageConnections, { usePassageConnections, PassageNoteDialog } from '../components/PassageConnections'
@@ -600,6 +601,7 @@ export default function BibleStudy() {
           <a href="https://biblehub.com/timeline/" target="_blank" rel="noreferrer"><Clock/>Timeline <small>External ↗</small></a>
         </div><button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button></StudySection>
         <StudySection title="Quick Insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
+        <PassageSermons reference={selectionRef || passageRef} selectedVerses={selectedSorted}/>
                 {showCommentary && (
                   <div className="card" style={{ padding: '16px 20px' }}>
                     <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">

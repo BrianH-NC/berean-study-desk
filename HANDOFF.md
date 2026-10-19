@@ -1,6 +1,10 @@
+## Passage sermon links — 2026-10-18
+
+Spurgeon passage matches and Andy Davis / Two Journeys chapter links are integrated into the current Bible Study, Notes context, and advanced note pages. See public/data/SERMON-INDEX.md. This ports the local sermon work from the older root checkout without replacing current screens. No database deployment needed.
+
 ## Word Study expansion — 2026-10-18
 
-Preview branch `feature/word-study-workspace` adds STEP lexicons/morphology, KJV Strong’s concordance, source-cited note drafts, and SBLGNT edition comparisons. See [WORD-STUDY.md](WORD-STUDY.md) for sources, scope, and checks. No schema/auth changes. Not merged to main.
+Preview branch `feature/word-study-workspace` adds STEP lexicons/morphology, KJV Strong’s concordance, source-cited note drafts, and SBLGNT edition comparisons. See [WORD-STUDY.md](WORD-STUDY.md) for sources, scope, and checks. No schema/auth changes. User approved promotion to main on October 18, 2026.
 
 # Berean Study Desk — Handoff
 

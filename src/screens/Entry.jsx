@@ -1,3 +1,4 @@
+import PassageSermons from '../components/PassageSermons'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getEntry, getLinksFor, deleteEntry, formatEntryNum } from '../lib/entries'
@@ -152,6 +153,7 @@ export default function Entry() {
                 </div>
               )}
               <ScriptureText text={entry.body} style={{ fontSize: "1.0625rem", lineHeight: 1.65, maxWidth: "70ch" }} />
+              {entry.ref&&<PassageSermons reference={entry.ref}/>}
               {entry.photos?.length > 0 && (
                 <div className="flex gap-2 flex-wrap mt-4">
                   {entry.photos.map((url) => (

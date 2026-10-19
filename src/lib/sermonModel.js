@@ -1,5 +1,6 @@
+import {sermonAudioLink} from './sermonAudio.js'
 export const SERMON_SOURCES={youtube:'YouTube',podcast:'Podcast',audio:'Audio link',video:'Video link',text:'Text / Transcript',other:'Other'}
-export function sourceType(url){try{const u=new URL(url);if(/(^|\.)(youtube\.com|youtu\.be)$/.test(u.hostname))return 'youtube';if(/\.(mp3|m4a|ogg|wav)$/i.test(u.pathname))return 'audio';if(/\.(mp4|webm|mov)$/i.test(u.pathname))return 'video';return /podcast|spotify|apple\.com/.test(u.hostname)?'podcast':'other'}catch{return 'text'}}
+export function sourceType(url){if(sermonAudioLink(url))return 'audio';try{const u=new URL(url);if(/(^|\.)(youtube\.com|youtu\.be)$/.test(u.hostname))return 'youtube';if(/\.(mp3|m4a|ogg|wav)$/i.test(u.pathname))return 'audio';if(/\.(mp4|webm|mov)$/i.test(u.pathname))return 'video';return /podcast|spotify|apple\.com/.test(u.hostname)?'podcast':'other'}catch{return 'text'}}
 export function sermonTitle(s){if(s.title?.trim())return s.title;try{return new URL(s.source_url).hostname}catch{return s.speaker?`${s.speaker} — ${s.sermon_date||'Sermon'}`:'Untitled sermon'}}
 export function timestamp(seconds){const n=Math.floor(seconds);return `${Math.floor(n/3600)?Math.floor(n/3600)+':':''}${String(Math.floor(n/60)%60).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`}
 function seconds(value){const pieces=value.replace(',','.').split(':').map(Number);return pieces.reduce((n,v)=>n*60+v,0)}

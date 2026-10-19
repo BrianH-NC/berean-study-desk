@@ -115,3 +115,7 @@ npm run dev      # localhost dev server — auth will redirect to prod, see Know
 npm run build    # this is the actual verification loop used all session; run before committing
 npm run lint     # oxlint
 ```
+
+## SermonAudio listener integration — 2026-10-18
+
+The Sermons page has an Add from SermonAudio entry point. Supported modern sermon links, legacy SID links, and player links resolve to an allowlisted official audio embed. Players load on explicit click in the composer, sermon detail, and Bible Study sermon panel; external playback remains available. Metadata and transcripts are entered/uploaded manually. Existing source_type audio is reused; no database or authentication changes. Build and lint pass (existing warnings), and 130 tests pass. Preview branch codex/sermonaudio-listener; not yet approved for main.

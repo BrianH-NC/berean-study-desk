@@ -110,7 +110,7 @@ export default function Shelf() {
   const traditions = useMemo(() => [...new Set((books || []).map(book => book.tradition).filter(Boolean))].sort(),[books])
   const verdicts = useMemo(() => [...new Set(Object.values(checksByIsbn).map(check => check.verdict).filter(Boolean))].sort(),[checksByIsbn])
   const filtered = useMemo(() => sortLibrary((books || []).filter(book =>
-    (!query.trim() || `${book.title} ${book.author} ${book.isbn || ''} ${(book.tags || []).join(' ')} ${(book.collections || []).join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())) &&
+    (!query.trim() || `${book.title} ${book.author} ${book.isbn || ''} ${(book.tags || []).join(' ')} ${(book.subjects || []).join(' ')} ${(book.collections || []).join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())) &&
     (!category || category.split('|').includes(primaryCategory(book))) &&
     (!author || book.author===author) && (!publisher || book.publisher===publisher) &&
     (!tag || book.tags?.includes(tag)) && (!collection || book.collections?.includes(collection)) &&

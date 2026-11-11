@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseCSV, planCLZ, matchCLZ, blankPatch, isbnKey } from './clzImport.js'
+import { parseCSV, planCLZ, matchCLZ, blankPatch, isbnKey, cleanSubjects } from './clzImport.js'
 test('CLZ CSV handles BOM, quoted commas/newlines/escaped quotes and rejects malformed rows',()=>{
  const rows=parseCSV('\uFEFFAuthor,Title,ISBN\r\n"Last, First","A ""quoted""\nTitle",9780842379427\r\n')
  assert.equal(rows[0].Author,'Last, First');assert.equal(rows[0].Title,'A "quoted"\nTitle')
@@ -31,4 +31,13 @@ test('repeat imports produce no changes and duplicate file rows are skipped',()=
  const existing={id:'saved',...planned[0].book}
  const next=planCLZ([raw],[existing])[0]
  assert.equal(next.choice,'saved');assert.deepEqual(blankPatch(existing,next.book),{})
+})
+test('CLZ subjects split BISAC paths, drop generic labels, and fill only a blank Subjects list',()=>{
+ assert.deepEqual(cleanSubjects('Religion / Christian Theology / General | Bible | Religion / Biblical Studies / General | bible'),['Christian Theology','Bible','Biblical Studies'])
+ assert.deepEqual(cleanSubjects(''),[])
+ const raw={Title:'Heaven',Author:'Randy Alcorn',ISBN:'9780842379427',Subject:'Heaven | Religion / Christian Theology / General'}
+ const item=planCLZ([raw],[])[0]
+ assert.deepEqual(item.book.subjects,['Heaven','Christian Theology'])
+ assert.deepEqual(blankPatch({subjects:[]},item.book,['subjects']),{subjects:['Heaven','Christian Theology']})
+ assert.deepEqual(blankPatch({subjects:['Mine']},item.book,['subjects']),{})
 })

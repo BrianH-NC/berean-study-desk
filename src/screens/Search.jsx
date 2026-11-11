@@ -105,7 +105,7 @@ function SearchContent(){
   const rows=useMemo(()=>{
     if(!query.trim())return []
     const notes=library.notes.filter(n=>matchesSearch([n.title,n.body,n.ref,...(n.tags||[])],query,exact)).map(n=>({id:`note:${n.id}`,type:'Notes',title:n.title||'Untitled note',text:n.body||'',date:n.created_at,url:`/notebook/${n.id}`,source:n.ref||'Your notes'}))
-    const books=library.books.filter(b=>matchesSearch([b.title,b.author,b.isbn,...(b.tags||[])],query,exact)).map(b=>({id:`book:${b.id}`,type:'Books',title:b.title||'Untitled book',text:b.description||b.author||'',source:b.author||'Your library',date:b.created_at,url:`/shelf/${b.id}`,cover:b.cover_url}))
+    const books=library.books.filter(b=>matchesSearch([b.title,b.author,b.isbn,...(b.tags||[]),...(b.subjects||[])],query,exact)).map(b=>({id:`book:${b.id}`,type:'Books',title:b.title||'Untitled book',text:b.description||b.author||'',source:b.author||'Your library',date:b.created_at,url:`/shelf/${b.id}`,cover:b.cover_url}))
     const checks=library.checks.filter(c=>matchesSearch([c.title,c.name,c.authors,c.summary,c.verdict],query,exact)).map(c=>({id:`check:${c.id}`,type:'Doctrine Checks',title:c.title||c.name||'Doctrine Check',text:c.summary||'',source:c.verdict||'Saved assessment',date:c.created_at,url:`/checks/${c.id}`}))
     const passage=parseReference(query)
     const sermons=library.sermons.filter(s=>matchesSearch([s.title,s.primary_text,s.speaker,s.series,s.description,s.notes,s.transcript_text,...(s.tags||[])],query,exact)||(passage&&sermonPassageMatch(s,passage))).map(s=>({id:`sermon:${s.id}`,sermonId:s.id,type:'Sermons',title:sermonTitle(s),text:s.description||s.transcript_text||s.notes||'',source:s.speaker||'Your sermons',date:s.created_at,url:`/sermons/${s.id}`}))

@@ -1,6 +1,6 @@
 import { isValidISBN, normalizeISBN } from './isbn.js'
 
-export const CLZ_FIELDS={title:'Title',author:'Author',isbn:'ISBN',publisher:'Publisher',pub_date:'Publication date',pages:'Pages',tags:'Categories / tags'}
+export const CLZ_FIELDS={title:'Title',author:'Author',isbn:'ISBN',publisher:'Publisher',pub_date:'Publication date',pages:'Pages',tags:'Categories / tags',subjects:'Subjects'}
 export const isBlank=value=>value==null||(typeof value==='string'&&!value.trim())||(Array.isArray(value)&&!value.some(v=>String(v).trim()))
 const normalized=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()
 export function isbnKey(value){
@@ -9,6 +9,19 @@ export function isbnKey(value){
  if(isbn.length===13)return isbn
  const stem='978'+isbn.slice(0,9)
  return stem+((10-[...stem].reduce((s,n,i)=>s+Number(n)*(i%2?3:1),0)%10)%10)
+}
+// CLZ's Subject column is BISAC-style ("Religion / Christian Theology / General | Bible"),
+// so split every path into its segments and drop the generic ones. These stay in their own
+// field -- tags are the curated categories the Library's Category view groups by.
+const GENERIC_SUBJECTS=new Set(['religion','general','topic','subjects','religious','religion & spirituality','christian books & bibles','juvenile nonfiction'])
+export function cleanSubjects(raw){
+ const seen=new Set(),out=[]
+ for(const part of String(raw||'').split(/[|/]/)){
+  const label=part.trim(),key=label.toLowerCase()
+  if(!label||GENERIC_SUBJECTS.has(key)||seen.has(key))continue
+  seen.add(key);out.push(label)
+ }
+ return out
 }
 export function parseCSV(text){
  text=text.replace(/^\uFEFF/,'');const rows=[];let row=[],cell='',quoted=false,closed=false
@@ -37,7 +50,7 @@ export function mapCLZ(raw,index){
  if(raw.Pages&&(!pages||pages>2147483647))warnings.push('Invalid page count: omitted.')
  // Preserve a CLZ genre label intact; commas can be part of its name.
  const tags=(raw.Genre||'').split(/[;|]/).map(v=>v.trim()).filter(Boolean)
- return {index,raw,warnings,book:{title:raw.Title,author:raw.Author||null,isbn:isValidISBN(isbn)?isbn:null,publisher:raw.Publisher||null,pub_date:raw['Publication Date']||null,pages:pages>0&&pages<=2147483647?pages:null,tags:[...new Set(tags)]}}
+ return {index,raw,warnings,book:{title:raw.Title,author:raw.Author||null,isbn:isValidISBN(isbn)?isbn:null,publisher:raw.Publisher||null,pub_date:raw['Publication Date']||null,pages:pages>0&&pages<=2147483647?pages:null,tags:[...new Set(tags)],subjects:cleanSubjects(raw.Subject)}}
 }
 export function matchCLZ(incoming,books){
  const key=isbnKey(incoming.isbn)

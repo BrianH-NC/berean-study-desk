@@ -16,3 +16,20 @@ export function sortLibrary(books, sort, direction) {
     return comparison * (direction === 'desc' ? -1 : 1) || (a.title || '').localeCompare(b.title || '') || String(a.id).localeCompare(String(b.id))
   })
 }
+
+// Ranks other library books by how many subjects they share with this one
+// (same primary category breaks ties), so subjects imported from CLZ become
+// a way to find related reading rather than just labels.
+export function rankSimilar(book, others, limit = 6) {
+  const mine = new Set((book.subjects || []).map((s) => s.toLowerCase()))
+  return others
+    .filter((o) => o.id !== book.id)
+    .map((o) => ({
+      ...o,
+      shared: (o.subjects || []).filter((s) => mine.has(s.toLowerCase())),
+      sameCategory: !!book.tags?.[0] && o.tags?.[0] === book.tags[0],
+    }))
+    .filter((o) => o.shared.length > 0)
+    .sort((a, b) => b.shared.length - a.shared.length || Number(b.sameCategory) - Number(a.sameCategory) || (a.title || '').localeCompare(b.title || ''))
+    .slice(0, limit)
+}

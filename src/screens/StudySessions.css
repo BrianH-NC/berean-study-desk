@@ -39,3 +39,7 @@
   .is-session .session-note .tiptap{min-height:max(220px,calc(100dvh - 22rem))}
   .is-session .session-note-empty{min-height:min(24rem,calc(100dvh - 2rem));justify-content:center}
 }
+/* The note sits in a wrapper that stretches to the tools column's height, so
+   the pinned note stops there instead of sliding over "Connected to…" below. */
+.is-session .session-note-column{grid-column:2;grid-row:2;align-self:stretch;min-width:0}
+@media(max-width:760px){.is-session .session-note-column{grid-column:1;grid-row:2}}

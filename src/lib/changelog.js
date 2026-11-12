@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.4.2',
+    date: '2026-11-11',
+    title: 'Study notes stay in their column',
+    changes: [
+      { kind: 'fixed', text: 'The pinned study note in a study session no longer slides over the “Connected to” section below the study tools.' },
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-11-11',
     title: 'Roomier study sessions',

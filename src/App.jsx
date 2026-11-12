@@ -2,6 +2,7 @@ import { takeDestination } from './lib/signInDestination'
 import AccountLink from './components/AccountLink'
 import StudyReminderBanner from './components/StudyReminderBanner'
 const StudyTools = lazy(() => import('./screens/StudyTools'))
+const WhatsNew = lazy(() => import('./screens/WhatsNew'))
 import { createContext, useContext, useEffect, useState, lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
@@ -85,6 +86,7 @@ function ProtectedLayout() {
           <Route path="/topics/:topicKey" element={<Topics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/profile" element={<Settings />} />
+          <Route path="/whats-new" element={<WhatsNew />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes></Suspense>
       </main>

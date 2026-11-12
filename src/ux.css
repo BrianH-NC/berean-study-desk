@@ -132,3 +132,9 @@ body .modern-entry-composer .entry-writing .tiptap:focus-visible { outline:3px s
  .notes-extra-tools { position:static; }
  .notes-extra-tools[data-open="true"]>.notes-extra-tools-content { left:0; max-width:100%; box-sizing:border-box; }
 }
+
+/* Sidebar link: version label and unseen-update dot */
+.nav-version { margin-left: .4rem; font-size: .75rem; opacity: .7; }
+.nav-update-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--bsd-gold, #c9a227); }
+.nav-item.has-update { position: relative; }
+.has-update-slot { position: relative; }

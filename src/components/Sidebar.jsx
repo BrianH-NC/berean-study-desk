@@ -1,8 +1,9 @@
 import AccountLink from './AccountLink'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic, CalendarDays, Layers, Quote, Heart, RotateCcw } from 'lucide-react'
+import { Home, Search, BookText, LibraryBig, ShieldCheck, NotebookPen, Tags, BookOpenText, Settings, Menu, X, PanelLeft, Mic, CalendarDays, Layers, Quote, Heart, RotateCcw, Sparkles } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { APP_VERSION, hasUnseenUpdate } from '../lib/changelog'
 import Logo, { BrandLockup } from './Logo'
 
 // Preserve existing durable URLs and working destinations during the redesign.
@@ -25,6 +26,7 @@ const SECONDARY = [
   { to: '/prayer', label: 'Prayer Journal', icon: Heart },
 ]
 const ACCOUNT = [
+  { to: '/whats-new', label: 'What’s New', icon: Sparkles, version: APP_VERSION },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -36,8 +38,10 @@ const GROUPS = [
 
 function NavigationLink({ item, onClick }) {
   const Icon = item.icon
-  return <NavLink to={item.to} end={item.end} onClick={onClick} className="nav-item" title={item.label} aria-label={item.label}>
-    <Icon size={22} aria-hidden="true" /><span className="nav-label">{item.label}{item.count!=null&&<small className="ml-2 opacity-70">{item.count}</small>}</span>
+  const label = [item.label, item.version && `version ${item.version}`, item.unseen && 'new updates'].filter(Boolean).join(', ')
+  return <NavLink to={item.to} end={item.end} onClick={onClick} className={`nav-item${item.unseen ? ' has-update' : ''}`} title={item.version ? `${item.label} · v${item.version}` : item.label} aria-label={label}>
+    <Icon size={22} aria-hidden="true" /><span className="nav-label">{item.label}{item.count!=null&&<small className="ml-2 opacity-70">{item.count}</small>}{item.version&&<small className="nav-version">v{item.version}</small>}</span>
+    {item.unseen && <span className="nav-update-dot" aria-hidden="true" />}
   </NavLink>
 }
 
@@ -45,6 +49,9 @@ export default function Sidebar({user}) {
   const { pathname } = useLocation()
   const [sermonCount,setSermonCount]=useState(null)
   useEffect(()=>{let active=true;const refresh=()=>supabase.from('sermons').select('id',{count:'exact',head:true}).eq('user_id',user.id).then(({count,error})=>{if(active)setSermonCount(error?null:count)});refresh();window.addEventListener('sermons-changed',refresh);return()=>{active=false;window.removeEventListener('sermons-changed',refresh)}},[user.id])
+  const [unseenUpdate,setUnseenUpdate]=useState(()=>{try{return hasUnseenUpdate(window.localStorage,user.id)}catch{return false}})
+  useEffect(()=>{const seen=()=>setUnseenUpdate(false);window.addEventListener('whats-new-seen',seen);return()=>window.removeEventListener('whats-new-seen',seen)},[])
+  const account = ACCOUNT.map(item=>item.to==='/whats-new'?{...item,unseen:unseenUpdate}:item)
   const dialog = useRef(null)
   const trigger = useRef(null)
   const [railExpanded, setRailExpanded] = useState(()=>{try{return JSON.parse(localStorage.getItem('bsd-navigation-expanded')||'null')}catch{return null}})
@@ -77,7 +84,7 @@ export default function Sidebar({user}) {
         {PRIMARY.slice(0,2).map(item=><NavigationLink key={item.to} item={item}/>)}{GROUPS.map(group=><section className="nav-group" key={group.label} aria-label={group.label}><h2 className="nav-group-label">{group.label}</h2>{group.items.map(item=><NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}}/>)}</section>)}
       </nav>
       <div className="sidebar-footer">
-        {ACCOUNT.map(item => <NavigationLink key={item.to} item={{...item,count:item.to==='/sermons'?sermonCount:null}} />)}
+        {account.map(item => <NavigationLink key={item.to} item={item} />)}
         <button type="button" className="nav-item" title="Resize navigation" aria-label="Expand or collapse navigation" onClick={toggleRail}>
           <PanelLeft size={22} aria-hidden="true" /><span className="nav-label">Resize navigation</span>
         </button>
@@ -90,13 +97,13 @@ export default function Sidebar({user}) {
         const Icon = item.icon
         return <NavLink key={item.to} to={item.to} end={item.end}><Icon size={22} aria-hidden="true" /><span>{item.label}{item.count!=null&&<small className="ml-2 opacity-70">{item.count}</small>}</span></NavLink>
       })}
-      <button type="button" className={moreActive ? 'is-active' : ''} aria-label="More destinations" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={openMenu}>
-        <Menu size={22} aria-hidden="true" /><span>More</span>
+      <button type="button" className={`${moreActive ? 'is-active' : ''} has-update-slot`} aria-label={unseenUpdate?'More destinations, new updates':'More destinations'} aria-haspopup="dialog" aria-expanded={menuOpen} onClick={openMenu}>
+        <Menu size={22} aria-hidden="true" /><span>More</span>{unseenUpdate&&<span className="nav-update-dot" aria-hidden="true"/>}
       </button>
     </nav>
     <dialog ref={dialog} className="nav-sheet" aria-labelledby="navigation-title" onClose={restoreFocus}>
       <div className="flex items-center justify-between gap-4 mb-4"><h2 id="navigation-title" className="text-xl mb-0">Your study desk</h2><button type="button" className="btn btn-icon" aria-label="Close navigation" onClick={closeMenu}><X size={22} /></button></div>
-      <nav aria-label="More destinations" className="flex flex-col gap-1">{GROUPS.map(group=><section className="nav-group" key={group.label}><h2 className="nav-group-label">{group.label}</h2>{group.items.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</section>)}{ACCOUNT.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</nav>
+      <nav aria-label="More destinations" className="flex flex-col gap-1">{GROUPS.map(group=><section className="nav-group" key={group.label}><h2 className="nav-group-label">{group.label}</h2>{group.items.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</section>)}{account.map(item=><NavigationLink key={item.to} item={item} onClick={closeMenu}/>)}</nav>
     </dialog>
   </>
 }

@@ -5,7 +5,7 @@ import PassageConnections, { usePassageConnections, PassageNoteDialog } from '..
 import StudySessionBar from '../components/StudySessionBar'
 import SessionNote from '../components/SessionNote'
 import AccountLink from '../components/AccountLink'
-import { restoreBibleSelection, saveBibleSelection } from '../lib/bibleSelection'
+import { restoreBibleSelection, saveBibleSelection, restoreBiblePassage, saveBiblePassage, DEFAULT_PASSAGE } from '../lib/bibleSelection'
 import {preferencesFor,orderedTranslations} from '../lib/preferences'
 import SermonBiblePanel from '../components/SermonStudy'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -201,6 +201,14 @@ export default function BibleStudy() {
   const availableTranslations = orderedTranslations(ALL_TRANSLATIONS,prefs)
   const [variantRequest,setVariantRequest] = useState(null)
   const [searchParams] = useSearchParams()
+  // Reopen the last passage read, unless the URL names one (deep links and
+  // study sessions set their own passage below).
+  const [initialPassage] = useState(() => {
+    if (searchParams.get('book') && searchParams.get('chapter')) return DEFAULT_PASSAGE
+    let storage
+    try { storage = window.localStorage } catch { /* Browser may block storage. */ }
+    return restoreBiblePassage(storage, user.id, CANONICAL_BOOKS)
+  })
   const sessionMode=searchParams.has('session')||searchParams.has('study')
   const sessionSaveRef=useRef(null)
   const [sessionReady,setSessionReady]=useState(!searchParams.has('session'))
@@ -210,8 +218,8 @@ export default function BibleStudy() {
 
   const [quickRef, setQuickRef] = useState('')
   const [refError, setRefError] = useState('')
-  const [book, setBook] = useState('John')
-  const [chapter, setChapter] = useState(3)
+  const [book, setBook] = useState(initialPassage.book)
+  const [chapter, setChapter] = useState(initialPassage.chapter)
   const [readingTranslation, setReadingTranslation] = useState(savedSelection.translation)
   const [verses, setVerses] = useState(null) // null = loading
   const [chapterCount, setChapterCount] = useState(null)
@@ -220,7 +228,15 @@ export default function BibleStudy() {
   const connections = usePassageConnections(user.id,book,chapter,verseRange)
   const [verseNote,setVerseNote] = useState(null)
   function openVerseNote(note){ if(note.id===sessionNoteId){document.querySelector('.session-note')?.scrollIntoView({behavior:'smooth'});return} setVerseNote(note) }
-  const [pendingRange, setPendingRange] = useState(null) // a verseRange to apply once the (possibly still-loading) chapter arrives
+  const [pendingRange, setPendingRange] = useState(initialPassage.verseRange) // a verseRange to apply once the (possibly still-loading) chapter arrives
+  // Remember the passage once the restored verse range (if any) has been applied,
+  // so the first render doesn't overwrite a saved range with "whole chapter".
+  useEffect(() => {
+    if (pendingRange) return
+    let storage
+    try { storage = window.localStorage } catch { return }
+    saveBiblePassage(storage, user.id, { book, chapter, verseRange })
+  }, [user.id, book, chapter, verseRange, pendingRange])
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
 

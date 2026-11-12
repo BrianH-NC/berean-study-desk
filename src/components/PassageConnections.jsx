@@ -4,18 +4,32 @@ import { useAuth } from '../App'
 import { ownedRows } from '../lib/dailyStudyData'
 import { overlaps } from '../lib/dailyStudyModel'
 import { findReferences } from '../lib/scriptureTagger'
+import { supabase } from '../lib/supabase'
+import { CANONICAL_BOOKS } from '../lib/entries'
+import { libraryForPassage, checksCitingPassage } from '../lib/passageLibrary'
+import { verdictClass } from '../lib/verdict'
 import NoteWorkspaceEditor from './NoteWorkspaceEditor'
 import '../screens/Notes.css'
 import '../screens/DailyStudy.css'
 
 const COLUMNS = {
   sermons: 'id,title,speaker,primary_ref,detected_refs',
-  books: 'id,title,author,tags',
+  books: 'id,title,author,tags,subjects',
   prayer_requests: 'id,title,body,ref,answered_at',
   book_quotations: 'id,book_id,quote,reflection,page',
   topic_links: 'id,topic_key,entity_type,entity_id,label',
 }
-const TABLES = ['entries', 'sermons', 'study_sessions', 'books', 'prayer_requests', 'book_quotations', 'topic_links']
+const TABLES = ['entries', 'sermons', 'study_sessions', 'books', 'prayer_requests', 'book_quotations', 'topic_links', 'theology_checks']
+const CHECK_COLUMNS = 'id,kind,title,name,verdict,summary,strengths,concerns,followups,denominational_note,alternative_suggestion,alt_summary'
+const REASONS = { notes: 'Linked in your notes', title: 'Title', subject: 'Subject', tag: 'Tag' }
+// theology_checks has no user_id column (visibility is handled by RLS), so it
+// can't go through ownedRows.
+async function loadChecks() {
+  const { data, error } = await supabase.from('theology_checks').select(CHECK_COLUMNS)
+  if (error) throw error
+  return data || []
+}
+const loadTable = (t, userId) => (t === 'theology_checks' ? loadChecks() : ownedRows(t, userId, COLUMNS[t] || '*'))
 
 const mentions = (texts, passage) => texts.some((text) => findReferences(text || '').some((r) => overlaps(r, passage)))
 const excerpt = (text, max = 110) => (text.length > max ? `${text.slice(0, max).trim()}…` : text)
@@ -29,7 +43,7 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
   const [data, setData] = useState({}), [errors, setErrors] = useState([]), [loading, setLoading] = useState(true), [retry, setRetry] = useState(0)
   useEffect(() => {
     let active = true
-    Promise.allSettled(TABLES.map((t) => ownedRows(t, userId, COLUMNS[t] || '*'))).then((results) => {
+    Promise.allSettled(TABLES.map((t) => loadTable(t, userId))).then((results) => {
       if (!active) return
       setData(Object.fromEntries(results.map((r, i) => [TABLES[i], r.status === 'fulfilled' ? r.value : []])))
       setErrors(results.flatMap((r, i) => (r.status === 'rejected' ? [TABLES[i]] : [])))
@@ -51,22 +65,25 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
     const sermons = (data.sermons || []).filter((s) => [s.primary_ref, ...(s.detected_refs || [])].some((r) => overlaps(r, passage)))
     const sessions = (data.study_sessions || []).filter((s) => overlaps({ ...s.state, verseStart: s.state?.verseRange?.start, verseEnd: s.state?.verseRange?.end }, passage))
     const linkedBooks = new Set(notes.map((n) => n.shelf_book_id).filter(Boolean))
-    const books = (data.books || []).filter((b) => linkedBooks.has(b.id) || b.tags?.some((tag) => tag.toLowerCase() === book.toLowerCase()))
+    const library = libraryForPassage(data.books || [], book, CANONICAL_BOOKS, linkedBooks)
+    const books = library.direct
+    const checks = checksCitingPassage(data.theology_checks || [], passage)
     const prayers = (data.prayer_requests || []).filter((p) => mentions([p.ref, p.body, p.title], passage))
     const booksById = new Map((data.books || []).map((b) => [b.id, b]))
     const quotations = (data.book_quotations || [])
       .filter((q) => mentions([q.quote, q.reflection], passage))
       .map((q) => ({ ...q, bookTitle: booksById.get(q.book_id)?.title }))
     const topics = [...new Set((data.topic_links || []).filter((l) => l.entity_type === 'scripture' && mentions([l.entity_id], passage)).map((l) => l.topic_key))]
-    return { notes, mentionedNotes, sermons, sessions, books, prayers, quotations, topics }
+    return { notes, mentionedNotes, sermons, sessions, books, broaderBooks: library.broader, testament: library.testament, checks, prayers, quotations, topics }
   }, [data, parsedNotes, book, chapter, start, end])
   const notesAtVerse = (verse) => parsedNotes.filter((n) => n.refs.some((r) => r.verseStart && overlaps(r, { book, chapter, verseStart: verse, verseEnd: verse }))).map((n) => n.note)
   return { ...derived, allBooks: data.books || [], notesAtVerse, loading, errors, reload: () => { setLoading(true); setRetry((n) => n + 1) } }
 }
 
 export default function PassageConnections({ connections, passageRef, onOpen }) {
-  const { notes, mentionedNotes, sermons, sessions, books, prayers, quotations, topics, loading, errors, reload } = connections
-  const total = notes.length + mentionedNotes.length + sermons.length + sessions.length + books.length + prayers.length + quotations.length + topics.length
+  const { notes, mentionedNotes, sermons, sessions, books, broaderBooks = [], testament, checks = [], prayers, quotations, topics, loading, errors, reload } = connections
+  const total = notes.length + mentionedNotes.length + sermons.length + sessions.length + books.length + checks.length + prayers.length + quotations.length + topics.length
+  const bibleBook = passageRef.replace(/\s+\d.*$/, '')
   return (
     <section className="card passage-connections">
       <header>
@@ -111,9 +128,20 @@ export default function PassageConnections({ connections, passageRef, onOpen }) 
               {sessions.length ? <ul>{sessions.map((s) => <li key={s.id}><Link to={`/bible?session=${s.id}`}>{s.title}</Link></li>)}</ul> : <p>No saved sessions for this passage.</p>}
             </section>
             <section>
-              <h3>Library resources ({books.length})</h3>
-              <p className="bible-muted">Linked through your notes or tagged with this Bible book.</p>
-              {books.length ? <ul>{books.map((b) => <li key={b.id}><Link to={`/shelf/${b.id}`}>{b.title}</Link></li>)}</ul> : <p>No linked books yet.</p>}
+              <h3>Your library on {bibleBook} ({books.length})</h3>
+              <p className="bible-muted">Books whose title, subject, or tags name {bibleBook}, or that your notes on this passage link to.</p>
+              {books.length ? <ul>{books.map((b) => <li key={b.id}><Link to={`/shelf/${b.id}`}>{b.title}</Link><small className="block">{[b.author, REASONS[b.reason]].filter(Boolean).join(' · ')}</small></li>)}</ul> : <p>No books on {bibleBook} in your library yet.</p>}
+              {broaderBooks.length > 0 && (
+                <details className="passage-broader">
+                  <summary>Broader resources ({broaderBooks.length})</summary>
+                  <p className="bible-muted">{testament} surveys and general commentaries.</p>
+                  <ul>{broaderBooks.map((b) => <li key={b.id}><Link to={`/shelf/${b.id}`}>{b.title}</Link>{b.author && <small className="block">{b.author}</small>}</li>)}</ul>
+                </details>
+              )}
+            </section>
+            <section>
+              <h3>Doctrine Checks ({checks.length})</h3>
+              {checks.length ? <ul>{checks.map((c) => <li key={c.id}><Link to={`/checks/${c.id}`}>{c.title || c.name || 'Untitled check'}</Link><small className="block"><span className={`tag ${verdictClass(c.verdict)}`}>{c.verdict || 'Unable to Assess'}</span></small></li>)}</ul> : <p>No Doctrine Check cites this passage.</p>}
             </section>
           </div>
         </>

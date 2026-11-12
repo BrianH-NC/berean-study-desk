@@ -26,3 +26,6 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Personal notes kept beside the project (may hold credentials) - never commit
+/*.txt

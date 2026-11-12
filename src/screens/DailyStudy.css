@@ -18,3 +18,4 @@
 .verse-note-indicator{display:inline-flex;align-items:center;font:12px var(--font-ui,sans-serif);border:1px solid var(--bsd-border);border-radius:4px;padding:2px 5px;margin:0 5px;color:var(--bsd-forest,#0f3d2e);background:var(--bsd-selected);vertical-align:middle}
 .passage-note-dialog{width:min(900px,95vw);max-height:90dvh;overflow:auto;background:var(--bsd-surface);color:var(--bsd-charcoal);border:1px solid var(--bsd-border);border-radius:12px;padding:20px}.passage-note-dialog::backdrop{background:#0007}.passage-note-dialog>header{display:flex;justify-content:space-between;align-items:center}
 @media(max-width:760px){.study-columns{grid-template-columns:1fr}.study-row{align-items:flex-start;flex-wrap:wrap}.study-row .btn{min-height:40px}}
+.passage-broader{margin-top:8px}.passage-broader summary{cursor:pointer;color:var(--bsd-forest,#0f3d2e)}.passage-broader ul{margin-top:4px}

@@ -31,3 +31,11 @@
 .is-session .bible-tools-column{grid-column:1;grid-row:2;display:flex;flex-direction:column}
 @media(max-width:760px){.bible-grid.is-session{grid-template-columns:minmax(0,1fr)}.is-session .session-note{grid-column:1;grid-row:2}.is-session .bible-tools-column{grid-column:1;grid-row:3}}
 @media(max-width:640px){.history-layout{grid-template-columns:1fr}.history-layout nav{max-height:22vh}.session-controls{align-items:stretch}.session-controls label{min-width:100%}}
+/* Keep the note beside the tools as you scroll, and let it fill the screen height
+   instead of leaving a blank strip under a short note. */
+@media(min-width:761px){
+  .is-session .session-note{position:sticky;top:1rem;max-height:calc(100dvh - 2rem);overflow:auto;display:flex;flex-direction:column}
+  .is-session .session-note .notes-editor{flex:1;display:flex;flex-direction:column}
+  .is-session .session-note .tiptap{min-height:max(220px,calc(100dvh - 22rem))}
+  .is-session .session-note-empty{min-height:min(24rem,calc(100dvh - 2rem));justify-content:center}
+}

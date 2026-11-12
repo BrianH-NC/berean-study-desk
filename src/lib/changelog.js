@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.4.1',
+    date: '2026-11-11',
+    title: 'Roomier study sessions',
+    changes: [
+      { kind: 'fixed', text: 'In a study session, your note now fills the screen height and stays beside the study tools as you scroll, instead of leaving a large empty space in the right column.' },
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-11-11',
     title: 'Your library beside the passage',

@@ -9,6 +9,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { removeBookWithFiles } from '../lib/bookFiles'
+import { loadLists } from '../lib/readingListsData'
 import FindMissingCovers from '../components/FindMissingCovers'
 import { primaryCategory, readingStatus, sortLibrary } from '../lib/libraryPresentation'
 import LibraryCollection from '../components/LibraryCollection'
@@ -22,6 +23,7 @@ export default function Shelf() {
   const [editing, setEditing] = useState(null)
   const [goal, setGoal] = useState(null)
   const [wishlistCount, setWishlistCount] = useState(null)
+  const [readingLists, setReadingLists] = useState([])
   const [extrasError, setExtrasError] = useState('')
   const [books, setBooks] = useState(null)
   const [checksByIsbn, setChecksByIsbn] = useState({})
@@ -71,6 +73,8 @@ export default function Shelf() {
     } catch { setLoadError('Your Library could not be loaded. Please try again.') }
   },[user.id])
   useEffect(() => { void loadBooks() },[loadBooks])
+  // One button per curated reading list (e.g. the Akin Library); none if they can't load.
+  useEffect(() => { let active = true; loadLists().then((rows) => { if (active) setReadingLists(rows) }).catch(() => {}); return () => { active = false } }, [])
   useEffect(() => {
     Promise.all([supabase.from('wishlist').select('id',{count:'exact',head:true}).eq('user_id',user.id),supabase.from('library_goals').select('target').eq('user_id',user.id).eq('year',new Date().getFullYear()).maybeSingle()]).then(([wish,g])=>{if(wish.error||g.error) {setExtrasError('Some summary information could not be loaded.');return} setWishlistCount(wish.count);setGoal(g.data?.target||null)})
   },[user.id])
@@ -136,7 +140,7 @@ export default function Shelf() {
     <div className="library-search-top"><input className="input" type="search" aria-label="Search your library" placeholder="Search your library (title, author, topic, tag, or ISBN)…" value={query} onChange={e=>update({q:e.target.value})}/><AccountLink user={user}/><blockquote>“Study to show yourself approved to God…”<cite>2 Timothy 2:15</cite></blockquote></div>
     <div className="library-workspace"><div className="library-workspace-main">
     <header className="library-banner"><h1>Library</h1><p>Build a faithful library for a deeper walk with God.</p><blockquote>Good books feed<br/>a lifetime of faith.</blockquote></header>
-    <div className="library-primary-actions"><Link to="/shelf/add" className="btn btn-primary">+ Add books</Link><Link to="/shelf/lists" className="btn btn-secondary">Reading lists</Link><details className="collection-actions"><summary>Library actions</summary><div><Link to="/shelf/import" className="btn btn-secondary">Import CLZ</Link><FindMissingCovers books={books} saveCover={saveCover} onComplete={loadBooks}/><button className="btn btn-ghost" onClick={handleExport} disabled={!books?.length}>Export</button></div></details></div>
+    <div className="library-primary-actions"><Link to="/shelf/add" className="btn btn-primary">+ Add books</Link>{readingLists.map((l) => <Link key={l.id} to={`/shelf/lists/${l.slug}`} className="btn btn-secondary">{l.name}</Link>)}<details className="collection-actions"><summary>Library actions</summary><div><Link to="/shelf/import" className="btn btn-secondary">Import CLZ</Link><FindMissingCovers books={books} saveCover={saveCover} onComplete={loadBooks}/><button className="btn btn-ghost" onClick={handleExport} disabled={!books?.length}>Export</button></div></details></div>
     <div className="library-viewbar"><nav aria-label="Library sections">{[['All Books','',all.length],['Reading','Reading',all.filter(b=>b.reading_status==='in-progress').length],['Completed','Completed',all.filter(b=>b.reading_status==='read').length]].map(([label,value,count])=><button key={label} aria-pressed={!browse&&status===value} onClick={()=>update({status:value,browse:''})}>{label} ({books ? count : "—"})</button>)}<Link to="/shelf/wishlist">Wishlist {wishlistCount!==null?`(${wishlistCount})`:''}</Link>{['Tags','Subjects','Authors','Collections'].map(label=><button key={label} aria-pressed={browse===label} onClick={()=>update({browse:browse===label?'':label})}>{label}</button>)}</nav><div className="library-view-options"><select aria-label="Library view" value={view} onChange={e=>setView(e.target.value)}>{VIEWS.map(v=><option key={v} value={v}>{v[0].toUpperCase()+v.slice(1)}</option>)}</select><select aria-label="Sort books" value={sort} onChange={e=>update({sort:e.target.value})}><option value="title">Title A–Z</option><option value="author">Author</option><option value="category">Category</option><option value="recent">Date added</option></select><button aria-label="Reverse sort order" onClick={()=>update({direction:direction==='asc'?'desc':'asc'})}>{direction==='asc'?'↑':'↓'}</button></div></div>
     <div className="library-content-layout"><aside className="library-facet-panel"><ResponsiveDetails query="(min-width: 701px)"><summary>Filters</summary><button className="btn btn-ghost" onClick={clearFilters} disabled={!hasFilters}>Clear all</button><h3>Category</h3>{categories.map(value=><label className="library-checkbox" key={value}><input type="checkbox" checked={category.split('|').includes(value)} onChange={()=>toggle('category',value)}/>{value==='Not Started'?'To Read':value} ({all.filter(b=>primaryCategory(b)===value).length})</label>)}{dropdown('Author','author',options('author'),author)}{dropdown('Publisher','publisher',options('publisher'),publisher)}{dropdown('Tags','tag',options('tags'),tag)}{dropdown('Subject','subject',options('subjects'),subject)}{dropdown('Collection','collection',options('collections'),collection)}{dropdown('Tradition','tradition',traditions,tradition)}{dropdown('Doctrine verdict','verdict',verdicts,verdict)}<details><summary>Reading Progress</summary><select className="input" aria-label="Reading progress filter" value={progressFilter} onChange={e=>update({progress:e.target.value})}><option value="">All</option><option value="recorded">Page progress recorded</option><option value="none">No page progress recorded</option></select></details><details><summary>Date Added</summary><select className="input" aria-label="Date added filter" value={added} onChange={e=>update({added:e.target.value})}><option value="">Any time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></details></ResponsiveDetails></aside>
     <main className="library-results">

@@ -21,6 +21,7 @@ const NotebookHome = lazy(() => import('./screens/NotesWorkspace'))
 import Entry from './screens/Entry'
 import Reading from './screens/Reading'
 const FreeBooks = lazy(() => import('./screens/FreeBooks'))
+const ReadingLists = lazy(() => import('./screens/ReadingLists'))
 import BibleStudy from './screens/BibleStudy'
 import NotesTrash from './screens/NotesTrash'
 import StudySessions from './screens/StudySessions'
@@ -59,6 +60,8 @@ function ProtectedLayout() {
           <Route path="/shelf/add" element={<AddBooks />} />
           <Route path="/shelf/wishlist" element={<Wishlist />} />
           <Route path="/shelf/wishlist/add" element={<WishlistAdd />} />
+          <Route path="/shelf/lists" element={<ReadingLists />} />
+          <Route path="/shelf/lists/:slug" element={<ReadingLists />} />
           <Route path="/shelf/:id" element={<BookDetail />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />

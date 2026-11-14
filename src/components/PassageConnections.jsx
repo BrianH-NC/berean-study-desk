@@ -7,6 +7,8 @@ import { findReferences } from '../lib/scriptureTagger'
 import { supabase } from '../lib/supabase'
 import { CANONICAL_BOOKS } from '../lib/entries'
 import { libraryForPassage, checksCitingPassage } from '../lib/passageLibrary'
+import { buildLibraryIndex, recommendedForBook, statusMap } from '../lib/readingLists'
+import { loadItemsForBook } from '../lib/readingListsData'
 import { verdictClass } from '../lib/verdict'
 import NoteWorkspaceEditor from './NoteWorkspaceEditor'
 import '../screens/Notes.css'
@@ -18,8 +20,10 @@ const COLUMNS = {
   prayer_requests: 'id,title,body,ref,answered_at',
   book_quotations: 'id,book_id,quote,reflection,page',
   topic_links: 'id,topic_key,entity_type,entity_id,label',
+  wishlist: 'id,title,author',
 }
-const TABLES = ['entries', 'sermons', 'study_sessions', 'books', 'prayer_requests', 'book_quotations', 'topic_links', 'theology_checks']
+const TABLES = ['entries', 'sermons', 'study_sessions', 'books', 'prayer_requests', 'book_quotations', 'topic_links', 'theology_checks', 'wishlist']
+const OWNERSHIP = { owned: 'In your library', wishlist: 'On your wishlist', maybe: 'Maybe in your library', none: 'Not in your library' }
 const CHECK_COLUMNS = 'id,kind,title,name,verdict,summary,strengths,concerns,followups,denominational_note,alternative_suggestion,alt_summary'
 const REASONS = { notes: 'Linked in your notes', title: 'Title', subject: 'Subject', tag: 'Tag' }
 // theology_checks has no user_id column (visibility is handled by RLS), so it
@@ -52,6 +56,14 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
     return () => { active = false }
   }, [userId, retry])
 
+  // Reading-list entries about this Bible book (the Aiken Library and any other list).
+  const [reading, setReading] = useState([])
+  useEffect(() => {
+    let active = true
+    loadItemsForBook(book).then((rows) => { if (active) setReading(rows) }).catch(() => { if (active) setReading([]) })
+    return () => { active = false }
+  }, [book])
+
   const parsedNotes = useMemo(() => (data.entries || []).map((note) => ({ note, refs: findReferences(note.ref || '') })), [data.entries])
   const start = verseRange?.start, end = verseRange?.end
   // Scanning every note/quotation body for citations is the costly part, so
@@ -74,14 +86,31 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
       .filter((q) => mentions([q.quote, q.reflection], passage))
       .map((q) => ({ ...q, bookTitle: booksById.get(q.book_id)?.title }))
     const topics = [...new Set((data.topic_links || []).filter((l) => l.entity_type === 'scripture' && mentions([l.entity_id], passage)).map((l) => l.topic_key))]
-    return { notes, mentionedNotes, sermons, sessions, books, broaderBooks: library.broader, testament: library.testament, checks, prayers, quotations, topics }
-  }, [data, parsedNotes, book, chapter, start, end])
+    const statuses = statusMap(reading, buildLibraryIndex(data.books || [], data.wishlist || []))
+    const picks = recommendedForBook(reading, book, statuses)
+    const withStatus = (rows) => rows.map((r) => ({ ...r, ownership: statuses.get(r.id)?.status || 'none' }))
+    const recommended = { direct: withStatus(picks.direct), group: withStatus(picks.group) }
+    return { notes, mentionedNotes, sermons, sessions, books, broaderBooks: library.broader, testament: library.testament, checks, prayers, quotations, topics, recommended }
+  }, [data, parsedNotes, reading, book, chapter, start, end])
   const notesAtVerse = (verse) => parsedNotes.filter((n) => n.refs.some((r) => r.verseStart && overlaps(r, { book, chapter, verseStart: verse, verseEnd: verse }))).map((n) => n.note)
   return { ...derived, allBooks: data.books || [], notesAtVerse, loading, errors, reload: () => { setLoading(true); setRetry((n) => n + 1) } }
 }
 
+function RecommendedList({ rows }) {
+  return (
+    <ul>
+      {rows.map((r) => (
+        <li key={r.id}>
+          {r.is_first_pick && <><span aria-hidden="true">★ </span><span className="sr-only">First selection: </span></>}{r.title}
+          <small className="block">{[r.author, r.series, OWNERSHIP[r.ownership]].filter(Boolean).join(' · ')}</small>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export default function PassageConnections({ connections, passageRef, onOpen }) {
-  const { notes, mentionedNotes, sermons, sessions, books, broaderBooks = [], testament, checks = [], prayers, quotations, topics, loading, errors, reload } = connections
+  const { notes, mentionedNotes, sermons, sessions, books, broaderBooks = [], testament, checks = [], prayers, quotations, topics, recommended = { direct: [], group: [] }, loading, errors, reload } = connections
   const total = notes.length + mentionedNotes.length + sermons.length + sessions.length + books.length + checks.length + prayers.length + quotations.length + topics.length
   const bibleBook = passageRef.replace(/\s+\d.*$/, '')
   return (
@@ -138,6 +167,19 @@ export default function PassageConnections({ connections, passageRef, onOpen }) 
                   <ul>{broaderBooks.map((b) => <li key={b.id}><Link to={`/shelf/${b.id}`}>{b.title}</Link>{b.author && <small className="block">{b.author}</small>}</li>)}</ul>
                 </details>
               )}
+            </section>
+            <section>
+              <h3>Recommended on {bibleBook} ({recommended.direct.length})</h3>
+              <p className="bible-muted">From your reading lists: first selections first, then the ones you don’t have yet.</p>
+              {recommended.direct.length ? <RecommendedList rows={recommended.direct.slice(0, 6)} /> : <p>No reading list recommends a book on {bibleBook} yet.</p>}
+              {(recommended.direct.length > 6 || recommended.group.length > 0) && (
+                <details className="passage-broader">
+                  <summary>More recommendations ({Math.max(recommended.direct.length - 6, 0) + recommended.group.length})</summary>
+                  {recommended.direct.length > 6 && <RecommendedList rows={recommended.direct.slice(6)} />}
+                  {recommended.group.length > 0 && <><p className="bible-muted">Surveys covering several books, including {bibleBook}.</p><RecommendedList rows={recommended.group} /></>}
+                </details>
+              )}
+              {(recommended.direct.length > 0 || recommended.group.length > 0) && <Link to={`/shelf/lists?book=${encodeURIComponent(bibleBook)}`}>See all in Reading lists →</Link>}
             </section>
             <section>
               <h3>Doctrine Checks ({checks.length})</h3>

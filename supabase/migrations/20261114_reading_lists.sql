@@ -1,4 +1,4 @@
--- Curated reading lists (for example the "Aiken Library", a suggested theological
+-- Curated reading lists (for example the "Akin Library", a suggested theological
 -- library). This is reference data shared by every signed-in user: the app works
 -- out Owned / On wishlist for each entry by matching against the user's own books
 -- and wishlist, so no per-user state is stored here. Rows are only written by

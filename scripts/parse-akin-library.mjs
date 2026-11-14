@@ -4,7 +4,7 @@
 // reading_lists / reading_list_items tables.
 //
 //   pdftotext BuildingTheoLibrary_Akin_2019.pdf akin.txt     (reading order, no -layout)
-//   node scripts/parse-akin-library.mjs akin.txt supabase/seeds/aiken-library.json
+//   node scripts/parse-akin-library.mjs akin.txt supabase/seeds/akin-library.json
 //
 // Prints a report of every entry it could not parse cleanly so they can be
 // checked by hand. A few entries in the PDF itself omit a year or publisher;
@@ -279,8 +279,8 @@ if (report.length) {
 }
 
 const list = {
-  slug: 'aiken-library',
-  name: 'Aiken Library',
+  slug: 'akin-library',
+  name: 'Akin Library',
   curator: 'Daniel L. Akin',
   description: 'Over 1,000 suggested titles for a biblical and theological library, grouped by Bible book and subject, from Dr. Akin’s “Building a Theological Library” (Southeastern Baptist Theological Seminary, revised edition 2019).',
   source_title: 'Building a Theological Library (Revised Edition 2019)',

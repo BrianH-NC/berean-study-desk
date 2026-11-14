@@ -1,4 +1,4 @@
-// Pure helpers for curated reading lists (e.g. the Aiken Library): working out which
+// Pure helpers for curated reading lists (e.g. the Akin Library): working out which
 // entries a reader already owns or has on their wishlist, grouping them for browsing,
 // and picking the recommendations for a Bible book. No React or Supabase in here so
 // it can be unit-tested.

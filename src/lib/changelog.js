@@ -8,7 +8,7 @@ export const CHANGELOG = [
     date: '2026-11-14',
     title: 'Reading lists',
     changes: [
-      { kind: 'new', text: 'Reading lists, under Library: curated reading recommendations, starting with the Aiken Library, a suggested theological library of nearly 1,900 titles from Daniel Akin’s “Building a Theological Library.”' },
+      { kind: 'new', text: 'Reading lists, under Library: curated reading recommendations, starting with the Akin Library, a suggested theological library of nearly 1,900 titles from Daniel Akin’s “Building a Theological Library.”' },
       { kind: 'new', text: 'Each entry shows whether the book is already in your library or on your wishlist. Add one to your wishlist, or mark it as owned, in a click.' },
       { kind: 'new', text: 'See where your library is thin: progress by section, and filters for first selections, Technical, Pastoral or Devotional level, and what you don’t have yet.' },
       { kind: 'new', text: 'Bible Study’s passage panel now lists recommended reading on the Bible book you’re in, first selections first, with a link to the full list.' },

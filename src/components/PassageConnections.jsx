@@ -56,7 +56,7 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
     return () => { active = false }
   }, [userId, retry])
 
-  // Reading-list entries about this Bible book (the Aiken Library and any other list).
+  // Reading-list entries about this Bible book (the Akin Library and any other list).
   const [reading, setReading] = useState([])
   useEffect(() => {
     let active = true

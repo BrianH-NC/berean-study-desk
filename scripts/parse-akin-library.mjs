@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Turns the text of Daniel L. Akin's "Building a Theological Library" (revised
-// 2019, Southeastern Baptist Theological Seminary) into seed data for the
-// reading_lists / reading_list_items tables.
+// 2019 or 2023, Southeastern Baptist Theological Seminary) into seed data for
+// the reading_lists / reading_list_items tables. The edition year is read from
+// the PDF's title page.
 //
-//   pdftotext BuildingTheoLibrary_Akin_2019.pdf akin.txt     (reading order, no -layout)
+//   pdftotext -enc UTF-8 BTL_2023_Final.pdf akin.txt         (reading order, no -layout)
 //   node scripts/parse-akin-library.mjs akin.txt supabase/seeds/akin-library.json
 //
 // Prints a report of every entry it could not parse cleanly so they can be
@@ -38,6 +39,9 @@ const SERIES = {
   TTT: 'Teach the Text Commentary Series', WBC: 'Word Biblical Commentary', WCS: 'Welwyn Commentary Series',
   WEC: 'Wycliffe Exegetical Commentary', ZEC: 'Zondervan Exegetical Commentary',
   RCS: 'Reformation Commentary on Scripture',   // used in the entries but missing from the PDF's own abbreviation guide
+  // Added in the 2023 edition's abbreviation guide.
+  BCOT: 'Baker Commentary on the Old Testament', CCF: 'Commentaries for Christian Formation', CSC: 'Christian Standard Commentary',
+  EBTC: 'Evangelical Biblical Theological Commentary', EEC: 'Evangelical Exegetical Commentary', KEL: 'Kregel Exegetical Library',
 }
 // Series the PDF names in full rather than abbreviating.
 const PROSE_SERIES = ['Contours of Christian Theology', 'The Master Reference Collection', 'New Studies in Biblical Theology', 'The Five Solas Series', 'Theology in Community Series', 'Library of Leadership Development', 'Colección Teológica Contemporánea']
@@ -70,8 +74,11 @@ const TOP = {
 const SUBS = {
   'Old Testament': { 'Introductions and Surveys': 0, 'History and Background': 0, Archaeology: 0, 'Old Testament Theology': 0, 'Special Studies': 0, 'BOOKS OF THE OLD TESTAMENT': 'Books of the Old Testament' },
   'New Testament': { 'Introduction and Surveys': 'Introductions and Surveys', 'History and Background': 0, Archaeology: 0, 'New Testament Theology': 0, 'Special Studies': 0, 'BOOKS OF THE NEW TESTAMENT': 'Books of the New Testament' },
-  'Biblical Languages': Object.fromEntries(['Hebrew', 'Introductory Hebrew Grammars', 'Syntax/Advanced Hebrew Grammars', 'Greek', 'Introductory Greek Grammars', 'Syntax/Advanced Greek Grammars', 'Textual Criticism'].map((s) => [s, 0])),
-  Theology: Object.fromEntries(['Surveys, Dictionaries, and Encyclopedias', 'Systematic Theology', 'Biblical Theology', 'Philosophical Theology/Philosophy of Religion', 'Contemporary Theology', 'Prolegomena', 'Revelation and Scripture', 'Apologetics', 'Hermeneutics', 'Theology Proper', 'Creation', 'Angelology', 'Humanity and Sin', 'Gender and Sexuality', 'Christology', 'Pneumatology', 'Soteriology', 'Prayer', 'The Christian Life', 'Ecclesiology', 'Eschatology', 'Theology and Culture', 'Race and Diversity'].map((s) => [s, 0])),
+  'Biblical Languages': {
+    ...Object.fromEntries(['Hebrew', 'Introductory Hebrew Grammars', 'Syntax/Advanced Hebrew Grammars', 'Greek', 'Introductory Greek Grammars', 'Syntax/Advanced Greek Grammars', 'Textual Criticism'].map((s) => [s, 0])),
+    'Textual Criticism and Bible Formation': 0,   // 2023 wording
+  },
+  Theology: { 'Philosophical Theology and Philosophy of Religion': 'Philosophical Theology/Philosophy of Religion', ...Object.fromEntries(['Surveys, Dictionaries, and Encyclopedias', 'Systematic Theology', 'Biblical Theology', 'Philosophical Theology/Philosophy of Religion', 'Contemporary Theology', 'Prolegomena', 'Revelation and Scripture', 'Apologetics', 'Hermeneutics', 'Theology Proper', 'Creation', 'Angelology', 'Humanity and Sin', 'Gender and Sexuality', 'Christology', 'Pneumatology', 'Soteriology', 'Prayer', 'The Christian Life', 'Ecclesiology', 'Eschatology', 'Theology and Culture', 'Race and Diversity'].map((s) => [s, 0])) },   // the 2023 body heading says "and" where its contents page says "/"
   'Church History and Historical Theology': Object.fromEntries(['American Christianity', 'World Christianity', 'Baptist History', 'Reformation', 'Biography'].map((s) => [s, 0])),
   'Missions and Church Planting': { Cults: 0 },
   'Christian Education and Leadership': { 'Leadership and Management': 0, 'Education and Teaching': 0 },
@@ -80,19 +87,42 @@ const SUBS = {
 
 // ---- Entry parsing ----------------------------------------------------------
 const SUFFIX = /^(?:Jr\.?|Sr\.?|II|III|IV)$/
+// A run of dashes ("------." in 2019, "———." in 2023) stands for the previous entry's author.
+const SAME_AUTHOR = /^[-—–]{3,}[.,]?\s*/
 // Edition and volume remarks that sit between the title and the publisher.
 const NOTE = /^(?:(?:rev|repr|vols?|exp|upd|trans|enlarged|revised|expanded|updated|abridged|annotated|new ed|critical ed|combined ed|new edition|edici[oó]n)\b.*|eds?|and(?: (?:exp|upd|trans|enl).*)?|in one|edited by .+|\d+ of .+|\d+|\d+(?:st|nd|rd|th|d)?\s+(?:ed|vols?|anniversary).*)$/i
 // Where a translator or editor credit starts, everything from there to the publisher is a note.
 const CREDIT = /^(?:trans(?:lated)?\b|eds?$|edited by\b|rev(?:ised)?$)/i
 const YEAR = '(?:1[5-9]|20)\\d\\d(?:\\s*[-–]\\s*\\d{2,4})?'
-const TERMINATED = new RegExp(`(?:${YEAR}\\s?\\.?(?:\\s*\\([^)]*\\)\\.?)?(?:,?\\s+[TPDtpd]{1,2})?|\\.\\s*[TPDtpd]{1,2})$`)
+const TERMINATED = new RegExp(`(?:${YEAR}\\s?\\.?(?:\\s*\\([^)]*\\)\\.?)?(?:,?\\s+[TPDtpd]{1,2}\\.?)?|\\.\\s*[TPDtpd]{1,2}\\.?)$`)
+// Entries the PDF itself leaves unfinished (no year, cut off mid-series): they end here.
+const FORCE_END = [/\(\d+ Vols?\)\.$/, /^Heimbach, Daniel R\..*B&H,$/, /^Shelley, Marshall.*Library of$/]
 // Two entries that the PDF's column flow glued onto one line: a finished entry
 // (year, optional level) directly followed by "Surname, Given".
 const MERGED = new RegExp(`(${YEAR}\\s?\\.?(?:,?\\s+[TPDtpd]{1,2}\\b\\.?)?)\\s*(?=\\*?[A-ZÀ-Ý][\\p{L}'’\\-]+,\\s+[A-ZÀ-Ý])`, 'gu')
 // Typos in the PDF itself.
 // The last three are series abbreviations that aren't in the PDF's own guide and are
 // clearly slips for NIBC (Mounce, Matthew), TNTC (Cole, Mark) and SAEC (Sproul).
-const TYPOS = [['B&H, 20016.', 'B&H, 2016.'], ['E. J. Brill, 19942000.', 'E. J. Brill, 1994–2000.'], [' NIBCNT.', ' NIBC.'], [' TCNT.', ' TNTC.'], [' SAET.', ' SAEC.']]
+// 2023: "ECC" (also how the abbreviation guide spells it) is the Evangelical Exegetical Commentary, EEC;
+// Spencer's name is inverted; "Merril" is Eugene Merrill.
+const TYPOS = [['B&H, 20016.', 'B&H, 2016.'], ['E. J. Brill, 19942000.', 'E. J. Brill, 1994–2000.'], [' NIBCNT.', ' NIBC.'], [' TCNT.', ' TNTC.'], [' SAET.', ' SAEC.'],
+  [' ECC. Lexham', ' EEC. Lexham'], ['Aída Besançon, Spencer.', 'Spencer, Aída Besançon.'], ['Merril, Eugene.', 'Merrill, Eugene.'],
+  ['Wright, Cristopher J.H., Exodus.', 'Wright, Christopher J. H. Exodus.'], ['Pennington, Jonathan T., The Sermon', 'Pennington, Jonathan T. The Sermon'],
+  ['Akin, Daniel L., Raising Kids', 'Akin, Daniel L. Raising Kids'],
+  // Punctuation slips in the 2023 text.
+  ['Mark W. Chavalas: The IVP Bible Background Commentary: Old New Testament', 'Mark W. Chavalas. The IVP Bible Background Commentary: Old Testament'],
+  ['The Art of Biblical Narrative Rev. and Updated.', 'The Art of Biblical Narrative. Rev. and Updated.'],
+  ['Mason, Matt; Platt, David; Shaddix, Jim. Exalting Jesus in Psalms (Vol. 2: 51-100). CCE.', 'Platt, David, Jim Shaddix, and Matt Mason. Exalting Jesus in Psalms (Vol 2: 51-100). CCE.'],
+  ['Isaiah 4066.', 'Isaiah 40–66.'], ['Beale G. K. and Benjamin Gladd.', 'Beale, G. K., and Benjamin Gladd.'],
+  ['Osvaldo, Padilla.', 'Padilla, Osvaldo.'], ['Ortlund Dane C.', 'Ortlund, Dane C.'],
+  ['D. A. Carson; Benjamin L. Gladd, and Andrew Daivid Naselli', 'D. A. Carson, Benjamin L. Gladd, and Andrew David Naselli'],
+  // Misspelled names (they would otherwise never match a library entry by surname).
+  ['Meyer, Jacon C.', 'Meyer, Jason C.'], ['Gihooly, John R.', 'Gilhooly, John R.'], ['Trip, Paul.', 'Tripp, Paul.'], ['Leeeman, Jonathan.', 'Leeman, Jonathan.'],
+  // Hyphens the PDF dropped at line breaks.
+  ['WarriorKing', 'Warrior-King'], ['MatthewLuke', 'Matthew–Luke'], ['GreekEnglish', 'Greek-English'], ['BiblicalTheological', 'Biblical-Theological'],
+  ['LloydJones', 'Lloyd-Jones'], ['GospelCentered', 'Gospel-Centered'], ['DiscipleMaking', 'Disciple-Making'], ['SpeechAct', 'Speech-Act']]
+// The tail of Shelley's entry ("Library of | Leadership Development. Bethany House, 1997.") landed pages away in the PDF's column flow.
+const ORPHAN_LINES = new Set(['Leadership Development. Bethany House, 1997.'])
 // Entries whose punctuation defeats the general rules.
 const OVERRIDES = [
   [/^Calvin, John\. Institutes/, { title: 'Institutes of the Christian Religion', author: 'John Calvin', author_surname: 'Calvin', edition_note: '2 vols. ed. J. T. McNeil', publisher: 'Westminster', pub_year: 1960 }],
@@ -106,10 +136,28 @@ const OVERRIDES = [
   [/^Wright, N\.T\. The Resurrection of the Son of God/, { title: 'The Resurrection of the Son of God', author: 'N. T. Wright', author_surname: 'Wright', series_name: 'Christian Origins and the Question of God', edition_note: 'Vol. 3', publisher: 'Fortress', pub_year: 2003 }],
   [/^McGrath, Alister\. C\. S\. Lewis/, { title: 'C. S. Lewis: A Life: Eccentric Genius, Reluctant Prophet', author: 'Alister McGrath', author_surname: 'McGrath' }],
   [/^Ryken, Leland\. J\. I\. Packer/, { title: 'J. I. Packer: An Evangelical Life', author: 'Leland Ryken', author_surname: 'Ryken' }],
-  [/^Evans, Craig, The Bible Knowledge/, { author: 'Craig Evans', author_surname: 'Evans' }],
+  [/^Evans, Craig, The Bible Knowledge/, { title: 'The Bible Knowledge Background Commentary: Matthew–Luke', author: 'Craig Evans', author_surname: 'Evans' }],
   [/^Akin, Daniel L\., David Lewis Allen/, { author: 'Daniel L. Akin, David Lewis Allen, and Ned Lee Mathews', author_surname: 'Akin', edition_note: 'eds.' }],
   [/^Loritts, Bryan, ed\. Letters to a Birmingham Jail/, { title: 'Letters to a Birmingham Jail: A Response to the Words and Dreams of Dr. Martin Luther King, Jr.', author: 'Bryan Loritts', author_surname: 'Loritts', publisher: 'Moody Publishers', pub_year: 2014 }],
   [/^Charles, Jr\., H\. B\., et al\./, { author: 'H. B. Charles Jr. et al.', author_surname: 'Charles', title: 'A Biblical Answer for Racial Unity', publisher: 'Kress Christian Publications' }],
+  // 2023
+  // "———" after Jacobs' entry would credit Kaiser's Malachi to her: the 2023 text dropped Kaiser's Micah–Malachi entry that preceded it in 2019.
+  [/^———\. Malachi: God’s Unchanging Love/, { author: 'Walter C. Kaiser Jr.', author_surname: 'Kaiser' }],
+  // Same slip as Malachi: "———" now follows an entry by someone else, because the 2023 text removed the original author's entry.
+  [/^———\. 12 Ways Your Phone/, { author: 'Tony Reinke', author_surname: 'Reinke' }],
+  [/^———\. 2 Samuel: Out of Every Adversity/, { author: 'Dale Ralph Davis', author_surname: 'Davis' }],
+  [/^———\. Evangelism Handbook/, { author: 'Alvin L. Reid', author_surname: 'Reid' }],
+  [/^———\. Radically Unchurched/, { author: 'Thom S. Rainer', author_surname: 'Rainer' }],
+  [/^———\. Introduction to Evangelism/, { author: 'Alvin L. Reid', author_surname: 'Reid' }],
+  [/^Carroll R\. M\. Daniel\. The Book of Amos/, { title: 'The Book of Amos', author: 'M. Daniel Carroll R.', author_surname: 'Carroll' }],
+  [/^Emerson, Matthew Y\. et al\./, { author: 'Matthew Y. Emerson et al.', author_surname: 'Emerson' }],
+  [/^Jones, Robert D\., et al\./, { author: 'Robert D. Jones et al.', author_surname: 'Jones' }],
+  [/^Poe, Harry Lee\. Becoming C\. S\. Lewis/, { title: 'Becoming C. S. Lewis: A Biography of Young Jack Lewis', author: 'Harry Lee Poe', author_surname: 'Poe' }],
+  [/^Nichols, Stephen J\. R\. C\. Sproul/, { title: 'R. C. Sproul: A Life', author: 'Stephen J. Nichols', author_surname: 'Nichols' }],
+  [/^IVP Bible Dictionaries/, { title: 'IVP Bible Dictionaries: Old Testament and New Testament', author: null, author_surname: null, publisher: 'IVP', edition_note: '8 vols.' }],
+  [/^Carroll\. R\. M\. Daniel/, { title: 'The Lord Roars: Recovering the Prophetic Voice for Today', author: 'M. Daniel Carroll R.', author_surname: 'Carroll', publisher: 'Baker', pub_year: 2022 }],
+  [/^Heimbach, Daniel R\. Fundamental Christian Ethics/, { title: 'Fundamental Christian Ethics', author: 'Daniel R. Heimbach', author_surname: 'Heimbach', publisher: 'B&H', pub_year: null }],
+  [/^Shelley, Marshall, ed\. Renewing Your Church/, { title: 'Renewing Your Church Through Vision and Planning', author: 'Marshall Shelley', author_surname: 'Shelley', edition_note: null, series_name: 'Library of Leadership Development', publisher: 'Bethany House', pub_year: 1997 }],
 ]
 
 function naturalAuthor(raw) {
@@ -143,11 +191,11 @@ function parseEntry(raw, prevAuthor) {
   const first = s.startsWith('*')
   if (first) s = s.slice(1).trim()
   let codes = ''
-  const lm = s.match(/(?<=[.,\d"”])\s+([TPDtpd]{1,2})$/)
+  const lm = s.match(/(?<=[.,\d"”])\s+([TPDtpd]{1,2})\.?$/)
   if (lm) { codes = lm[1]; s = s.slice(0, lm.index).trim().replace(/,$/, '') }
 
   let sameAuthor = false
-  if (/^-{3,}[.,]?\s*/.test(s)) { sameAuthor = true; s = s.replace(/^-{3,}[.,]?\s*/, '') }
+  if (SAME_AUTHOR.test(s)) { sameAuthor = true; s = s.replace(SAME_AUTHOR, '') }
 
   s = s.replace(/(\b(?:1[5-9]|20)\d\d)\.?\s*\([^)]*\)\.?$/, '$1')
   let year = null
@@ -192,7 +240,8 @@ function parseEntry(raw, prevAuthor) {
     }
   }
   peel()
-  for (let k = segs.length - 1; k >= 1; k--) if (CREDIT.test(segs[k])) { notes.unshift(segs.splice(k).join('. ')); break }
+  // A bare "ed." between author and title ("Beck, John A. ed. Zondervan Dictionary…") belongs to the author, not a credit after the title.
+  for (let k = segs.length - 1; k >= 1; k--) if (CREDIT.test(segs[k]) && !(/^eds?$/i.test(segs[k]) && k === 1 && segs.length === 3)) { notes.unshift(segs.splice(k).join('. ')); break }
   peel()
   let title = (segs.pop() || '').replace(/\.$/, '').trim()
   // A title that ends "…of Annie W. Armstrong" was split at the initial.
@@ -200,6 +249,8 @@ function parseEntry(raw, prevAuthor) {
   if (title && !title.includes(' ') && /(?:^|\s)[A-Z]$/.test(before) && before.split(/\s+/).length >= 4 && !/^\S+(?:\s\S+)?,\s/.test(before)) title = `${segs.pop()}. ${title}`
   const glued = title.match(/^(.*[?!])\s+((?:\d+(?:st|nd|rd|th|d)?\s+ed|revised.*|new edition))$/i)   // "…or Ours? 6th ed"
   if (glued) { title = glued[1]; notes.unshift(glued[2]) }
+  const commaEd = title.match(/^(.*\S),\s+(\d+(?:st|nd|rd|th|d)?\s+ed)$/i)   // "Handbook on the Pentateuch, 2nd ed"
+  if (commaEd) { title = commaEd[1]; notes.unshift(commaEd[2]) }
   let authorRaw = segs.join('. ')
   const edTitle = title.match(/^(eds?)\.?,\s+(.+)$/i)   // "Stump, J. B. ed., Four Views…"
   if (edTitle) { authorRaw += `, ${edTitle[1]}`; title = edTitle[2] }
@@ -230,8 +281,12 @@ function parseEntry(raw, prevAuthor) {
 
 // ---- Walk the document ------------------------------------------------------
 for (const [from, to] of TYPOS) text = text.replaceAll(from, to)
+const edition = Number(text.match(/REVISED EDITION\s+(?:[A-Z]+\s+)?(\d{4})/i)?.[1] || text.match(/Revised\s+(\d{4})/)?.[1] || 0)
+if (!edition) { console.error('Could not find the edition year'); process.exit(1) }
+// Headings carry a stray footnote-marker character in the 2023 edition; entries never end in one.
+const heading = (l) => l.replace(/[^\x20-\x7e]+$/, '').trim()
 const lines = text.replace(/\f/g, '\n').split(/\r?\n/).flatMap((l) => l.replace(MERGED, '$1\n').split('\n')).map((l) => l.trim())
-const start = lines.indexOf('GENERAL REFERENCES TO THE BIBLE')
+const start = lines.findIndex((l) => heading(l) === 'GENERAL REFERENCES TO THE BIBLE')
 if (start < 0) { console.error('Could not find the body of the document'); process.exit(1) }
 
 const items = []
@@ -258,14 +313,16 @@ function flush(reason) {
 for (let i = start; i < lines.length; i++) {
   const line = lines[i]
   if (/^Updated: /.test(line)) break
-  if (!line || /^\d{1,3}$/.test(line) || /^_{5,}$/.test(line) || line.startsWith('My preferred Bible translations')) continue
-  if (TOP[line]) { flush('unterminated entry before heading'); section = TOP[line]; subsection = null; topic = null; continue }
+  if (!line || ORPHAN_LINES.has(line) || /^\d{1,3}$/.test(line) || /^_{5,}$/.test(line) || /^[^\x20-\x7e]?My preferred Bible translations/.test(line)) continue
+  const head = heading(line)
+  if (TOP[head]) { flush('unterminated entry before heading'); section = TOP[head]; subsection = null; topic = null; continue }
   const subs = SUBS[section]
-  if (subs && Object.hasOwn(subs, line)) { flush('unterminated entry before heading'); subsection = subs[line] || line; topic = null; continue }
-  if (Object.hasOwn(BIBLE_TOPICS, line) && /Books of the/.test(subsection || '')) { flush('unterminated entry before heading'); topic = line; continue }
-  if (buffer.length && (line.startsWith('*') || line.startsWith('---'))) flush('unterminated entry')
+  if (subs && Object.hasOwn(subs, head)) { flush('unterminated entry before heading'); subsection = subs[head] || head; topic = null; continue }
+  if (Object.hasOwn(BIBLE_TOPICS, head) && /Books of the/.test(subsection || '')) { flush('unterminated entry before heading'); topic = head; continue }
+  if (buffer.length && (line.startsWith('*') || SAME_AUTHOR.test(line))) flush('unterminated entry')
   buffer.push(line)
-  if (TERMINATED.test(buffer.join(' '))) flush()
+  const soFar = buffer.join(' ')
+  if (TERMINATED.test(soFar) || FORCE_END.some((re) => re.test(soFar.replace(/^\*/, '')))) flush()
 }
 flush('unterminated entry at end')
 
@@ -282,9 +339,9 @@ const list = {
   slug: 'akin-library',
   name: 'Akin Library',
   curator: 'Daniel L. Akin',
-  description: 'Over 1,000 suggested titles for a biblical and theological library, grouped by Bible book and subject, from Dr. Akin’s “Building a Theological Library” (Southeastern Baptist Theological Seminary, revised edition 2019).',
-  source_title: 'Building a Theological Library (Revised Edition 2019)',
-  source_year: 2019,
+  description: `Suggested titles for a biblical and theological library, grouped by Bible book and subject, from Dr. Akin’s “Building a Theological Library” (Southeastern Baptist Theological Seminary, revised edition ${edition}).`,
+  source_title: `Building a Theological Library (Revised Edition ${edition})`,
+  source_year: edition,
   legend: {
     T: { label: 'Technical', description: 'Primarily for readers with advanced or intermediate knowledge of Hebrew, Aramaic and Greek.' },
     P: { label: 'Pastoral', description: 'Primarily for pastors, teachers and serious Bible students; the original languages are helpful but not necessary.' },

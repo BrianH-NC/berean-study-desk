@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.5.1',
+    date: '2026-11-14',
+    title: 'Akin Library, 2023 edition',
+    changes: [
+      { kind: 'improved', text: 'The Akin Library now follows Dr. Akin’s 2023 revised edition, adding about 220 titles, most published since 2018, including new commentaries in the Christian Standard, Kregel, Evangelical Biblical Theological and Baker Commentary series.' },
+      { kind: 'improved', text: 'The 2023 edition no longer lists about 120 titles from the 2019 edition, including its Spanish-language section.' },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-14',
     title: 'Reading lists',

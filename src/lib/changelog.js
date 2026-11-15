@@ -9,7 +9,7 @@ export const CHANGELOG = [
     title: 'Akin Library, 2023 edition',
     changes: [
       { kind: 'improved', text: 'The Akin Library now follows Dr. Akin’s 2023 revised edition, adding about 220 titles, most published since 2018, including new commentaries in the Christian Standard, Kregel, Evangelical Biblical Theological and Baker Commentary series.' },
-      { kind: 'improved', text: 'The 2023 edition no longer lists about 120 titles from the 2019 edition, including its Spanish-language section.' },
+      { kind: 'improved', text: 'About 70 titles from the 2019 edition that the 2023 edition dropped stay in the list. Only the 2019 Spanish-language section is gone.' },
     ],
   },
   {

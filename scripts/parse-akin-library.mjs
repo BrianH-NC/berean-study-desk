@@ -326,6 +326,29 @@ for (let i = start; i < lines.length; i++) {
 }
 flush('unterminated entry at end')
 
+// --retain <file.json>: entries from an earlier edition that this edition dropped
+// (supabase/seeds/akin-2019-retained.json). Each is slotted into its own section,
+// subsection and topic at its alphabetical place by author, then positions are renumbered.
+const retainFile = process.argv.includes('--retain') ? process.argv[process.argv.indexOf('--retain') + 1] : null
+let retained = 0
+if (retainFile) {
+  const sortKey = (i) => (i.author_surname || i.title).toLowerCase().normalize('NFD').replace(/[^a-z]/g, '')
+  const same = (a, b, level) => a.section === b.section && (level < 2 || (a.subsection ?? null) === (b.subsection ?? null)) && (level < 3 || (a.topic ?? null) === (b.topic ?? null))
+  for (const r of JSON.parse(readFileSync(retainFile, 'utf8'))) {
+    let level = 3, members = []
+    while (level >= 1 && !(members = items.map((x, k) => (same(x, r, level) ? k : -1)).filter((k) => k >= 0)).length) level--
+    let at = items.length
+    if (members.length) {
+      const runStarts = members.filter((k, n) => n === 0 || items[k].author !== items[members[n - 1]].author)   // keep a "———" run together
+      const later = runStarts.find((k) => sortKey(items[k]) > sortKey(r))
+      at = later ?? members[members.length - 1] + 1
+    }
+    items.splice(at, 0, { ...r, source_text: '(retained from an earlier edition)' })
+    retained++
+  }
+  items.forEach((it, k) => { it.position = k + 1 })
+}
+
 const counts = {}
 for (const it of items) counts[it.section] = (counts[it.section] || 0) + 1
 console.log(`${items.length} entries, ${items.filter((i) => i.is_first_pick).length} first picks, ${items.filter((i) => i.series).length} with a series`)
@@ -339,7 +362,7 @@ const list = {
   slug: 'akin-library',
   name: 'Akin Library',
   curator: 'Daniel L. Akin',
-  description: `Suggested titles for a biblical and theological library, grouped by Bible book and subject, from Dr. Akin’s “Building a Theological Library” (Southeastern Baptist Theological Seminary, revised edition ${edition}).`,
+  description: `Suggested titles for a biblical and theological library, grouped by Bible book and subject, from Dr. Akin’s “Building a Theological Library” (Southeastern Baptist Theological Seminary, revised edition ${edition})${retained ? `, plus ${retained} titles from the earlier 2019 edition that the ${edition} edition no longer lists` : ''}.`,
   source_title: `Building a Theological Library (Revised Edition ${edition})`,
   source_year: edition,
   legend: {

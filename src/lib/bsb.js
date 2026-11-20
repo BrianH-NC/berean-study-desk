@@ -4,6 +4,7 @@
 // whole text lives in Postgres and is queried directly like books/entries.
 import { supabase } from './supabase'
 import { CANONICAL_BOOKS, resolveBookName } from './entries'
+import { verseKey, versesFilter } from './crossReferences'
 
 export const OT_BOOKS = CANONICAL_BOOKS.slice(0, 39)
 export const NT_BOOKS = CANONICAL_BOOKS.slice(39)
@@ -51,6 +52,20 @@ export async function fetchVerseRange(bookName, chapter, verseStart, verseEnd) {
     .order('verse')
   if (error) throw new Error(error.message)
   return data || []
+}
+
+// The text of several scattered passages in one request -- for previews of a verse's
+// cross-references. `ranges` is [{ bookNumber, chapter, start, end }]; the result maps
+// verseKey(bookNumber, chapter, verse) to the verse text.
+export async function fetchVerseTexts(ranges) {
+  if (!ranges.length) return new Map()
+  const { data, error } = await supabase
+    .from('bsb_verses')
+    .select('book_number, chapter, verse, text')
+    .or(versesFilter(ranges))
+    .limit(1000)
+  if (error) throw new Error(error.message)
+  return new Map((data || []).map((v) => [verseKey(v.book_number, v.chapter, v.verse), v.text]))
 }
 
 // How many chapters a book has, for the chapter-picker grid.

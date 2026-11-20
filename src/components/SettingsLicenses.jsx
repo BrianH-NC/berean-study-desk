@@ -36,7 +36,9 @@ export default function SettingsLicenses(){return (<div className="card">
               Free Use Bible API
             </a>{' '}
             (AO Lab). Commentaries (Matthew Henry, John Calvin, John Gill, Adam Clarke, Jamieson-Fausset-Brown,
-            Keil-Delitzsch, Tyndale) are classic public-domain works. Cross-reference data is from{' '}
+            Keil-Delitzsch, Tyndale, the Treasury of Scripture Knowledge, Barnes’ Notes, Burkitt’s Expository Notes, the
+            Geneva Bible Notes, the Scofield Reference Notes of 1917, the People’s New Testament, and Catena Aurea)
+            are classic public-domain works. Cross-reference data is from{' '}
             <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
               OpenBible.info
             </a>

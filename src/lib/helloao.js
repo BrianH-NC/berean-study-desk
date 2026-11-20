@@ -3,6 +3,7 @@
 // local storage, unlike bsb_verses), fetched only when the user opens the
 // relevant panel in Bible Study, not on every chapter load.
 import { CANONICAL_BOOKS } from './entries'
+import { commentaryCoversBook } from './commentaryCoverage'
 
 const API_BASE = 'https://bible.helloao.org/api'
 
@@ -39,6 +40,40 @@ export const COMMENTARIES = [
   { id: 'keil-delitzsch', name: 'Keil & Delitzsch' },
   { id: 'tyndale', name: 'Tyndale' },
 ]
+
+// What Bible Study offers: the seven above plus more of the API's public-domain
+// works. Several cover only part of the Bible, so `commentariesForBook` lists just
+// the ones that exist for the book being read. (Search and Settings keep using
+// COMMENTARIES -- their pickers are not tied to one book.)
+export const STUDY_COMMENTARIES = [
+  ...COMMENTARIES,
+  { id: 'tsk', name: 'Treasury of Scripture Knowledge' },
+  { id: 'barnes', name: 'Barnes’ Notes (New Testament)' },
+  { id: 'burkitt', name: 'Burkitt’s Expository Notes (New Testament)' },
+  { id: 'geneva', name: 'Geneva Bible Notes' },
+  { id: 'scofield', name: 'Scofield Reference Notes (1917)' },
+  { id: 'pnt', name: 'The People’s New Testament' },
+  { id: 'catena', name: 'Catena Aurea (Aquinas, Gospels)' },
+]
+
+export function commentariesForBook(bookName) {
+  const code = bookCodeFor(bookName)
+  return code ? STUDY_COMMENTARIES.filter((c) => commentaryCoversBook(c.id, code)) : STUDY_COMMENTARIES
+}
+
+// The commentary to show: the one asked for if it covers this book, otherwise the
+// first one that does -- so moving from a Gospel to Genesis switches away from Barnes
+// instead of showing an error. Returns null only if nothing covers the book.
+export function pickCommentary(commentaryId, bookName) {
+  const available = commentariesForBook(bookName)
+  return (available.find((c) => c.id === commentaryId) || available[0] || null)?.id || null
+}
+
+// 1-66, the order the Bible's books come in (used to look verses up in bsb_verses).
+export function bookNumberForCode(code) {
+  const index = BOOK_CODES.indexOf(code)
+  return index < 0 ? 0 : index + 1
+}
 
 export async function fetchCommentaryChapter(commentaryId, bookName, chapter, options = {}) {
   const code = bookCodeFor(bookName)

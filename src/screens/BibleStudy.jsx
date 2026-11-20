@@ -22,13 +22,15 @@ import {
 } from '../lib/bsb'
 import { CANONICAL_BOOKS } from '../lib/entries'
 import {
-  COMMENTARIES,
+  STUDY_COMMENTARIES,
+  commentariesForBook,
+  pickCommentary,
   fetchCommentaryChapter,
   fetchCrossReferences,
-  bookNameForCode,
   COMPARISON_TRANSLATIONS,
   fetchTranslationChapter,
 } from '../lib/helloao'
+import CrossReferences from '../components/CrossReferences'
 import { fetchEsvChapterVerses } from '../lib/esv'
 import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 
@@ -241,7 +243,10 @@ export default function BibleStudy() {
   const [copied, setCopied] = useState('')
 
   const [showCommentary, setShowCommentary] = useState(searchParams.get('panel') === 'commentary')
-  const [commentaryId, setCommentaryId] = useState(() => COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || prefs.commentary)
+  const [commentaryId, setCommentaryId] = useState(() => STUDY_COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || prefs.commentary)
+  // The commentary actually shown: the chosen one, unless it doesn't cover this book (Barnes on
+  // Genesis), in which case the first that does. The choice itself is kept for the next book.
+  const activeCommentaryId = pickCommentary(commentaryId, book) || commentaryId
   const [commentaryData, setCommentaryData] = useState(null) // null = not loaded, false = error
   const [commentaryLoading, setCommentaryLoading] = useState(false)
 
@@ -360,7 +365,7 @@ export default function BibleStudy() {
     let cancelled = false
     setCommentaryData(null)
     setCommentaryLoading(true)
-    fetchCommentaryChapter(commentaryId, book, chapter)
+    fetchCommentaryChapter(activeCommentaryId, book, chapter)
       .then((data) => {
         if (!cancelled) setCommentaryData(data)
       })
@@ -373,7 +378,7 @@ export default function BibleStudy() {
     return () => {
       cancelled = true
     }
-  }, [showCommentary, commentaryId, book, chapter])
+  }, [showCommentary, activeCommentaryId, book, chapter])
 
   useEffect(() => {
     if (!showCrossRefs) return
@@ -556,7 +561,7 @@ export default function BibleStudy() {
     setReadingTranslation(ALL_TRANSLATIONS.some(t=>t.id===state.translation)?state.translation:'BSB')
     setCompareIds((state.compare||[]).filter(id=>ALL_TRANSLATIONS.some(t=>t.id===id)))
     setShowCompare(Boolean(state.parallel));setShowCommentary(Boolean(state.showCommentary));setShowCrossRefs(Boolean(state.showCrossRefs))
-    setCommentaryId(COMMENTARIES.some(c=>c.id===state.commentaryId)?state.commentaryId:prefs.commentary)
+    setCommentaryId(STUDY_COMMENTARIES.some(c=>c.id===state.commentaryId)?state.commentaryId:prefs.commentary)
     setSessionNoteId(state.noteId||'');setSessionSermonId(state.sermonId||'')
   }
   function openWordStudy(v,translation,word='',index=-1) {
@@ -622,8 +627,8 @@ export default function BibleStudy() {
                   <div className="card" style={{ padding: '16px 20px' }}>
                     <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                       <div className="card-kicker">Commentary</div>
-                      <select className="input" style={{ width: 'auto' }} value={commentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
-                        {COMMENTARIES.map((c) => (
+                      <select className="input" aria-label="Commentary" style={{ width: 'auto', maxWidth: '100%' }} value={activeCommentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
+                        {commentariesForBook(book).map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name}
                           </option>
@@ -636,7 +641,7 @@ export default function BibleStudy() {
                       </div>
                     ) : commentaryData === false ? (
                       <p className="text-sm" style={{ opacity: 0.6 }}>
-                        Couldn't load commentary for this chapter.
+                        This commentary has no notes on this chapter, or couldn’t be loaded. Try another commentary.
                       </p>
                     ) : commentaryData ? (
                       <div className="flex flex-col gap-3" style={{ maxHeight: 420, overflowY: 'auto' }}>
@@ -685,38 +690,7 @@ export default function BibleStudy() {
                   Couldn't load cross references for this chapter.
                 </p>
               ) : crossRefData ? (
-                <div className="flex flex-col gap-3">
-                  {selectedSorted.map((vNum) => {
-                    const entry = crossRefData.chapter.content.find((c) => c.verse === vNum)
-                    const refs = (entry?.references || []).slice(0, 6)
-                    return (
-                      <div key={vNum}>
-                        <div className="card-meta mb-1">
-                          {book} {chapter}:{vNum}
-                        </div>
-                        {refs.length === 0 ? (
-                          <p className="text-sm" style={{ opacity: 0.5 }}>
-                            No cross references found.
-                          </p>
-                        ) : (
-                          <div className="flex flex-wrap gap-1.5">
-                            {refs.map((r, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                className="tag tag-neutral"
-                                onClick={() => goTo(bookNameForCode(r.book), r.chapter, r.verse)}
-                              >
-                                {bookNameForCode(r.book)} {r.chapter}:{r.verse}
-                                {r.endVerse ? `-${r.endVerse}` : ''}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
+                <CrossReferences data={crossRefData} book={book} chapter={chapter} verses={selectedSorted} onGoTo={goTo} />
               ) : null}
               <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
                 Cross references from OpenBible.info (CC BY 4.0), via the{' '}

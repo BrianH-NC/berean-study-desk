@@ -4,6 +4,16 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.6.0',
+    date: '2026-11-20',
+    title: 'Cross references you can read',
+    changes: [
+      { kind: 'improved', text: 'Cross references in Bible Study now show the verse text under each reference, strongest links first, and list all of them instead of only six.' },
+      { kind: 'new', text: 'Seven more commentaries in Bible Study: the Treasury of Scripture Knowledge, Barnes, Burkitt, the Geneva Bible Notes, the Scofield Reference Notes, the People’s New Testament and Catena Aurea.' },
+      { kind: 'improved', text: 'The commentary list shows only the commentaries that cover the book you’re reading, and switches automatically when you move to a book your choice doesn’t cover.' },
+    ],
+  },
+  {
     version: '1.5.1',
     date: '2026-11-14',
     title: 'Akin Library, 2023 edition',

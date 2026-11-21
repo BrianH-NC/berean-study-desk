@@ -148,6 +148,7 @@ for (const [workId, bookNumber, bookName, bibleCode] of WORKS) {
 }
 writeFileSync(out, JSON.stringify({
   source: BASE,
+  author: 'John Chrysostom',
   note: "John Chrysostom's homilies on the New Testament, Nicene and Post-Nicene Fathers (public domain), from New Advent. Metadata only: no homily text is copied.",
   retrieved: new Date().toISOString().slice(0, 10),
   sermons,

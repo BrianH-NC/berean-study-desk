@@ -23,13 +23,39 @@ Philippians, Colossians, 1 and 2 Thessalonians, 1 and 2 Timothy, Titus,
 Philemon and Hebrews. Each entry holds the Scripture range the homily covers,
 its title, and a link to the public-domain translation on New Advent
 (https://www.newadvent.org/fathers/). It contains no homily text. The passage
-card appears only for books the snapshot covers. Introductions and homilies that
+list shows only for books the snapshots cover. Introductions and homilies that
 state no passage are left out rather than guessed.
 
 To refresh, run `node scripts/import-chrysostom.mjs public/data/chrysostom-homilies.json`.
 Add `--cache <dir>` to keep downloaded pages between runs. The script identifies
 itself honestly, pauses between requests, and prints per-book counts plus the
 homilies it could not place. Then run `node --test src/lib/chrysostomCatalog.test.js`.
+
+`augustine-sermons.json` indexes Augustine's sermons and expositions on Scripture
+on New Advent, in the same shape and from the same Nicene and Post-Nicene
+translations: the Tractates on John (124), the Homilies on 1 John (10), the
+Sermon on the Mount (two books), the Expositions on the Psalms (150) and the
+Sermons on the New Testament (87 of 97). The first four state their passage in
+the work's index; each Sermon on the New Testament opens with its text, so the
+first reference on its page is used, and the ten that name none are left out.
+Augustine numbers the Psalms as the Septuagint does, so each exposition is
+filed under the number a modern Bible uses (his Psalm 22 is Psalm 23), joined or
+split where the two numberings do not line up (his 9 is Psalms 9-10, his 114 and
+115 together are Psalm 116, his 146 and 147 are Psalm 147). Tractate 94's index
+entry reads "John 16:44-47" for John 16:4-7 and is corrected in the script. It
+contains no text.
+
+To refresh, run `node scripts/import-augustine.mjs public/data/augustine-sermons.json`
+(add `--cache <dir>` to keep the pages), then
+`node --test src/lib/augustineCatalog.test.js`.
+
+Both catalogs feed one "Church Fathers" card. Below its list it links to Catena
+(https://catenabible.com), which gathers the Fathers' comments verse by verse
+across the whole Bible: `/bible/nkjv/{code}/{chapter}/{verse}/patristics` for a
+selected verse, or the chapter page. It shows the start of each passage and asks
+for a free account to read the rest, which the card says. Catena's robots.txt
+turns away AI crawlers, so it is link-out only; its book codes are in
+`src/lib/sermonSources.js` and were checked against all 66 books.
 
 `sermon-chapters.json` is a small snapshot behind two chapter-level cards:
 

@@ -71,7 +71,7 @@ export function matchingSermons(sermons, passage, selectedVerses = []) {
       if (!prior || score < prior.score) found.set(sermon.url, { ...sermon, score })
     }
   }
-  return [...found.values()].sort((a, b) => a.score - b.score || a.title.localeCompare(b.title))
+  return [...found.values()].sort((a, b) => a.score - b.score || a.title.localeCompare(b.title, undefined, { numeric: true }))
 }
 
 export function twoJourneysChapterUrl(book, chapter) {

@@ -70,3 +70,14 @@ test('Open the Bible: a link only for the chapters it has a page for', () => {
   assert.equal(openTheBibleChapterUrl(snapshot, 'John', 0), null)
   assert.ok(snapshot.openTheBible.chapters.length > 250)
 })
+
+test('Catena: a verse’s patristic page, or the chapter, using its own book codes', async () => {
+  const { catenaUrl } = await import('./sermonSources.js')
+  assert.equal(catenaUrl(bookFor('John'), 3, 16), 'https://catenabible.com/bible/nkjv/jn/3/16/patristics')
+  assert.equal(catenaUrl(bookFor('John'), 3), 'https://catenabible.com/bible/nkjv/jn/3')
+  assert.equal(catenaUrl(bookFor('Revelation'), 22), 'https://catenabible.com/bible/nkjv/rv/22')
+  assert.equal(catenaUrl(bookFor('Song of Solomon'), 2, 4), 'https://catenabible.com/bible/nkjv/sg/2/4/patristics')
+  assert.equal(catenaUrl(bookFor('1 Peter'), 1), 'https://catenabible.com/bible/nkjv/1pt/1')
+  assert.equal(catenaUrl(bookFor('Joshua'), 1), 'https://catenabible.com/bible/nkjv/jo/1')
+  assert.equal(catenaUrl(0, 1), null)
+})

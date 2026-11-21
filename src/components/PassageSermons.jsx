@@ -3,7 +3,7 @@ import './PassageSermons.css'
 import { parseReference, formatReference } from '../lib/bsb'
 import { matchingSermons, parseSermonReferences, twoJourneysChapterUrl } from '../lib/passageSermons'
 import { bookFor } from '../lib/scriptureBooks'
-import { DESIRING_GOD_SCRIPTURE_INDEX, OPEN_THE_BIBLE_BROWSE, SERMON_CENTRAL_BROWSE, SERMON_INDEX_SPEAKERS, desiringGodChapterUrl, graceToYouBookUrl, ligonierBookUrl, openTheBibleChapterUrl, sermonCentralChapterUrl, sermonCountPhrase, sermonIndexChapter } from '../lib/sermonSources'
+import { catenaUrl, DESIRING_GOD_SCRIPTURE_INDEX, OPEN_THE_BIBLE_BROWSE, SERMON_CENTRAL_BROWSE, SERMON_INDEX_SPEAKERS, desiringGodChapterUrl, graceToYouBookUrl, ligonierBookUrl, openTheBibleChapterUrl, sermonCentralChapterUrl, sermonCountPhrase, sermonIndexChapter } from '../lib/sermonSources'
 
 // Sermons matched to the passage from a catalog of passages (a snapshot built by a script in /scripts).
 const CATALOGS = {
@@ -14,15 +14,16 @@ const CATALOGS = {
     empty: 'No matching sermon is listed in this index for the selected passage.',
     browse: { url: 'https://www.spurgeongems.org/spurgeon-sermons/', label: 'Browse Spurgeon Gems’ full collection →' },
   },
-  chrysostom: {
-    file: 'chrysostom-homilies.json',
-    name: 'John Chrysostom · Church Fathers',
-    note: 'Preached verse by verse in the fourth century. Public-domain translation, read on New Advent.',
+  fathers: {
+    files: ['chrysostom-homilies.json', 'augustine-sermons.json'],
+    name: 'Church Fathers',
+    note: 'Chrysostom preached verse by verse through Matthew, John, Acts and the letters from Romans to Hebrews; Augustine through John, 1 John and the Psalms, with sermons on many Gospel passages. Public-domain translations, read on New Advent.',
     read: 'Read online',
-    noun: 'homilies',
-    empty: 'None of Chrysostom’s homilies is indexed to the selected verses.',
+    noun: 'sermons',
+    empty: 'None of their sermons is indexed to the selected verses.',
     browse: { url: 'https://www.newadvent.org/fathers/', label: 'Browse the Church Fathers on New Advent →' },
-    onlyWhereCovered: true,   // he preached through Matthew, John, Acts and the epistles, not every book
+    showAuthor: true,
+    onlyWhereCovered: true,   // they don't cover every book, so a book they don't touch shows no card
   },
 }
 
@@ -34,11 +35,12 @@ function loadCatalog(file) {
         if (!response.ok) throw new Error('Could not load the sermon index.')
         return response.json()
       })
-      .then(data => data.sermons.map(sermon => ({ ...sermon, spans: parseSermonReferences(sermon.reference) })))
+      .then(data => data.sermons.map(sermon => ({ ...sermon, author: data.author, spans: parseSermonReferences(sermon.reference) })))
       .catch(error => { catalogs.delete(file); throw error }))
   }
   return catalogs.get(file)
 }
+const loadCatalogs = files => Promise.all(files.map(loadCatalog)).then(lists => lists.flat())
 
 // Which chapters SermonIndex and Open the Bible have teaching on (a small snapshot; see scripts/snapshot-sermon-chapters.mjs).
 // Null until it has loaded, and if it can't be, since the cards that need it are then simply left out.
@@ -63,22 +65,24 @@ function Block({ id, label, split, first, children }) {
   return <div className={first ? undefined : 'mt-4 pt-3'} style={first ? undefined : { borderTop: '1px solid var(--color-divider)' }}>{children}</div>
 }
 
-function CatalogBlock({ id, source, passage, reference, selectedVerses, split, first, header }) {
+function CatalogBlock({ id, source, passage, reference, selectedVerses, split, first, header, extra }) {
   const [state, setState] = useState({ loading: true, sermons: [], error: false })
   const [retry, setRetry] = useState(0)
   const [expandedFor, setExpandedFor] = useState('')
   useEffect(() => {
     let active = true
-    loadCatalog(source.file).then(sermons => {
+    loadCatalogs(source.files || [source.file]).then(sermons => {
       if (active) setState({ loading: false, sermons, error: false })
     }).catch(() => {
       if (active) setState({ loading: false, sermons: [], error: true })
     })
     return () => { active = false }
-  }, [source.file, retry])
-  // A catalog that doesn't cover this book has nothing to say here, so it shows nothing at all (until it has
-  // loaded, and if it can't be loaded, which for a source like this is not worth an error message).
-  if (source.onlyWhereCovered && (state.loading || state.error || !state.sermons.some(s => s.spans.some(span => span.book === passage.book)))) return null
+  }, [source, retry])
+  // A catalog that doesn't cover this book has nothing to say here, so it shows no list (until it has loaded, and
+  // if it can't be loaded, which for a source like this is not worth an error message). The card is then just
+  // its `extra`, or nothing at all.
+  const quiet = source.onlyWhereCovered && (state.loading || state.error || !state.sermons.some(s => s.spans.some(span => span.book === passage.book)))
+  if (quiet && !extra) return null
   const matches = matchingSermons(state.sermons, passage, selectedVerses)
   const selectionKey = `${reference}:${selectedVerses.join(',')}`
   const visible = expandedFor === selectionKey ? matches : matches.slice(0, 6)
@@ -86,20 +90,35 @@ function CatalogBlock({ id, source, passage, reference, selectedVerses, split, f
     <Block id={id} label={`${source.name} sermons`} split={split} first={first}>
       {header}
       <h3 className="card-kicker" style={split && !header ? { marginTop: 0 } : undefined}>{source.name}</h3>
-      {source.note && <p className="card-meta">{source.note}</p>}
-      {state.loading ? <p role="status" className="text-sm">Loading sermon matches…</p> : state.error ? (
+      {!quiet && source.note && <p className="card-meta">{source.note}</p>}
+      {quiet ? null : state.loading ? <p role="status" className="text-sm">Loading sermon matches…</p> : state.error ? (
         <p role="alert" className="text-sm">Couldn’t load the sermon index. <button className="btn btn-ghost" onClick={() => { setState({ loading: true, sermons: [], error: false }); setRetry(n => n + 1) }}>Try again</button></p>
       ) : !matches.length ? <p className="text-sm">{source.empty}</p> : (
         <ul className="flex flex-col gap-3 mt-2" style={{ listStyle: 'none', padding: 0 }}>
           {visible.map(sermon => <li key={sermon.url}>
             <a className="hover:underline" href={sermon.url} target="_blank" rel="noopener noreferrer">{sermon.title} →</a>
-            <div className="card-meta">{sermon.reference} · {sermon.score === 2 ? 'Chapter exposition' : 'Passage overlap'} · {source.read}</div>
+            <div className="card-meta">{source.showAuthor && sermon.author ? `${sermon.author} · ` : ''}{sermon.reference} · {sermon.score === 2 ? 'Chapter exposition' : 'Passage overlap'} · {source.read}</div>
           </li>)}
         </ul>
       )}
-      {matches.length > 6 && <button className="btn btn-ghost mt-2" aria-expanded={expandedFor === selectionKey} onClick={() => setExpandedFor(expandedFor === selectionKey ? '' : selectionKey)}>{expandedFor === selectionKey ? 'Show fewer' : `Show all ${matches.length} ${source.noun || 'sermons'}`}</button>}
-      <a className="text-sm hover:underline mt-2" href={source.browse.url} target="_blank" rel="noopener noreferrer">{source.browse.label}</a>
+      {!quiet && matches.length > 6 && <button className="btn btn-ghost mt-2" aria-expanded={expandedFor === selectionKey} onClick={() => setExpandedFor(expandedFor === selectionKey ? '' : selectionKey)}>{expandedFor === selectionKey ? 'Show fewer' : `Show all ${matches.length} ${source.noun || 'sermons'}`}</button>}
+      {!quiet && <a className="text-sm hover:underline mt-2" href={source.browse.url} target="_blank" rel="noopener noreferrer">{source.browse.label}</a>}
+      {extra}
     </Block>
+  )
+}
+
+// The Fathers on every verse of the Bible, which the two catalogs above don't reach. Catena shows the start of each
+// passage and asks for a free account to read the rest, so the card says so before sending anyone there.
+function CatenaLink({ passage, selectedVerses }) {
+  const verse = selectedVerses[0] || passage.verseStart
+  const url = catenaUrl(bookFor(passage.book), passage.chapter, verse)
+  if (!url) return null
+  return (
+    <div className="mt-2">
+      <p className="text-sm">Catena gathers what Ambrose, Hilary, Chrysostom and other Fathers wrote on {verse ? 'this verse' : 'each verse of this chapter'}, in any book of the Bible. It shows the start of each passage and asks for a free account to read the rest.</p>
+      <a className="btn btn-secondary mt-2" href={url} target="_blank" rel="noopener noreferrer">Open {formatReference(passage.book, passage.chapter, verse)} on Catena →</a>
+    </div>
   )
 }
 
@@ -190,7 +209,7 @@ export default function PassageSermons({ reference, selectedVerses = [], split =
   const blocks = (
     <>
       <CatalogBlock id="spurgeon" source={CATALOGS.spurgeon} {...common} first header={split ? header : undefined} />
-      <CatalogBlock id="chrysostom" source={CATALOGS.chrysostom} {...common} />
+      <CatalogBlock id="fathers" source={CATALOGS.fathers} {...common} extra={<CatenaLink passage={passage} selectedVerses={selectedVerses} />} />
       <SermonIndexBlock {...common} />
       <AndyDavisBlock {...common} />
       <OpenTheBibleBlock {...common} />

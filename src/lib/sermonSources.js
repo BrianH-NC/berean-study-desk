@@ -71,3 +71,14 @@ export function openTheBibleChapterUrl(snapshot, book, chapter) {
   const found = chapters.find((s) => s === slug) || chapters.find((s) => s.startsWith(`${slug}-`) && s.endsWith(bookSlug(book)))
   return found ? `https://openthebible.org/scripture/${found}/?filter-post_type=sermon` : null
 }
+
+// Catena: the Church Fathers on each verse. Its addresses use its own short book codes, in the app's book order.
+const CATENA_CODES = 'gn ex lv nm dt jo jgs ru 1sm 2sm 1kgs 2kgs 1chr 2chr ezr neh est jb ps prv eccl sg is jer lam ez dn hos jl am ob jon mi na hb zep hg zec mal mt mk lk jn acts rom 1cor 2cor gal eph phil col 1thes 2thes 1tm 2tm ti phlm heb jas 1pt 2pt 1jn 2jn 3jn jude rv'.split(' ')
+export const CATENA_HOME = 'https://catenabible.com'
+
+// A verse's patristic page when a verse is given, otherwise the chapter. Null for a book the app doesn't know.
+export function catenaUrl(bookNumber, chapter, verse) {
+  const code = CATENA_CODES[bookNumber - 1]
+  if (!code || !(chapter >= 1)) return null
+  return `${CATENA_HOME}/bible/nkjv/${code}/${chapter}${verse >= 1 ? `/${verse}/patristics` : ''}`
+}

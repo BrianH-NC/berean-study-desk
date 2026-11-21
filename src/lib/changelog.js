@@ -4,6 +4,16 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.12.0',
+    date: '2026-11-21',
+    title: 'Augustine and the Church Fathers on every verse',
+    changes: [
+      { kind: 'new', text: 'Sermons for this passage now includes Augustine: his 124 tractates on John, his homilies on 1 John, his Sermon on the Mount, his sermons on the Gospels, and his Expositions on all 150 Psalms, so the Church Fathers card now has something for the Psalms too.' },
+      { kind: 'new', text: 'Augustine numbers the Psalms the way the Septuagint does, so each exposition is filed under the Psalm number your Bible uses, with his own number beside it.' },
+      { kind: 'new', text: 'Every passage now has a Church Fathers card, with a link to Catena’s collection of what the Fathers wrote on each verse of any book of the Bible. Chrysostom and Augustine appear together in it where they preached on the passage.' },
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-11-21',
     title: 'SermonIndex and Open the Bible',

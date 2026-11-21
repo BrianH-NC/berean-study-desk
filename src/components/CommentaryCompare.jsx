@@ -3,7 +3,7 @@ import './CommentaryCompare.css'
 import { commentariesForBook, fetchCommentaryChapter } from '../lib/helloao'
 import { MAX_COMPARED, chooseCompared, spanLabel, spansForVerses, toggleCompared, uncoveredVerses, verseSummary } from '../lib/commentaryBlocks'
 import { commentarySourceFor } from '../lib/excerpts'
-import { CANONICAL_BOOKS } from '../lib/entries'
+import { commentaryLinkRefs } from './commentaryLinkRefs'
 import ExcerptNote from './ExcerptNote'
 
 const STORAGE_KEY = 'bsd:compare-commentaries'
@@ -52,8 +52,8 @@ function Note({ text, source, noteTarget, linkRefs }) {
 }
 
 function Card({ meta, result, book, chapter, verses, noteTarget, onGoTo, onRetry }) {
-  // The Treasury's notes are lists of scripture references; in them each one opens its verse.
-  const linkRefs = meta.id === 'tsk' ? { book: CANONICAL_BOOKS.indexOf(book) + 1, chapter, nameFor: (n) => CANONICAL_BOOKS[n - 1], onGoTo } : undefined
+  // Each Scripture reference in a note opens its verse.
+  const linkRefs = commentaryLinkRefs(meta.id, book, chapter, onGoTo)
   let body
   if (!result) body = <p role="status" className="cc-status">Loading…</p>
   else if (result.status === 'error') body = <p role="alert" className="cc-status">Couldn’t load this commentary. <button type="button" className="btn btn-ghost" onClick={onRetry}>Try again</button></p>

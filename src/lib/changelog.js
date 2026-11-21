@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.9.0',
+    date: '2026-11-20',
+    title: 'Clickable citations in every commentary',
+    changes: [
+      { kind: 'new', text: 'Scripture citations in every commentary are now links that open the verse: Matthew Henry, Calvin, Gill, Clarke, Jamieson-Fausset-Brown, Keil & Delitzsch, Tyndale, Barnes, Burkitt, the Geneva Bible Notes, Scofield, the People’s New Testament and Catena Aurea. Lists such as “Jer 4:4, 31:4,33” link each verse, and so do references like “ver. 16” within the chapter.' },
+      { kind: 'improved', text: 'Only citations of verses that exist become links. References to the Apocrypha, Josephus and the like are left as plain text.' },
+    ],
+  },
+  {
     version: '1.8.1',
     date: '2026-11-20',
     title: 'Clickable Treasury references',

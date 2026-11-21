@@ -33,6 +33,7 @@ import {
 import CrossReferences from '../components/CrossReferences'
 import CommentaryCompare from '../components/CommentaryCompare'
 import ExcerptNote from '../components/ExcerptNote'
+import { commentaryLinkRefs } from '../components/commentaryLinkRefs'
 import { commentarySourceFor } from '../lib/excerpts'
 import { fetchEsvChapterVerses } from '../lib/esv'
 import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
@@ -672,7 +673,7 @@ export default function BibleStudy() {
                                 <ExcerptNote
                                   text={block.content.join('\n\n')}
                                   noteTarget={noteTarget}
-                                  linkRefs={activeCommentaryId === 'tsk' ? { book: CANONICAL_BOOKS.indexOf(book) + 1, chapter, nameFor: (n) => CANONICAL_BOOKS[n - 1], onGoTo: goTo } : undefined}
+                                  linkRefs={commentaryLinkRefs(activeCommentaryId, book, chapter, goTo)}
                                   source={commentarySourceFor(
                                     STUDY_COMMENTARIES.find((c) => c.id === activeCommentaryId) || { id: activeCommentaryId, name: commentaryData.commentary?.name || 'Commentary' },
                                     book, chapter, { from: block.number, to: nextNumber == null ? null : Math.max(block.number, nextNumber - 1) },

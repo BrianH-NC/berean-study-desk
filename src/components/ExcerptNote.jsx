@@ -4,7 +4,6 @@ import './ExcerptNote.css'
 import SaveToNote from './SaveToNote'
 import { paragraphs } from '../lib/commentaryBlocks'
 import { commentaryExcerptNodes } from '../lib/excerpts'
-import { linkTreasuryRefs } from '../lib/treasuryRefs'
 
 // One scripture reference in a note, as a button that opens that verse.
 function RefButton({ part, linkRefs, tabbable }) {
@@ -19,17 +18,18 @@ function RefButton({ part, linkRefs, tabbable }) {
 //   noteTarget: { userId, sessionRef, sessionNoteId, api? } -- without it the text is simply shown (api swaps
 //               the data layer, for testing)
 //   onSaving:   called with true while the save panel is open, so a folded note can open itself
-//   linkRefs:   { book (1-66), chapter, nameFor(book), onGoTo(bookName, chapter, verse, endVerse) } -- for a Treasury of
-//               Scripture Knowledge note, whose scripture references become buttons that open the verse
+//   linkRefs:   { key, link(text), nameFor(book), onGoTo(bookName, chapter, verse, endVerse) } -- see commentaryLinkRefs: the
+//               Scripture references in the text become buttons that open the verse
 export default function ExcerptNote({ text, source, noteTarget, tabbable = true, onSaving, linkRefs }) {
   const box = useRef(null)
   const [selected, setSelected] = useState('')
   // The excerpt being saved and where its panel sits: under paragraph `at`, or at the top for a selection.
   const [saving, setSaving] = useState(null)
-  const linkBook = linkRefs?.book, linkChapter = linkRefs?.chapter
+  const linkKey = linkRefs?.key
+  // `linkKey` stands for the whole linkRefs object: it only changes when the references would be read differently.
   const items = useMemo(
-    () => paragraphs(text).map((p) => ({ p, parts: linkBook ? linkTreasuryRefs(p, { book: linkBook, chapter: linkChapter }) : null })),
-    [text, linkBook, linkChapter],
+    () => paragraphs(text).map((p) => ({ p, parts: linkRefs ? linkRefs.link(p) : null })),
+    [text, linkKey],
   )
 
   useEffect(() => { onSaving?.(Boolean(saving)) }, [saving, onSaving])

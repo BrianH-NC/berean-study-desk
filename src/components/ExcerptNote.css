@@ -7,3 +7,6 @@
 @media(hover:none){.xn-save{opacity:.7}}
 .xn-selection{position:sticky;top:0;z-index:1;margin:0 0 8px}
 .xn-selection .btn{display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;padding:6px 10px}
+.tsk-ref{font:inherit;color:var(--color-accent);background:none;border:0;padding:0;margin:0;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;text-align:inherit}
+.tsk-ref:hover{text-decoration-style:solid;background:var(--bsd-selected)}
+.tsk-ref:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;border-radius:2px}

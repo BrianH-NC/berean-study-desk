@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.8.1',
+    date: '2026-11-20',
+    title: 'Clickable Treasury references',
+    changes: [
+      { kind: 'improved', text: 'In the Treasury of Scripture Knowledge, every Scripture reference is now a link that opens that verse, including the ones written without a book name, such as the “8:32” in “Ro 5:10; 8:32”.' },
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-11-20',
     title: 'Save excerpts to notes',

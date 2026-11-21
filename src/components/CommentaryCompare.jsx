@@ -3,6 +3,7 @@ import './CommentaryCompare.css'
 import { commentariesForBook, fetchCommentaryChapter } from '../lib/helloao'
 import { MAX_COMPARED, chooseCompared, spanLabel, spansForVerses, toggleCompared, uncoveredVerses, verseSummary } from '../lib/commentaryBlocks'
 import { commentarySourceFor } from '../lib/excerpts'
+import { CANONICAL_BOOKS } from '../lib/entries'
 import ExcerptNote from './ExcerptNote'
 
 const STORAGE_KEY = 'bsd:compare-commentaries'
@@ -33,7 +34,7 @@ function loadChapter(id, book, chapter) {
 
 const LONG_NOTE = 1400   // characters before a note is folded
 
-function Note({ text, source, noteTarget }) {
+function Note({ text, source, noteTarget, linkRefs }) {
   const [open, setOpen] = useState(false)
   const long = text.length > LONG_NOTE
   const words = text.split(/\s+/).length
@@ -43,14 +44,16 @@ function Note({ text, source, noteTarget }) {
     <>
       <div className={`cc-note${long && !open ? ' is-folded' : ''}`}>
         {/* The text of a folded note stays selectable; its clipped save buttons just leave the tab order until it is opened. */}
-        <ExcerptNote text={text} source={source} noteTarget={noteTarget} tabbable={!long || open} onSaving={onSaving} />
+        <ExcerptNote text={text} source={source} noteTarget={noteTarget} tabbable={!long || open} onSaving={onSaving} linkRefs={linkRefs} />
       </div>
       {long && <button type="button" className="btn btn-ghost cc-fold" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Show less' : `Read the full note (${words.toLocaleString()} words)`}</button>}
     </>
   )
 }
 
-function Card({ meta, result, book, chapter, verses, noteTarget, onRetry }) {
+function Card({ meta, result, book, chapter, verses, noteTarget, onGoTo, onRetry }) {
+  // The Treasury's notes are lists of scripture references; in them each one opens its verse.
+  const linkRefs = meta.id === 'tsk' ? { book: CANONICAL_BOOKS.indexOf(book) + 1, chapter, nameFor: (n) => CANONICAL_BOOKS[n - 1], onGoTo } : undefined
   let body
   if (!result) body = <p role="status" className="cc-status">Loading…</p>
   else if (result.status === 'error') body = <p role="alert" className="cc-status">Couldn’t load this commentary. <button type="button" className="btn btn-ghost" onClick={onRetry}>Try again</button></p>
@@ -60,7 +63,7 @@ function Card({ meta, result, book, chapter, verses, noteTarget, onRetry }) {
     const skipped = uncoveredVerses(spans, verses)
     body = spans.length
       ? <>
-        {spans.map((span) => <section key={span.from} className="cc-span"><div className="cc-range">{spanLabel(span)}</div><Note text={span.text} source={commentarySourceFor(meta, book, chapter, span)} noteTarget={noteTarget} /></section>)}
+        {spans.map((span) => <section key={span.from} className="cc-span"><div className="cc-range">{spanLabel(span)}</div><Note text={span.text} source={commentarySourceFor(meta, book, chapter, span)} noteTarget={noteTarget} linkRefs={linkRefs} /></section>)}
         {skipped.length > 0 && <p className="cc-status cc-skipped">No note on verse{skipped.length > 1 ? 's' : ''} {verseSummary(skipped)}.</p>}
       </>
       : <p className="cc-status">No note on {verses.length === 1 ? 'this verse' : 'these verses'} in this commentary.</p>
@@ -69,7 +72,7 @@ function Card({ meta, result, book, chapter, verses, noteTarget, onRetry }) {
 }
 
 // Side-by-side notes from several commentaries on the selected verse(s).
-export default function CommentaryCompare({ book, chapter, verses, defaulted, noteTarget, onClose }) {
+export default function CommentaryCompare({ book, chapter, verses, defaulted, noteTarget, onGoTo, onClose }) {
   const available = useMemo(() => commentariesForBook(book), [book])
   const availableIds = useMemo(() => available.map((c) => c.id), [available])
   const [chosen, setChosen] = useState(() => chooseCompared(availableIds, readSaved()))
@@ -133,7 +136,7 @@ export default function CommentaryCompare({ book, chapter, verses, defaulted, no
         <div className="cc-grid">
           {chosen.map((id) => {
             const meta = available.find((c) => c.id === id)
-            return meta && <Card key={id} meta={meta} book={book} chapter={chapter} verses={verses} noteTarget={noteTarget} result={results[`${id}|${book}|${chapter}`]} onRetry={() => setRetry((n) => n + 1)} />
+            return meta && <Card key={id} meta={meta} book={book} chapter={chapter} verses={verses} noteTarget={noteTarget} onGoTo={onGoTo} result={results[`${id}|${book}|${chapter}`]} onRetry={() => setRetry((n) => n + 1)} />
           })}
         </div>
         <p className="cc-source">Commentaries are classic public-domain works, served by the Free Use Bible API. Notes cover different ranges of verses, so the range is shown on each.</p>

@@ -593,7 +593,7 @@ export default function BibleStudy() {
     {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
-      {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} noteTarget={noteTarget} onClose={() => setShowCommentaryCompare(false)} />}
+      {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} noteTarget={noteTarget} onGoTo={(...target) => { setShowCommentaryCompare(false); goTo(...target) }} onClose={() => setShowCommentaryCompare(false)} />}
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}
         {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
@@ -672,6 +672,7 @@ export default function BibleStudy() {
                                 <ExcerptNote
                                   text={block.content.join('\n\n')}
                                   noteTarget={noteTarget}
+                                  linkRefs={activeCommentaryId === 'tsk' ? { book: CANONICAL_BOOKS.indexOf(book) + 1, chapter, nameFor: (n) => CANONICAL_BOOKS[n - 1], onGoTo: goTo } : undefined}
                                   source={commentarySourceFor(
                                     STUDY_COMMENTARIES.find((c) => c.id === activeCommentaryId) || { id: activeCommentaryId, name: commentaryData.commentary?.name || 'Commentary' },
                                     book, chapter, { from: block.number, to: nextNumber == null ? null : Math.max(block.number, nextNumber - 1) },

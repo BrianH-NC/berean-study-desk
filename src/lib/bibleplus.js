@@ -4,6 +4,7 @@
 // bibleId + chapterId, never the key itself.
 import { authHeaders } from './functionAuth'
 import { bookCodeFor } from './helloao'
+import { versesFromContent } from './bibleplusParse'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const FUNCTIONS_BASE = SUPABASE_URL + '/functions/v1'
@@ -21,39 +22,6 @@ export const BIBLEPLUS_TRANSLATIONS = [
   { id: 'CEV', bibleId: '555fef9a6cb31151-01', name: 'Contemporary English Version', short: 'CEV' },
   { id: 'NASB2020', bibleId: 'a761ca71e0b3ddcf-01', name: 'New American Standard Bible 2020', short: 'NASB 2020' },
 ]
-
-// Recursively walks API.Bible's USX-derived content tree, collecting text
-// runs by the verse they belong to. Verse-number label nodes (the bare
-// digit rendered by the "verse" tag itself) carry no verseId and are
-// naturally skipped; only nodes with attrs.verseId are real body text,
-// whether they sit directly in a paragraph or nested inside a styled run
-// (e.g. "wj" for words-of-Jesus).
-function collectVerseText(node, out) {
-  if (node.type === 'text') {
-    if (node.attrs?.verseId) {
-      const number = parseInt(node.attrs.verseId.split('.').pop(), 10)
-      out[number] = (out[number] || '') + node.text
-    }
-    return
-  }
-  if (node.type === 'tag' && Array.isArray(node.items)) {
-    node.items.forEach((child) => collectVerseText(child, out))
-  }
-}
-
-// The first verseId found (depth-first) inside a top-level content block --
-// each block is one USX paragraph, and paragraphs only ever break at a verse
-// boundary, so this identifies which verse starts that paragraph.
-function firstVerseNumberIn(node) {
-  if (node.type === 'text') return node.attrs?.verseId || null
-  if (node.type === 'tag' && Array.isArray(node.items)) {
-    for (const child of node.items) {
-      const found = firstVerseNumberIn(child)
-      if (found) return found
-    }
-  }
-  return null
-}
 
 // Returns [{ number, text, paragraphStart }, ...] for a whole chapter.
 // paragraphStart marks the verses that begin one of the source's real USX
@@ -75,20 +43,8 @@ export async function fetchBibleplusChapter(bibleplusId, bookName, chapter) {
     throw new Error(data.error || `bibleplus-chapter request failed (${res.status})`)
   }
 
-  const byVerse = {}
-  const paragraphStarts = new Set()
-  data.content.forEach((block) => {
-    collectVerseText(block, byVerse)
-    const firstId = firstVerseNumberIn(block)
-    if (firstId) paragraphStarts.add(parseInt(firstId.split('.').pop(), 10))
-  })
-  const verses = Object.entries(byVerse)
-    .map(([number, text]) => ({
-      number: parseInt(number, 10),
-      text: text.replace(/#/g, '').trim().replace(/\s+/g, ' '),
-      paragraphStart: paragraphStarts.has(parseInt(number, 10)),
-    }))
-    .sort((a, b) => a.number - b.number)
+  // Joining the pieces of each verse (poetry lines, styled runs) is bibleplusParse.js's job.
+  const verses = versesFromContent(data.content)
   verses.copyright = typeof data.copyright === 'string' ? data.copyright : ''
   return verses
 }

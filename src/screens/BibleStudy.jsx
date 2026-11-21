@@ -31,6 +31,7 @@ import {
   fetchTranslationChapter,
 } from '../lib/helloao'
 import CrossReferences from '../components/CrossReferences'
+import CommentaryCompare from '../components/CommentaryCompare'
 import { fetchEsvChapterVerses } from '../lib/esv'
 import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 
@@ -519,6 +520,9 @@ export default function BibleStudy() {
   }, [verses, verseRange])
 
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
+  // The verses the commentary comparison is about: the selection, or else the first verse on screen.
+  const [showCommentaryCompare, setShowCommentaryCompare] = useState(false)
+  const compareVerses = selectedSorted.length ? selectedSorted : (displayedVerses?.[0] ? [displayedVerses[0].number] : [])
 
   // Scrolls the highlighted commentary block into view -- without this, opening
   // commentary on a chapter with many verse-blocks (e.g. Adam Clarke, which runs
@@ -585,6 +589,7 @@ export default function BibleStudy() {
     {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
+      {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} onClose={() => setShowCommentaryCompare(false)} />}
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}
         {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
@@ -620,7 +625,7 @@ export default function BibleStudy() {
           <button onClick={()=>draftNote(true)}><ChartColumn/>Passage Analysis <small>Guided note</small></button>
           <a href="https://biblehub.com/atlas/" target="_blank" rel="noreferrer"><MapPin/>Biblical Maps <small>External ↗</small></a>
           <a href="https://biblehub.com/timeline/" target="_blank" rel="noreferrer"><Clock/>Timeline <small>External ↗</small></a>
-        </div><button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button></StudySection>
+        </div><div className="flex flex-wrap gap-2"><button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button><button className="btn btn-secondary" aria-haspopup="dialog" disabled={!compareVerses.length} onClick={()=>setShowCommentaryCompare(true)}>Compare commentaries</button></div></StudySection>
         <StudySection title="Quick Insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
         <PassageSermons reference={selectionRef || passageRef} selectedVerses={selectedSorted}/>
                 {showCommentary && (

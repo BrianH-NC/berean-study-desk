@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.7.0',
+    date: '2026-11-20',
+    title: 'Compare commentaries',
+    changes: [
+      { kind: 'new', text: 'Compare commentaries in Bible Study: choose up to four and read what each says about the verse you selected, side by side, with the range of verses each note covers.' },
+      { kind: 'fixed', text: 'In the NIV, NLT, CSB, NKJV, The Message, Amplified, CEV and NASB 2020, words no longer run together where a verse breaks across poetry lines or styled text.' },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-11-20',
     title: 'Cross references you can read',

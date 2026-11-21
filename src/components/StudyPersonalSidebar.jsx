@@ -36,14 +36,14 @@ export default function StudyPersonalSidebar({ book, chapter, passageRef }) {
   const linked = new Set(notes.map(note => note.shelf_book_id).filter(Boolean))
   const books = data.books.filter(item => linked.has(item.id) || item.tags?.some(tag => tag.toLowerCase() === book.toLowerCase()))
   return <aside className="bible-personal" aria-label="Your passage notes and resources">
-    <StudySection title="My Study Notes">
+    <StudySection title="My Study Notes" className="bible-card bible-card-notes">
       <Link className="bible-see-all" to="/notebook">See all notes →</Link>
       {data.loading ? <p role="status">Loading your notes…</p> : data.error ? <p>Could not load your notes. <button onClick={() => setRetry(n => n + 1)}>Retry</button></p> : notes.length ? notes.slice(0, 4).map(note => <Link className="bible-related-item" key={note.id} to={`/notebook/${note.id}`}><NotebookPen size={20}/><span><strong>{note.ref}</strong>{note.title || 'Untitled note'}<small>{new Date(note.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</small></span></Link>) : <p className="bible-muted">No notes linked to {book} {chapter} yet.</p>}
       <Link className="btn btn-ghost" to="/notebook/new" state={{ ref: passageRef, body: '' }}>Create a study note →</Link>
     </StudySection>
-    <StudySection title="Related Resources"><Link className="bible-see-all" to="/shelf">Your library →</Link>
+    <StudySection title="Related Resources" className="bible-card bible-card-resources"><Link className="bible-see-all" to="/shelf">Your library →</Link>
       {data.loading ? <p>Loading your library…</p> : data.error ? <p>Your library could not be loaded.</p> : books.length ? books.slice(0, 4).map(item => <Link className="bible-related-item" key={item.id} to={`/shelf/${item.id}`}>{item.cover_url ? <img src={item.cover_url} alt=""/> : <BookOpen size={24}/>}<span><strong>{item.title}</strong><small>{item.author}</small></span></Link>) : <p className="bible-muted">Books linked through your notes or tagged “{book}” appear here.</p>}
     </StudySection>
-    <blockquote className="bible-image-quote" style={{ backgroundImage: `linear-gradient(#0f3d2e55,#0f3d2ecc),url(${dailyHero()})` }}>“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
+    <blockquote className="bible-image-quote bible-card bible-card-quote" style={{ backgroundImage: `linear-gradient(#0f3d2e55,#0f3d2ecc),url(${dailyHero()})` }}>“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
   </aside>
 }

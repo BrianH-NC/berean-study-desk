@@ -17,7 +17,9 @@ function loadCatalog() {
   return catalogPromise
 }
 
-export default function PassageSermons({ reference, selectedVerses = [] }) {
+// `split` shows Spurgeon and Andy Davis as two cards, for Bible Study's card layout, where one tall card leaves
+// a hole in the next column; everywhere else they stay together in one.
+export default function PassageSermons({ reference, selectedVerses = [], split = false }) {
   const passage = parseReference(reference?.replace(/[–—]/g, '-'))
   const [state, setState] = useState({ loading: true, sermons: [], error: false })
   const [retry, setRetry] = useState(0)
@@ -35,8 +37,17 @@ export default function PassageSermons({ reference, selectedVerses = [] }) {
   const matches = matchingSermons(state.sermons, passage, selectedVerses)
   const selectionKey = `${reference}:${selectedVerses.join(',')}`
   const visible = expandedFor === selectionKey ? matches : matches.slice(0, 6)
+  const davis = (
+    <>
+        <h3 className="card-kicker" style={split ? { marginTop: 0 } : undefined}>Andy Davis · Two Journeys</h3>
+        <p className="text-sm mt-1">Browse teaching indexed to {formatReference(passage.book, passage.chapter)} on Two Journeys, including available sermons and transcripts. Their chapter index may also include classes, podcasts, and devotionals.</p>
+        <a className="btn btn-secondary mt-2" href={twoJourneysChapterUrl(passage.book, passage.chapter)} target="_blank" rel="noopener noreferrer">Open {passage.book} {passage.chapter} on Two Journeys →</a>
+        <a className="text-sm hover:underline mt-2" href="https://twojourneys.org/sermons/" target="_blank" rel="noopener noreferrer">Browse all Andy Davis sermons →</a>
+    </>
+  )
   return (
-    <section className="card mt-4 passage-sermons" aria-label="Sermons for this passage" style={{ padding: '18px 20px' }}>
+    <>
+    <section className={`card passage-sermons${split ? ' bible-card bible-card-sermons' : ' mt-4'}`} aria-label="Sermons for this passage" style={{ padding: '18px 20px' }}>
       <h2 className="card-title">Sermons for this passage</h2>
       <p className="card-meta mb-3">{reference} · Sermon links open in a new tab.</p>
       <h3 className="card-kicker">Charles Spurgeon</h3>
@@ -52,12 +63,9 @@ export default function PassageSermons({ reference, selectedVerses = [] }) {
       )}
       {matches.length > 6 && <button className="btn btn-ghost mt-2" aria-expanded={expandedFor === selectionKey} onClick={() => setExpandedFor(expandedFor === selectionKey ? '' : selectionKey)}>{expandedFor === selectionKey ? 'Show fewer' : `Show all ${matches.length} sermons`}</button>}
       <a className="text-sm hover:underline mt-2" href="https://www.spurgeongems.org/spurgeon-sermons/" target="_blank" rel="noopener noreferrer">Browse Spurgeon Gems’ full collection →</a>
-      <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--color-divider)' }}>
-        <h3 className="card-kicker">Andy Davis · Two Journeys</h3>
-        <p className="text-sm mt-1">Browse teaching indexed to {formatReference(passage.book, passage.chapter)} on Two Journeys, including available sermons and transcripts. Their chapter index may also include classes, podcasts, and devotionals.</p>
-        <a className="btn btn-secondary mt-2" href={twoJourneysChapterUrl(passage.book, passage.chapter)} target="_blank" rel="noopener noreferrer">Open {passage.book} {passage.chapter} on Two Journeys →</a>
-        <a className="text-sm hover:underline mt-2" href="https://twojourneys.org/sermons/" target="_blank" rel="noopener noreferrer">Browse all Andy Davis sermons →</a>
-      </div>
+      {!split && <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--color-divider)' }}>{davis}</div>}
     </section>
+    {split && <section className="card passage-sermons bible-card bible-card-sermons-davis" aria-label="Andy Davis sermons" style={{ padding: '18px 20px' }}>{davis}</section>}
+    </>
   )
 }

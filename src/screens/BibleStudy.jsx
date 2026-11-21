@@ -41,6 +41,7 @@ import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 import { useAuth } from '../App'
 import StudySection from '../components/StudySection'
 import StudyPersonalSidebar from '../components/StudyPersonalSidebar'
+import MasonryCards from '../components/MasonryCards'
 import './BibleStudy.css'
 
 // Every translation the reading pane and the comparison panel can show, in
@@ -619,9 +620,10 @@ export default function BibleStudy() {
           <small className="bible-attribution">BSB is public domain. ESV® via Crossway; NIV/NLT/CSB/NKJV/MSG/AMP/CEV/NASB 2020 via API.Bible; other translations via Free Use Bible API.</small>
         </div>
       </section>
+      <MasonryCards enabled={!sessionMode && !searchParams.get('sermon')}>
       <aside className="bible-tools-column" aria-label="Study tools">
         {sessionMode&&sessionSermonId&&<SermonBiblePanel sermonId={sessionSermonId} onClose={()=>setSessionSermonId('')} onPassage={goTo}/>}
-        <StudySection title="Study Tools for This Passage"><div className="bible-tool-grid">
+        <StudySection title="Study Tools for This Passage" className="bible-card bible-card-tools"><div className="bible-tool-grid">
           <button aria-pressed={showCrossRefs} onClick={()=>setShowCrossRefs(v=>!v)}><Link2/>Cross-References</button>
           <button onClick={()=>{const v=displayedVerses?.find(v=>selectedVerses.has(v.number))||displayedVerses?.[0];if(v)openWordStudy(v,readingTranslation)}} disabled={!displayedVerses?.length}><Languages/>Word Study <small>Strong’s details</small></button>
           <button onClick={()=>{setWordStudy(null);setVariantRequest({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:[...selectedVerses][0]||null})}}><FileText/>Textual Variants <small>Greek edition comparisons</small></button>
@@ -631,10 +633,8 @@ export default function BibleStudy() {
           <a href="https://biblehub.com/atlas/" target="_blank" rel="noreferrer"><MapPin/>Biblical Maps <small>External ↗</small></a>
           <a href="https://biblehub.com/timeline/" target="_blank" rel="noreferrer"><Clock/>Timeline <small>External ↗</small></a>
         </div><div className="flex flex-wrap gap-2"><button className="btn btn-secondary" aria-expanded={showCommentary} onClick={()=>setShowCommentary(v=>!v)}>{showCommentary?'Hide commentary':'Open commentary'}</button><button className="btn btn-secondary" aria-haspopup="dialog" disabled={!compareVerses.length} onClick={()=>setShowCommentaryCompare(true)}>Compare commentaries</button></div></StudySection>
-        <StudySection title="Quick Insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
-        <PassageSermons reference={selectionRef || passageRef} selectedVerses={selectedSorted}/>
                 {showCommentary && (
-                  <div className="card" style={{ padding: '16px 20px' }}>
+                  <div className="card bible-card bible-card-commentary" style={{ padding: '16px 20px' }}>
                     <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                       <div className="card-kicker">Commentary</div>
                       <select className="input" aria-label="Commentary" style={{ width: 'auto', maxWidth: '100%' }} value={activeCommentaryId} onChange={(e) => setCommentaryId(e.target.value)}>
@@ -695,7 +695,7 @@ export default function BibleStudy() {
                 )}
 
           {showCrossRefs && (
-            <div className="card mt-3" style={{ padding: '16px 20px' }}>
+            <div className="card bible-card bible-card-xrefs" style={{ padding: '16px 20px' }}>
               <div className="card-kicker mb-2">Cross References</div>
               {selectedSorted.length === 0 ? (
                 <p className="text-sm" style={{ opacity: 0.6 }}>
@@ -721,9 +721,12 @@ export default function BibleStudy() {
             </div>
           )}
 
+        <StudySection title="Quick Insights" className="bible-card bible-card-insights"><p className="bible-muted">Questions to guide your study of {passageRef}.</p><dl className="bible-insights"><dt>Key Themes</dt><dd>Which words or ideas are repeated?</dd><dt>Key People</dt><dd>Who is speaking, acting, or being addressed?</dd><dt>Key Places</dt><dd>Where does this passage take place?</dd><dt>Key Doctrines</dt><dd>What does this reveal about God and His work?</dd></dl><button className="btn btn-ghost" onClick={()=>draftNote(true)}>Capture your insights →</button></StudySection>
+        <PassageSermons reference={selectionRef || passageRef} selectedVerses={selectedSorted} split/>
       </aside>
 
       {sessionMode?<div className="session-note-column">{sessionNoteId?<SessionNote key={sessionNoteId} id={sessionNoteId} saveRef={sessionSaveRef} currentPassage={passageRef}/>:<aside className="card session-note session-note-empty"><h2>Study notes</h2><p>Select a note or choose New note in the session bar to write alongside your passage.</p></aside>}</div>:searchParams.get('sermon')?<SermonBiblePanel/>:<StudyPersonalSidebar book={book} chapter={chapter} passageRef={passageRef} />}
+      </MasonryCards>
       <PassageConnections connections={connections} passageRef={passageRef} onOpen={openVerseNote}/>{verseNote&&<PassageNoteDialog key={verseNote.id} note={verseNote} books={connections.allBooks} onSaved={()=>{}} onClose={()=>{setVerseNote(null);connections.reload()}}/>}
     </div> : <section className="bible-search-results"><button className="btn btn-secondary mb-3" onClick={()=>setViewMode('Read')}>← Return to {passageRef}</button>
           <div className="flex items-center gap-3 flex-wrap mb-4">

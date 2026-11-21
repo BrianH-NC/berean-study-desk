@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.9.1',
+    date: '2026-11-21',
+    title: 'Bible Study fills a wide screen',
+    changes: [
+      { kind: 'improved', text: 'On a PC, the cards under the passage in Bible Study now share the width evenly, two columns on a laptop and three on a wider screen, instead of a long left column beside a short right one. Opening the commentary no longer leaves a blank space beside it.' },
+      { kind: 'improved', text: 'Commentary and Cross References now open directly under the Study Tools that opened them, and the sermons are split into a Spurgeon card and an Andy Davis card.' },
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-11-20',
     title: 'Clickable citations in every commentary',

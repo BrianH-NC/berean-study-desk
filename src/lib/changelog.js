@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.10.0',
+    date: '2026-11-21',
+    title: 'More sermons for every passage',
+    changes: [
+      { kind: 'new', text: 'Sermons for this passage now includes John Chrysostom’s verse-by-verse homilies on Matthew, John, Acts and the New Testament letters from Romans to Hebrews. Open a verse in one of those books and the homilies that preach on it appear, with a link to read each one.' },
+      { kind: 'new', text: 'New links to John Piper’s messages on the chapter (Desiring God) and to sermons on the chapter from many pastors (SermonCentral), plus R.C. Sproul and Ligonier and John MacArthur (Grace to You) for the whole book.' },
+    ],
+  },
+  {
     version: '1.9.1',
     date: '2026-11-21',
     title: 'Bible Study fills a wide screen',

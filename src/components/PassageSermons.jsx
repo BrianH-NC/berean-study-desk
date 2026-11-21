@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import './PassageSermons.css'
 import { parseReference, formatReference } from '../lib/bsb'
 import { matchingSermons, parseSermonReferences, twoJourneysChapterUrl } from '../lib/passageSermons'
-import { DESIRING_GOD_SCRIPTURE_INDEX, SERMON_CENTRAL_BROWSE, desiringGodChapterUrl, graceToYouBookUrl, ligonierBookUrl, sermonCentralChapterUrl } from '../lib/sermonSources'
+import { bookFor } from '../lib/scriptureBooks'
+import { DESIRING_GOD_SCRIPTURE_INDEX, OPEN_THE_BIBLE_BROWSE, SERMON_CENTRAL_BROWSE, SERMON_INDEX_SPEAKERS, desiringGodChapterUrl, graceToYouBookUrl, ligonierBookUrl, openTheBibleChapterUrl, sermonCentralChapterUrl, sermonCountPhrase, sermonIndexChapter } from '../lib/sermonSources'
 
 // Sermons matched to the passage from a catalog of passages (a snapshot built by a script in /scripts).
 const CATALOGS = {
@@ -37,6 +38,22 @@ function loadCatalog(file) {
       .catch(error => { catalogs.delete(file); throw error }))
   }
   return catalogs.get(file)
+}
+
+// Which chapters SermonIndex and Open the Bible have teaching on (a small snapshot; see scripts/snapshot-sermon-chapters.mjs).
+// Null until it has loaded, and if it can't be, since the cards that need it are then simply left out.
+let chapterSnapshot
+function useChapterSnapshot() {
+  const [snapshot, setSnapshot] = useState(null)
+  useEffect(() => {
+    let active = true
+    chapterSnapshot ||= fetch(`${import.meta.env.BASE_URL}data/sermon-chapters.json`)
+      .then(response => { if (!response.ok) throw new Error('snapshot'); return response.json() })
+      .catch(() => { chapterSnapshot = undefined; return null })
+    chapterSnapshot.then(data => { if (active) setSnapshot(data) })
+    return () => { active = false }
+  }, [])
+  return snapshot
 }
 
 // One source in "Sermons for this passage". In Bible Study's card layout (`split`) each is a card of its own,
@@ -110,6 +127,32 @@ function DesiringGodBlock({ passage, split }) {
   )
 }
 
+function SermonIndexBlock({ passage, split }) {
+  const found = sermonIndexChapter(useChapterSnapshot(), bookFor(passage.book), passage.chapter)
+  if (!found) return null
+  return (
+    <Block id="index" label="SermonIndex sermons" split={split}>
+      <h3 className="card-kicker" style={split ? { marginTop: 0 } : undefined}>Audio sermons · SermonIndex</h3>
+      <p className="text-sm mt-1">{sermonCountPhrase(found.count)} on {formatReference(passage.book, passage.chapter)}, free to listen to, from preachers across church history to today.</p>
+      <a className="btn btn-secondary mt-2" href={found.url} target="_blank" rel="noopener noreferrer">Open {passage.book} {passage.chapter} on SermonIndex →</a>
+      <a className="text-sm hover:underline mt-2" href={SERMON_INDEX_SPEAKERS} target="_blank" rel="noopener noreferrer">Browse SermonIndex by speaker →</a>
+    </Block>
+  )
+}
+
+function OpenTheBibleBlock({ passage, split }) {
+  const url = openTheBibleChapterUrl(useChapterSnapshot(), passage.book, passage.chapter)
+  if (!url) return null   // Open the Bible has a page only for the chapters it has taught on
+  return (
+    <Block id="otb" label="Open the Bible sermons" split={split}>
+      <h3 className="card-kicker" style={split ? { marginTop: 0 } : undefined}>Colin Smith · Open the Bible</h3>
+      <p className="text-sm mt-1">Pastor Colin Smith’s sermons, broadcasts and daily devotionals on {formatReference(passage.book, passage.chapter)}.</p>
+      <a className="btn btn-secondary mt-2" href={url} target="_blank" rel="noopener noreferrer">Open {passage.book} {passage.chapter} on Open the Bible →</a>
+      <a className="text-sm hover:underline mt-2" href={OPEN_THE_BIBLE_BROWSE} target="_blank" rel="noopener noreferrer">Browse Open the Bible by Scripture →</a>
+    </Block>
+  )
+}
+
 function SermonCentralBlock({ passage, split }) {
   const url = sermonCentralChapterUrl(passage.book, passage.chapter)
   return (
@@ -148,7 +191,9 @@ export default function PassageSermons({ reference, selectedVerses = [], split =
     <>
       <CatalogBlock id="spurgeon" source={CATALOGS.spurgeon} {...common} first header={split ? header : undefined} />
       <CatalogBlock id="chrysostom" source={CATALOGS.chrysostom} {...common} />
+      <SermonIndexBlock {...common} />
       <AndyDavisBlock {...common} />
+      <OpenTheBibleBlock {...common} />
       <DesiringGodBlock {...common} />
       <SermonCentralBlock {...common} />
       <MoreTeachingBlock {...common} />

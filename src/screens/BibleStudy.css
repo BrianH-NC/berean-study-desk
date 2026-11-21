@@ -95,6 +95,7 @@
   .bible-cards .bible-card { align-self: start; margin: 0; min-width: 0; }
   /* The order cards are placed in: what you use first, then the panels that open from it. */
   .bible-card-tools { order: 1; } .bible-card-notes { order: 2; } .bible-card-commentary { order: 3; } .bible-card-xrefs { order: 4; }
-  .bible-card-insights { order: 5; } .bible-card-sermons { order: 6; } .bible-card-sermons-chrysostom { order: 7; } .bible-card-sermons-davis { order: 8; } .bible-card-sermons-dg { order: 9; } .bible-card-sermons-central { order: 10; } .bible-card-sermons-more { order: 11; }
-  .bible-card-resources { order: 12; } .bible-card-quote { order: 13; }
+  .bible-card-insights { order: 5; } .bible-card-sermons { order: 6; } .bible-card-sermons-chrysostom { order: 7; } .bible-card-sermons-index { order: 8; } .bible-card-sermons-davis { order: 9; } .bible-card-sermons-otb { order: 10; }
+  .bible-card-sermons-dg { order: 11; } .bible-card-sermons-central { order: 12; } .bible-card-sermons-more { order: 13; }
+  .bible-card-resources { order: 14; } .bible-card-quote { order: 15; }
 }

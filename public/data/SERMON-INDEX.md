@@ -31,6 +31,24 @@ Add `--cache <dir>` to keep downloaded pages between runs. The script identifies
 itself honestly, pauses between requests, and prints per-book counts plus the
 homilies it could not place. Then run `node --test src/lib/chrysostomCatalog.test.js`.
 
+`sermon-chapters.json` is a small snapshot behind two chapter-level cards:
+
+- **SermonIndex** sermon counts for each chapter, from its open API
+  (https://www.sermonindex.net/api/, no key, caching requested, attribution
+  encouraged). The cards link to the chapter page in its Bible, which has a
+  sermons section. Only the roughly 2 KB per-book files are read. The
+  per-chapter files list every sermon and run to megabytes (John 3 alone is
+  2.3 MB compressed), so the app does not fetch them. The snapshot counts a
+  sermon once per verse it opens, which can run up to a quarter above the number
+  of distinct sermons, so the card says "More than N" with a rounded-down figure.
+- **Open the Bible** (Pastor Colin Smith): the chapters that have a page, from its
+  "Sermons by Scripture" index (https://openthebible.org/browse-sermons/).
+  Chapters not on the list have no page (404), so no card appears for them.
+
+To refresh either, run `node scripts/snapshot-sermon-chapters.mjs`. It makes
+about 70 requests to SermonIndex, paced at four a second, and one to Open the
+Bible. Then run `node --test src/lib/sermonSources.test.js`.
+
 SermonCentral links to a page for every chapter
 (`/sermons/sermons-about-{book}-chapter-{n}`, with its own spellings "psalm" and
 "song-of-songs"). All 1,189 addresses were checked against the site's own

@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.11.0',
+    date: '2026-11-21',
+    title: 'SermonIndex and Open the Bible',
+    changes: [
+      { kind: 'new', text: 'Sermons for this passage now links to SermonIndex’s free audio sermons on the chapter you’re reading, and says roughly how many there are.' },
+      { kind: 'new', text: 'It also links to Pastor Colin Smith’s sermons, broadcasts and devotionals on the chapter from Open the Bible, for the chapters he has taught on.' },
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-11-21',
     title: 'More sermons for every passage',

@@ -37,3 +37,37 @@ export function sermonCentralChapterUrl(book, chapter) {
   if (!book || !(chapter >= 1)) return null
   return `https://www.sermoncentral.com/sermons/sermons-about-${SERMON_CENTRAL_SLUG[book] || bookSlug(book)}-chapter-${chapter}`
 }
+
+// SermonIndex: free audio sermons, tagged to the passages they open. Its chapter pages in its Bible have a sermons
+// section; the counts come from the snapshot built by scripts/snapshot-sermon-chapters.mjs (the live per-chapter files
+// are megabytes). Attribution to SermonIndex is asked for by its terms, so the card names it.
+export const SERMON_INDEX_SPEAKERS = 'https://www.sermonindex.net/speakers/'
+
+// `bookNumber` is 1-66. Returns { url, count } for a chapter SermonIndex has sermons on, else null.
+export function sermonIndexChapter(snapshot, bookNumber, chapter) {
+  const book = snapshot?.sermonIndex?.books?.[bookNumber - 1]
+  const count = book?.counts?.[chapter - 1]
+  if (!book || !(count > 0)) return null
+  return { count, url: `https://www.sermonindex.net/bible/BSB/${book.id}/${chapter}/#sec-sermons` }
+}
+
+// The snapshot's figure counts a sermon once for each verse it opens, so it can run up to a quarter above the number of
+// distinct sermons. This rounds it down and says "more than", which is true however the sermons are counted.
+export function sermonCountPhrase(count) {
+  if (!(count > 0)) return ''
+  if (count < 10) return 'A few sermons'
+  const safe = Math.floor(count * 0.8)
+  const step = safe >= 1000 ? 500 : safe >= 100 ? 50 : 5
+  return `More than ${(Math.floor(safe / step) * step).toLocaleString('en-US')} sermons`
+}
+
+// Open the Bible (Pastor Colin Smith): a page for each chapter it has teaching on, and no page (a 404) for the rest.
+// Three chapters have an address with the book repeated, because the plain one belongs to something else.
+export const OPEN_THE_BIBLE_BROWSE = 'https://openthebible.org/browse-sermons/#scripture'
+export function openTheBibleChapterUrl(snapshot, book, chapter) {
+  const chapters = snapshot?.openTheBible?.chapters
+  if (!chapters || !book || !(chapter >= 1)) return null
+  const slug = `${book === 'Psalms' ? 'psalm' : bookSlug(book)}-${chapter}`
+  const found = chapters.find((s) => s === slug) || chapters.find((s) => s.startsWith(`${slug}-`) && s.endsWith(bookSlug(book)))
+  return found ? `https://openthebible.org/scripture/${found}/?filter-post_type=sermon` : null
+}

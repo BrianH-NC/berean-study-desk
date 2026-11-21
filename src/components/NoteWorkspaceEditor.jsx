@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLinksFor, formatEntryNum } from '../lib/entries'
-import { noteType, exportNote as downloadNote, safeNoteUrl } from '../lib/noteModel'
+import { noteType, exportNote as downloadNote, safeNoteUrl, plainDocument } from '../lib/noteModel'
+import { appendToDoc, docPlainText, mergeRefs } from '../lib/excerpts'
 import { createNoteSaveQueue } from '../lib/noteSaveQueue'
 import NoteContext from './NoteContext'
 import NoteMenu from './NoteMenu'
@@ -36,7 +37,15 @@ export default function NoteWorkspaceEditor({note,notes,userId,books,checks,onSa
     queue.push(value)
     try{localStorage.setItem(key,JSON.stringify(value))}catch{setError('Device backup is unavailable. Keep this page open until Saved appears.')}
   }
-  useImperativeHandle(saveRef,()=>({snapshot:()=>latest.current,flush:()=>queue.flush(),dirty:()=>queue.dirty}))
+  // Adds blocks (a saved excerpt) to the end of this note through the same draft and save queue as typing,
+  // so an excerpt added from elsewhere on the page can never collide with this editor's own autosave.
+  function append(nodes,refs=[]){
+    const doc=appendToDoc(latest.current.rich_doc,nodes,plainDocument(latest.current.body))
+    change({rich_doc:doc,body:docPlainText(doc),ref:mergeRefs(latest.current.ref,refs)})
+    setEditorVersion(v=>v+1)
+    return queue.flush()
+  }
+  useImperativeHandle(saveRef,()=>({snapshot:()=>latest.current,flush:()=>queue.flush(),dirty:()=>queue.dirty,append}))
   useEffect(()=>{getLinksFor(note.id).then(setLinks).catch(()=>{});const unload=e=>{if(queue.dirty){e.preventDefault();e.returnValue=''}};window.addEventListener('beforeunload',unload);return()=>{window.removeEventListener('beforeunload',unload);queue.stop();queue.flush().catch(()=>{})}},[note.id])
   const book=books.find(b=>b.id===draft.shelf_book_id),check=checks.find(c=>c.id===draft.doctrine_check_id)
   function exportNote(){downloadNote(latest.current)}

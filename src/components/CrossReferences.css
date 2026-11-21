@@ -12,3 +12,7 @@
 .xref-none{color:var(--bsd-muted)}
 .xref-more{margin-top:4px}
 .xref-note{margin:0;font:11px/1.5 Inter,sans-serif;color:var(--bsd-muted)}
+.xref-add{display:inline-flex;padding:3px;border:0;border-radius:6px;background:transparent;color:var(--bsd-muted);cursor:pointer;opacity:.55;margin-left:auto}
+.xref-item:hover .xref-add,.xref-add:focus-visible{opacity:1}
+.xref-add:hover{color:var(--color-accent);background:var(--bsd-selected)}
+.xref-add:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px}

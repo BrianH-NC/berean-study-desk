@@ -1,0 +1,9 @@
+.xn p{margin:0;white-space:pre-line;overflow-wrap:anywhere}
+.xn p+p{margin-top:.8em}
+.xn-save{display:inline-flex;vertical-align:text-bottom;margin-left:6px;padding:3px;border:0;border-radius:6px;background:transparent;color:var(--bsd-muted);cursor:pointer;opacity:0}
+.xn p:hover .xn-save,.xn p:focus-within .xn-save,.xn-save:focus-visible{opacity:1}
+.xn-save:hover{color:var(--color-accent);background:var(--bsd-selected)}
+.xn-save:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px}
+@media(hover:none){.xn-save{opacity:.7}}
+.xn-selection{position:sticky;top:0;z-index:1;margin:0 0 8px}
+.xn-selection .btn{display:inline-flex;align-items:center;gap:6px;font-size:.8125rem;padding:6px 10px}

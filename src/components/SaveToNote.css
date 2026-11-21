@@ -1,0 +1,12 @@
+.stn{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--color-accent-300);border-radius:12px;background:var(--color-accent-100);display:flex;flex-direction:column;gap:10px;min-width:0}
+.stn-preview{margin:0;font:italic 13px/1.5 Lora,serif;color:var(--color-text);overflow-wrap:anywhere}
+.stn-actions{display:flex;flex-wrap:wrap;gap:8px}
+.stn-actions .btn{white-space:normal;text-align:left}
+.stn-existing{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
+.stn-existing label{flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;font:600 12px/1.4 Inter,sans-serif;color:var(--bsd-muted)}
+.stn-existing select{width:100%;max-width:100%}
+.stn-note{margin:0;font:12px/1.4 Inter,sans-serif;color:var(--bsd-muted)}
+.stn-done{margin:0;font:14px/1.5 Inter,sans-serif}
+.stn-done a{font-weight:600;color:var(--color-accent);text-decoration:underline;text-underline-offset:3px}
+.stn-error{margin:0;font:13px/1.5 Inter,sans-serif;color:#8a2b1c}
+.stn-close{align-self:flex-start;padding-left:0}

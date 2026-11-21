@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './CommentaryCompare.css'
 import { commentariesForBook, fetchCommentaryChapter } from '../lib/helloao'
-import { MAX_COMPARED, chooseCompared, paragraphs, spanLabel, spansForVerses, toggleCompared, uncoveredVerses, verseSummary } from '../lib/commentaryBlocks'
+import { MAX_COMPARED, chooseCompared, spanLabel, spansForVerses, toggleCompared, uncoveredVerses, verseSummary } from '../lib/commentaryBlocks'
+import { commentarySourceFor } from '../lib/excerpts'
+import ExcerptNote from './ExcerptNote'
 
 const STORAGE_KEY = 'bsd:compare-commentaries'
 // A per-viewer convenience, so it can fail quietly (private windows, blocked storage).
@@ -31,21 +33,24 @@ function loadChapter(id, book, chapter) {
 
 const LONG_NOTE = 1400   // characters before a note is folded
 
-function Note({ text }) {
+function Note({ text, source, noteTarget }) {
   const [open, setOpen] = useState(false)
   const long = text.length > LONG_NOTE
   const words = text.split(/\s+/).length
+  // Saving from a folded note opens it: the save panel would otherwise be clipped by the fold.
+  const onSaving = useCallback((on) => { if (on) setOpen(true) }, [])
   return (
     <>
       <div className={`cc-note${long && !open ? ' is-folded' : ''}`}>
-        {paragraphs(text).map((p, i) => <p key={i}>{p}</p>)}
+        {/* The text of a folded note stays selectable; its clipped save buttons just leave the tab order until it is opened. */}
+        <ExcerptNote text={text} source={source} noteTarget={noteTarget} tabbable={!long || open} onSaving={onSaving} />
       </div>
       {long && <button type="button" className="btn btn-ghost cc-fold" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? 'Show less' : `Read the full note (${words.toLocaleString()} words)`}</button>}
     </>
   )
 }
 
-function Card({ meta, result, verses, onRetry }) {
+function Card({ meta, result, book, chapter, verses, noteTarget, onRetry }) {
   let body
   if (!result) body = <p role="status" className="cc-status">Loading…</p>
   else if (result.status === 'error') body = <p role="alert" className="cc-status">Couldn’t load this commentary. <button type="button" className="btn btn-ghost" onClick={onRetry}>Try again</button></p>
@@ -55,7 +60,7 @@ function Card({ meta, result, verses, onRetry }) {
     const skipped = uncoveredVerses(spans, verses)
     body = spans.length
       ? <>
-        {spans.map((span) => <section key={span.from} className="cc-span"><div className="cc-range">{spanLabel(span)}</div><Note text={span.text} /></section>)}
+        {spans.map((span) => <section key={span.from} className="cc-span"><div className="cc-range">{spanLabel(span)}</div><Note text={span.text} source={commentarySourceFor(meta, book, chapter, span)} noteTarget={noteTarget} /></section>)}
         {skipped.length > 0 && <p className="cc-status cc-skipped">No note on verse{skipped.length > 1 ? 's' : ''} {verseSummary(skipped)}.</p>}
       </>
       : <p className="cc-status">No note on {verses.length === 1 ? 'this verse' : 'these verses'} in this commentary.</p>
@@ -64,7 +69,7 @@ function Card({ meta, result, verses, onRetry }) {
 }
 
 // Side-by-side notes from several commentaries on the selected verse(s).
-export default function CommentaryCompare({ book, chapter, verses, defaulted, onClose }) {
+export default function CommentaryCompare({ book, chapter, verses, defaulted, noteTarget, onClose }) {
   const available = useMemo(() => commentariesForBook(book), [book])
   const availableIds = useMemo(() => available.map((c) => c.id), [available])
   const [chosen, setChosen] = useState(() => chooseCompared(availableIds, readSaved()))
@@ -93,7 +98,7 @@ export default function CommentaryCompare({ book, chapter, verses, defaulted, on
   function onKeyDown(e) {
     if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
     if (e.key !== 'Tab') return
-    const focusable = [...dialog.current.querySelectorAll('button:not([disabled]), a[href], select, input, [tabindex]:not([tabindex="-1"])')]
+    const focusable = [...dialog.current.querySelectorAll('button:not([disabled]):not([tabindex="-1"]), a[href], select:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
     if (!focusable.length) return
     const first = focusable[0], last = focusable[focusable.length - 1]
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
@@ -128,7 +133,7 @@ export default function CommentaryCompare({ book, chapter, verses, defaulted, on
         <div className="cc-grid">
           {chosen.map((id) => {
             const meta = available.find((c) => c.id === id)
-            return meta && <Card key={id} meta={meta} verses={verses} result={results[`${id}|${book}|${chapter}`]} onRetry={() => setRetry((n) => n + 1)} />
+            return meta && <Card key={id} meta={meta} book={book} chapter={chapter} verses={verses} noteTarget={noteTarget} result={results[`${id}|${book}|${chapter}`]} onRetry={() => setRetry((n) => n + 1)} />
           })}
         </div>
         <p className="cc-source">Commentaries are classic public-domain works, served by the Free Use Bible API. Notes cover different ranges of verses, so the range is shown on each.</p>

@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.8.0',
+    date: '2026-11-20',
+    title: 'Save excerpts to notes',
+    changes: [
+      { kind: 'new', text: 'Save a commentary paragraph, or any text you select in a commentary, to a note with its citation: the author, the work, and the verses the note covers. Choose a new note, an existing note, or your study session’s note.' },
+      { kind: 'new', text: 'Add a cross-referenced verse to a note from the Cross References panel, as a Scripture quotation filed under both verses.' },
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-11-20',
     title: 'Compare commentaries',

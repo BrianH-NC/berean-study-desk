@@ -32,6 +32,8 @@ import {
 } from '../lib/helloao'
 import CrossReferences from '../components/CrossReferences'
 import CommentaryCompare from '../components/CommentaryCompare'
+import ExcerptNote from '../components/ExcerptNote'
+import { commentarySourceFor } from '../lib/excerpts'
 import { fetchEsvChapterVerses } from '../lib/esv'
 import { BIBLEPLUS_TRANSLATIONS, fetchBibleplusChapter } from '../lib/bibleplus'
 
@@ -522,6 +524,8 @@ export default function BibleStudy() {
   const selectedSorted = useMemo(() => [...selectedVerses].sort((a, b) => a - b), [selectedVerses])
   // The verses the commentary comparison is about: the selection, or else the first verse on screen.
   const [showCommentaryCompare, setShowCommentaryCompare] = useState(false)
+  // Where saved excerpts can go: the study session's open note (written through its own editor) or any note.
+  const noteTarget = { userId: user.id, sessionRef: sessionMode ? sessionSaveRef : null, sessionNoteId: sessionMode ? sessionNoteId : '' }
   const compareVerses = selectedSorted.length ? selectedSorted : (displayedVerses?.[0] ? [displayedVerses[0].number] : [])
 
   // Scrolls the highlighted commentary block into view -- without this, opening
@@ -589,7 +593,7 @@ export default function BibleStudy() {
     {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>
-      {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} onClose={() => setShowCommentaryCompare(false)} />}
+      {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} noteTarget={noteTarget} onClose={() => setShowCommentaryCompare(false)} />}
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}
         {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
@@ -664,7 +668,16 @@ export default function BibleStudy() {
                               style={{ background: isActive ? 'var(--color-accent-100)' : 'transparent', padding: 8, borderRadius: 10 }}
                             >
                               <div className="card-meta mb-1">Verse {rangeLabel}</div>
-                              <p style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{block.content.join('\n\n')}</p>
+                              <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                                <ExcerptNote
+                                  text={block.content.join('\n\n')}
+                                  noteTarget={noteTarget}
+                                  source={commentarySourceFor(
+                                    STUDY_COMMENTARIES.find((c) => c.id === activeCommentaryId) || { id: activeCommentaryId, name: commentaryData.commentary?.name || 'Commentary' },
+                                    book, chapter, { from: block.number, to: nextNumber == null ? null : Math.max(block.number, nextNumber - 1) },
+                                  )}
+                                />
+                              </div>
                             </div>
                           )
                         })}
@@ -695,7 +708,7 @@ export default function BibleStudy() {
                   Couldn't load cross references for this chapter.
                 </p>
               ) : crossRefData ? (
-                <CrossReferences data={crossRefData} book={book} chapter={chapter} verses={selectedSorted} onGoTo={goTo} />
+                <CrossReferences data={crossRefData} book={book} chapter={chapter} verses={selectedSorted} onGoTo={goTo} noteTarget={noteTarget} />
               ) : null}
               <p className="mt-2" style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 50%, transparent)' }}>
                 Cross references from OpenBible.info (CC BY 4.0), via the{' '}

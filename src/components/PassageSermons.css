@@ -1,1 +1,14 @@
 .passage-sermons{min-width:0;overflow-wrap:anywhere}.passage-sermons h2{font-family:Lora,serif;font-size:1.125rem;line-height:1.4;letter-spacing:normal;text-transform:none}.passage-sermons h3{font-family:Inter,sans-serif;font-size:.875rem;letter-spacing:normal;text-transform:none;margin-top:12px}.passage-sermons a{display:inline-block;max-width:100%}.passage-sermons .btn{white-space:normal;text-align:left}.passage-sermons .card-meta{font-size:.75rem;line-height:1.5}
+.si-sermons{list-style:none;margin:10px 0 4px;padding:0;display:grid;gap:10px}
+.si-sermons li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:start}
+.si-sermons img,.si-portrait{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--bsd-selected,#eef2ec)}
+.si-portrait{display:grid;place-items:center;font:600 16px Lora,serif;color:var(--bsd-forest)}
+.si-sermons li>div{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.si-sermons strong{font-size:.9rem;line-height:1.35}
+.si-sermons small{font-size:.75rem;line-height:1.4;opacity:.85}
+.si-on-selected{color:var(--bsd-forest);font-weight:600}
+.si-save{font:600 12px Inter,sans-serif;color:var(--bsd-forest);background:none;border:1px solid var(--bsd-border);border-radius:4px;padding:4px 8px;margin-top:2px;min-height:32px;cursor:pointer}
+.si-save:hover{border-color:var(--bsd-forest)}.si-save[disabled]{opacity:.6;cursor:progress}
+a.si-save.is-saved{display:inline-flex;align-items:center;text-decoration:none;background:var(--bsd-selected,#eef2ec)}
+.si-save-error{color:#9b1c1c}
+.si-credit{display:block;margin-top:8px;font-size:.7rem;opacity:.75}

@@ -102,6 +102,12 @@ export const COMPARISON_TRANSLATIONS = [
   { id: 'eng_dby', name: 'Darby Translation', short: 'DBY' },
   { id: 'eng_ylt', name: "Young's Literal Translation", short: 'YLT' },
   { id: 'eng_dra', name: 'Douay-Rheims 1899', short: 'DRA' },
+  { id: 'eng_gnv', name: 'Geneva Bible 1599', short: 'GNV' },
+  { id: 'eng_wbs', name: 'Noah Webster Bible (1833)', short: 'WBS' },
+  { id: 'eng_rv5', name: 'Revised Version (1885)', short: 'RV' },
+  { id: 'eng_bbe', name: 'Bible in Basic English', short: 'BBE' },
+  { id: 'eng_fbv', name: 'Free Bible Version', short: 'FBV' },
+  { id: 'eng_t4t', name: 'Translation for Translators', short: 'T4T' },
 ]
 
 // A verse's content segment is either a plain string, or an object whose

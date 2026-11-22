@@ -39,3 +39,26 @@ export function changedWords(text,base) {
   const words=new Set(base.split(/\s+/))
   return text.split(/(\s+)/).map(word=>({word,changed:!!word.trim()&&!words.has(word)}))
 }
+
+// ---- Interlinear: every original-language word of a verse, in source order ----
+// Rows come from the STEPBible chapter files (TAGNT for the NT, TAHOT for the OT). A form reads
+// "Πέτρος (Petros)" or "בְּ/רֵאשִׁ֖ית (be./re.Shit)"; the slashes mark Hebrew prefixes and suffixes, and a backslash sets off the end-of-verse mark.
+export const ALL_GREEK_EDITIONS='NA28+NA27+Tyn+SBL+WH+Treg+TR+Byz'
+export function splitForm(form) {
+  const m=String(form).match(/^(.*?)\s*\(([^()]*)\)\s*$/)
+  return {original:(m?m[1]:String(form)).replace(/[/\\]/g,'').normalize('NFC'),transliteration:m?m[2].replace(/[/\\]/g,''):''}
+}
+// "Function=Noun; Case=Nominative; Number=Singular" -> "Noun · Nominative · Singular"
+export function plainGrammar(description) {
+  return String(description||'').replace(/\([^)]*\)/g,'').split(';').map(s=>s.split('=').slice(1).join('=').trim()).filter(Boolean).join(' · ')
+}
+// STEP numbers H9001-H9049 tag Hebrew prefixes and suffixes (the article, "and", "my"...), not dictionary words.
+export const isLexicalId=id=>/^[GH]\d+$/.test(id)&&Number(id.slice(1))<9000
+export function interlinearRows(rows,codes) {
+  return (rows||[]).map(row=>({...splitForm(row.form),gloss:String(row.gloss||'').replace(/\s*\/\s*/g,' ').replace(/\s+/g,' ').trim(),ids:row.ids,codes:row.codes,editions:row.editions,
+    grammar:row.codes.map(code=>plainGrammar(codes?.[code]?.description)||code),partial:row.editions?.includes('+')&&row.editions!==ALL_GREEK_EDITIONS}))
+}
+export async function interlinear(bookNumber,chapter) {
+  const [data,codes]=await Promise.all([studyJson(`/data/word-study/grammar/${bookNumber}/${chapter}.json`),studyJson('/data/word-study/morphology.json')])
+  return {verse:verse=>interlinearRows(data[String(verse)],codes),verses:Object.keys(data).map(Number).sort((a,b)=>a-b)}
+}

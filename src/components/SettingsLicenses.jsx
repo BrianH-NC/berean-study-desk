@@ -44,7 +44,9 @@ export default function SettingsLicenses(){return (<div className="card">
             </a>
             , licensed under CC BY 4.0. The reading pane's and comparison panel's other translation options (King
             James Version, American Standard Version, World English Bible, Darby, Young's Literal Translation,
-            Douay-Rheims) use public-domain and freely-licensed texts distributed via eBible.org, also served through
-            the Free Use Bible API.
+            Douay-Rheims, Geneva Bible 1599, Noah Webster Bible, Revised Version, Bible in Basic English, Free Bible
+            Version and Translation for Translators) use public-domain and freely-licensed texts distributed via
+            eBible.org, also served through the Free Use Bible API. The Free Bible Version and Translation for
+            Translators are licensed CC BY-SA 4.0.
           </div>
         </div>)}

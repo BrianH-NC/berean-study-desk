@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../App'
+import { chapterSermons, versesLabel } from '../lib/sermonIndexData'
+import { saveSermonIndexSermon } from '../lib/sermonIndexImport'
 import './PassageSermons.css'
 import { parseReference, formatReference } from '../lib/bsb'
 import { matchingSermons, parseSermonReferences, twoJourneysChapterUrl } from '../lib/passageSermons'
@@ -146,15 +150,72 @@ function DesiringGodBlock({ passage, split }) {
   )
 }
 
-function SermonIndexBlock({ passage, split }) {
-  const found = sermonIndexChapter(useChapterSnapshot(), bookFor(passage.book), passage.chapter)
-  if (!found) return null
+// SermonIndex's sermons on the chapter, best suited first, from a per-book snapshot of its bulk download
+// (scripts/snapshot-sermonindex-passages.mjs). Each can be saved into the reader's own Sermons library.
+const sermonIndexBooks = new Map()
+function loadSermonIndexBook(bookNumber) {
+  if (!sermonIndexBooks.has(bookNumber)) {
+    sermonIndexBooks.set(bookNumber, fetch(`${import.meta.env.BASE_URL}data/sermonindex/${bookNumber}.json`)
+      .then(response => { if (!response.ok) throw new Error('index'); return response.json() })
+      .catch(error => { sermonIndexBooks.delete(bookNumber); throw error }))
+  }
+  return sermonIndexBooks.get(bookNumber)
+}
+
+function SaveSermonButton({ sermon, passage }) {
+  const user = useAuth()
+  const [state, setState] = useState({})
+  if (!user) return null
+  if (state.id) return <Link className="si-save is-saved" to={`/sermons/${state.id}`}>{state.existing ? 'Already saved · Open' : 'Saved · Open'} →</Link>
+  return <>
+    <button type="button" className="si-save" disabled={state.busy} aria-label={`Save “${sermon.title}” to my Sermons`} onClick={async () => {
+      setState({ busy: true })
+      try { setState(await saveSermonIndexSermon(user.id, sermon.id, passage)) } catch (error) { setState({ error: error.message || 'Could not save this sermon.' }) }
+    }}>{state.busy ? 'Saving…' : 'Save to my Sermons'}</button>
+    {state.error && <small role="alert" className="si-save-error">{state.error}</small>}
+  </>
+}
+
+function SermonIndexBlock({ passage, selectedVerses, split }) {
+  const snapshot = useChapterSnapshot()
+  const bookNumber = bookFor(passage.book)
+  const found = sermonIndexChapter(snapshot, bookNumber, passage.chapter)
+  const [state, setState] = useState({ loading: true })
+  const [retry, setRetry] = useState(0)
+  const [showAll, setShowAll] = useState(false)
+  useEffect(() => {
+    let active = true
+    if (!bookNumber) return
+    loadSermonIndexBook(bookNumber).then(data => { if (active) setState({ data }) }).catch(() => { if (active) setState({ error: true }) })
+    return () => { active = false }
+  }, [bookNumber, retry])
+  useEffect(() => { setShowAll(false) }, [bookNumber, passage.chapter])
+  const { total, sermons } = chapterSermons(state.data, passage.chapter, selectedVerses)
+  if (!found && !sermons.length) return null
+  const shown = showAll ? sermons : sermons.slice(0, 5)
+  const chapterUrl = found?.url || `https://www.sermonindex.net/bible/BSB/${state.data?.book || ''}/${passage.chapter}/#sec-sermons`
   return (
     <Block id="index" label="SermonIndex sermons" split={split}>
-      <h3 className="card-kicker" style={split ? { marginTop: 0 } : undefined}>Audio sermons · SermonIndex</h3>
-      <p className="text-sm mt-1">{sermonCountPhrase(found.count)} on {formatReference(passage.book, passage.chapter)}, free to listen to, from preachers across church history to today.</p>
-      <a className="btn btn-secondary mt-2" href={found.url} target="_blank" rel="noopener noreferrer">Open {passage.book} {passage.chapter} on SermonIndex →</a>
+      <h3 className="card-kicker" style={split ? { marginTop: 0 } : undefined}>Free sermons · SermonIndex</h3>
+      {state.loading ? <p className="text-sm mt-1" role="status">Loading sermons…</p>
+        : state.error ? <p className="text-sm mt-1" role="alert">The sermon list could not load. <button className="btn btn-ghost" onClick={() => { setState({ loading: true }); setRetry(n => n + 1) }}>Retry</button></p>
+        : <>
+          <p className="text-sm mt-1">{sermonCountPhrase(found?.count || total)} on {formatReference(passage.book, passage.chapter)}.{selectedVerses.length ? ' Sermons on your selected verses come first.' : ' Those centred on this chapter come first.'}</p>
+          <ul className="si-sermons">
+            {shown.map(s => <li key={s.id}>
+              {s.image ? <img src={s.image} alt="" loading="lazy" width="40" height="40" /> : <span className="si-portrait" aria-hidden="true">{s.speaker.slice(0, 1)}</span>}
+              <div>
+                <a href={s.url} target="_blank" rel="noopener noreferrer"><strong>{s.title}</strong></a>
+                <small>{[s.speaker, s.duration, s.media, versesLabel(passage.chapter, s.verses)].filter(Boolean).join(' · ')}{s.onSelected && <span className="si-on-selected"> · on your selection</span>}</small>
+                <SaveSermonButton sermon={s} passage={passage} />
+              </div>
+            </li>)}
+          </ul>
+          {sermons.length > 5 && <button className="btn btn-ghost text-sm" onClick={() => setShowAll(v => !v)}>{showAll ? 'Show fewer' : `Show ${sermons.length - 5} more`}</button>}
+        </>}
+      <a className="btn btn-secondary mt-2" href={chapterUrl} target="_blank" rel="noopener noreferrer">All sermons on {passage.book} {passage.chapter} at SermonIndex →</a>
       <a className="text-sm hover:underline mt-2" href={SERMON_INDEX_SPEAKERS} target="_blank" rel="noopener noreferrer">Browse SermonIndex by speaker →</a>
+      <small className="si-credit">Sermon list from <a href="https://www.sermonindex.net/" target="_blank" rel="noopener noreferrer">SermonIndex.net</a>, freely given for ministry use.</small>
     </Block>
   )
 }

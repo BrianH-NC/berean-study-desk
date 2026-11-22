@@ -99,3 +99,15 @@
   .bible-card-sermons-dg { order: 11; } .bible-card-sermons-central { order: 12; } .bible-card-sermons-more { order: 13; }
   .bible-card-resources { order: 14; } .bible-card-quote { order: 15; }
 }
+
+/* Study highlights. Translucent fills keep the text's own colour readable on every theme. */
+.study-hl{border-radius:3px;color:inherit;padding:0 1px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.study-hl-deity{background:rgba(124,58,237,.14);box-shadow:inset 0 -2px 0 rgba(124,58,237,.55)}
+.study-hl-spirit{background:rgba(234,88,12,.15);box-shadow:inset 0 -2px 0 rgba(234,88,12,.6)}
+.study-hl-repeat{background:rgba(234,179,8,.3)}
+.bible-highlights>div{width:260px;grid-template-columns:1fr}
+.bible-highlights summary{display:flex;align-items:center;gap:5px}
+.bible-highlights p{margin:0;font-size:11px;opacity:.75}
+.study-hl-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;font:12px Inter,sans-serif}
+.study-hl-legend button.study-hl{border:1px solid transparent;padding:3px 8px;min-height:32px;cursor:pointer}
+.study-hl-legend button[aria-pressed=true]{border-color:#a16207;font-weight:600}

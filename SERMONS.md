@@ -45,3 +45,10 @@ Guides use at most the first 240,000 transcript characters and disclose truncati
 The user approved the preview and requested promotion to main, including Primary Text and suggested topic linking. The latest validation has 51 passing Node tests, plus browser verification of suggested topic linking and connected sermon counts.
 
 Study-guide generation now suggests 3–6 sermon topics with reasons. On the Study Guide tab, Link Topic / Link All Suggested Topics reuse existing names and aliases or create tag-derived Topics, save explicit sermon links, and preserve existing tags. Older guides remain readable; regenerate explicitly for suggestions. No extra AI call is made for topic linking.
+
+## SermonIndex sermons on the passage card (1.13.0)
+
+- The SermonIndex card in Sermons for this passage lists up to 15 sermons per chapter (5 shown, then "Show more") from `public/data/sermonindex/{1-66}.json`, about 2.7 MB in all. Rebuild with `scripts/snapshot-sermonindex-passages.mjs` from SermonIndex's `sermonindex.db` bulk download; the live per-chapter API files are megabytes each and are never fetched by the app.
+- SermonIndex publishes no listen counts, so rows are ordered by fit: the chapter holds the sermon's first reference, how many of its verses it cites, whether it stays within three chapters, membership in SermonIndex's 500 most-listened, and transcript/media. Selected verses move matching sermons to the top.
+- **Save to my Sermons** fetches `https://api.sermonindex.net/v2/sermons/{id}` from the browser (no key, CORS open). It stores the timed VTT transcript (or the plain one), the summary, not the machine-written `description`, topics as tags, and the reference in the chapter being read (else the first) as Primary Text. The SermonIndex page is the source URL, and notes record the audio link and that SermonIndex's summary may be machine-generated. A second save of the same sermon opens the existing record instead of duplicating it.
+- The bulk download lags the live API (64k vs 70k sermons in November 2026), so the card always links to SermonIndex's full chapter list too.

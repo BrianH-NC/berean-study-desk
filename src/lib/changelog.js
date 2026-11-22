@@ -4,6 +4,19 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.13.0',
+    date: '2026-11-22',
+    title: 'Interlinear, study highlights, every translation and SermonIndex sermons',
+    changes: [
+      { kind: 'new', text: 'Interlinear in Bible Study: see each verse word by word in Greek (New Testament) or Hebrew (Old Testament, read right to left), with transliteration, the English gloss for that verse and the Strong’s number. Choose a word for its definition, grammar and other occurrences. Step through the chapter verse by verse.' },
+      { kind: 'new', text: 'Study highlights: mark the names of God, the Holy Spirit, and the words a passage repeats. In the BSB, NKJV and NASB the pronouns they capitalize for God are marked too. Choose a repeated word to see only that one.' },
+      { kind: 'new', text: 'Every Translation: read one verse in all your turned-on translations stacked together, and step verse to verse.' },
+      { kind: 'new', text: 'Sermons for this passage now lists SermonIndex’s free sermons on the chapter right in the card: title, preacher, length, and which verses each one opens. Those centred on the chapter come first, and sermons on verses you’ve selected move to the top.' },
+      { kind: 'new', text: 'Save to my Sermons: one click adds a SermonIndex sermon to your Sermons library with its summary, topics, main passage and full transcript, timestamps included, ready for Scripture links, a study guide and notes.' },
+      { kind: 'new', text: 'Six more free translations to read and compare: the Geneva Bible (1599), Noah Webster’s Bible, the Revised Version (1885), the Bible in Basic English, the Free Bible Version and Translation for Translators.' },
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-11-21',
     title: 'Augustine and the Church Fathers on every verse',

@@ -1,6 +1,9 @@
 import PassageSermons from '../components/PassageSermons'
 import TextualVariants from '../components/TextualVariants'
 import WordStudy, { StudyWords } from '../components/WordStudy'
+import Interlinear from '../components/Interlinear'
+import VerseParallel from '../components/VerseParallel'
+import { DEITY_PRONOUN_TRANSLATIONS, classifyParts, loadHighlightSettings, repeatedWords, saveHighlightSettings, verseStartsSentence } from '../lib/studyHighlights'
 import PassageConnections, { usePassageConnections, PassageNoteDialog } from '../components/PassageConnections'
 import StudySessionBar from '../components/StudySessionBar'
 import SessionNote from '../components/SessionNote'
@@ -8,9 +11,9 @@ import AccountLink from '../components/AccountLink'
 import { restoreBibleSelection, saveBibleSelection, restoreBiblePassage, saveBiblePassage, DEFAULT_PASSAGE } from '../lib/bibleSelection'
 import {preferencesFor,orderedTranslations} from '../lib/preferences'
 import SermonBiblePanel from '../components/SermonStudy'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2, BookOpen, Link2, Languages, FileText, MapPin, Clock, ChartColumn, ExternalLink, ChevronDown } from 'lucide-react'
+import { Search as SearchIcon, ChevronLeft, ChevronRight, Copy, NotebookPen, X, Loader2, BookOpen, Link2, Languages, FileText, MapPin, Clock, ChartColumn, ChevronDown, Highlighter, Columns3 } from 'lucide-react'
 import {
   OT_BOOKS,
   NT_BOOKS,
@@ -77,6 +80,20 @@ async function fetchChapterVersesFor(translationId, bookName, chapterNum) {
   const verses = await fetchTranslationChapter(translationId, bookName, chapterNum)
   return verses.map((v) => ({ ...v, paragraphStart: true }))
 }
+
+// Chapters already fetched this visit, so the every-translation panel can step verse to verse without refetching.
+const chapterCache = new Map()
+function cachedChapterVerses(translationId, bookName, chapterNum) {
+  const key = `${translationId}/${bookName}/${chapterNum}`
+  if (!chapterCache.has(key)) chapterCache.set(key, fetchChapterVersesFor(translationId, bookName, chapterNum).catch((e) => { chapterCache.delete(key); throw e }))
+  return chapterCache.get(key)
+}
+
+const HIGHLIGHT_OPTIONS = [
+  { key: 'deity', label: 'Names of God', help: 'Names and titles of God; in the BSB, NKJV and NASB also the pronouns they capitalize for Him' },
+  { key: 'spirit', label: 'Holy Spirit', help: 'Spirit (capitalized) and Holy Spirit / Holy Ghost' },
+  { key: 'repeat', label: 'Repeated words', help: 'Words this passage uses three or more times, leaving out common ones' },
+]
 
 function highlightTerms(text, query) {
   const words = query.trim().split(/\s+/).filter((w) => w.length > 1)
@@ -246,6 +263,12 @@ export default function BibleStudy() {
   }, [user.id, book, chapter, verseRange, pendingRange])
   const [showPicker, setShowPicker] = useState(false)
   const [copied, setCopied] = useState('')
+  const [versePanel, setVersePanel] = useState(null) // { kind: 'interlinear' | 'parallel', verse }
+  const [highlights, setHighlights] = useState(loadHighlightSettings)
+  const [focusWord, setFocusWord] = useState('')
+  function toggleHighlight(key) {
+    setHighlights((h) => { const next = { ...h, [key]: !h[key] }; saveHighlightSettings(next); return next })
+  }
 
   const [showCommentary, setShowCommentary] = useState(searchParams.get('panel') === 'commentary')
   const [commentaryId, setCommentaryId] = useState(() => STUDY_COMMENTARIES.find(c => c.id === searchParams.get('commentary'))?.id || prefs.commentary)
@@ -560,8 +583,6 @@ export default function BibleStudy() {
 
   const readingMeta = ALL_TRANSLATIONS.find((t) => t.id === readingTranslation) || BSB_OPTION
   const passageRef = formatReference(book, chapter, verseRange?.start, verseRange?.end)
-  const hubBook = ({'Song of Solomon':'songs', 'Psalms':'psalms'})[book] || book.toLowerCase().replaceAll(' ', '_')
-  const interlinearUrl = `https://biblehub.com/interlinear/${hubBook}/${chapter}.htm`
   const draftNote = (analysis = false) => navigate('/notebook/new', {state:{sermon_id:searchParams.get('sermon'),ref:selectionRef || passageRef, body:analysis ? 'Observations\n\nThemes and repeated words:\n\nPeople and places:\n\nWhat does this reveal about God?\n\nApplication:\n' : selectionText ? `“${selectionText}”` : ''}})
   const columns = [{id:readingTranslation, meta:readingMeta, entry:{status:verses === null?'loading':'ready', verses:displayedVerses, copyright:verses?.copyright}}, ...(showCompare ? compareIds.filter(id=>id!==readingTranslation).map(id=>({id,meta:ALL_TRANSLATIONS.find(t=>t.id===id),entry:compareData[id]})) : [])]
   const sessionState={book,chapter,verseRange,translation:readingTranslation,compare:compareIds,parallel:showCompare,commentaryId,showCommentary,showCrossRefs,sermonId:sessionSermonId,noteId:sessionNoteId}
@@ -574,13 +595,25 @@ export default function BibleStudy() {
     setCommentaryId(STUDY_COMMENTARIES.some(c=>c.id===state.commentaryId)?state.commentaryId:prefs.commentary)
     setSessionNoteId(state.noteId||'');setSessionSermonId(state.sermonId||'')
   }
+  const repeated = useMemo(() => repeatedWords(displayedVerses), [displayedVerses])
+  const repeatedSet = useMemo(() => (highlights.repeat ? new Set(focusWord ? [focusWord] : repeated.map((r) => r.word)) : null), [highlights.repeat, repeated, focusWord])
+  const anyHighlight = highlights.deity || highlights.spirit || highlights.repeat
+  const loadPanelChapter = useCallback((id) => cachedChapterVerses(id, book, chapter), [book, chapter])
+  function openVersePanel(kind) {
+    const v = displayedVerses?.find((x) => selectedVerses.has(x.number)) || displayedVerses?.[0]
+    if (!v) return
+    setWordStudy(null); setVariantRequest(null)
+    setVersePanel({ kind, verse: v.number })
+  }
+  useEffect(() => { setVersePanel(null); setFocusWord('') }, [book, chapter])
   function openWordStudy(v,translation,word='',index=-1) {
-    setVariantRequest(null)
+    setVariantRequest(null);setVersePanel(null)
     setWordStudy({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:v.number,text:v.text,translation,word,index})
   }
   function renderVerses(rows, anchor, translation) {
     const scoped=(rows || []).filter(v=>!verseRange || (v.number>=verseRange.start && v.number<=verseRange.end))
-    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number}><span className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onContextMenu={e=>{e.preventDefault();openWordStudy(v,translation)}} onKeyDown={anchor?e=>{if(e.key==='F10'&&e.shiftKey){e.preventDefault();openWordStudy(v,translation);return}if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup><StudyWords text={v.text} onStudy={(word,index)=>openWordStudy(v,translation,word,index)}/>{' '}</span><button className="verse-word-study" aria-label={`Word study for ${book} ${chapter}:${v.number} (${translation})`} onClick={()=>openWordStudy(v,translation)}>Word study</button>{anchor && connections.notesAtVerse(v.number).map(note=><button className="verse-note-indicator" key={note.id} title={note.title||'Verse note'} aria-label={`Read or edit note on verse ${v.number}: ${note.title||'Untitled'}`} onClick={()=>openVerseNote(note)}><NotebookPen size={12}/></button>)}</span>)}</div>
+    const kindsFor=v=>{if(!anyHighlight)return undefined;const i=(rows||[]).indexOf(v);return classifyParts(v.text,{deity:highlights.deity,spirit:highlights.spirit,pronouns:highlights.deity&&DEITY_PRONOUN_TRANSLATIONS.has(translation),repeated:repeatedSet,startsSentence:verseStartsSentence(rows[i-1]?.text)})}
+    return <div className="bible-verse-text">{scoped.map(v=><span key={v.number}><span className={selectedVerses.has(v.number)?'is-selected':''} role={anchor?'button':undefined} tabIndex={anchor?0:undefined} aria-pressed={anchor?selectedVerses.has(v.number):undefined} aria-label={anchor?`Select verse ${v.number}: ${v.text}`:undefined} onClick={anchor?()=>toggleVerse(v.number):undefined} onContextMenu={e=>{e.preventDefault();openWordStudy(v,translation)}} onKeyDown={anchor?e=>{if(e.key==='F10'&&e.shiftKey){e.preventDefault();openWordStudy(v,translation);return}if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleVerse(v.number)}}:undefined}><sup>{v.number}</sup><StudyWords text={v.text} kinds={kindsFor(v)} onStudy={(word,index)=>openWordStudy(v,translation,word,index)}/>{' '}</span><button className="verse-word-study" aria-label={`Word study for ${book} ${chapter}:${v.number} (${translation})`} onClick={()=>openWordStudy(v,translation)}>Word study</button>{anchor && connections.notesAtVerse(v.number).map(note=><button className="verse-note-indicator" key={note.id} title={note.title||'Verse note'} aria-label={`Read or edit note on verse ${v.number}: ${note.title||'Untitled'}`} onClick={()=>openVerseNote(note)}><NotebookPen size={12}/></button>)}</span>)}</div>
   }
   return <div className="page bible-desk" style={{'--reading-size':prefs.fontSize+'px','--reading-line':prefs.lineHeight}}>
     <div className="bible-topbar">
@@ -599,17 +632,21 @@ export default function BibleStudy() {
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}
         {wordStudy&&<WordStudy request={wordStudy} onClose={()=>setWordStudy(null)}/>}
+        {versePanel?.kind==='interlinear'&&<Interlinear book={book} bookNumber={CANONICAL_BOOKS.indexOf(book)+1} chapter={chapter} verse={versePanel.verse} verses={displayedVerses} translation={readingMeta.short} onVerse={n=>setVersePanel(p=>({...p,verse:n}))} onClose={()=>setVersePanel(null)}/>}
+        {versePanel?.kind==='parallel'&&<VerseParallel book={book} chapter={chapter} verse={versePanel.verse} verseNumbers={(displayedVerses||[]).map(v=>v.number)} translations={availableTranslations} loadChapter={loadPanelChapter} highlights={anyHighlight?{deity:highlights.deity,spirit:highlights.spirit}:null} onVerse={n=>setVersePanel(p=>({...p,verse:n}))} onClose={()=>setVersePanel(null)}/>}
         <div className="card bible-toolbar">
           <button className="btn btn-secondary bible-fullscreen-toggle" aria-pressed={readerFullscreen} onClick={toggleReaderFullscreen}>{readerFullscreen ? 'Exit fullscreen' : 'Fullscreen'}</button>
           <button className="btn btn-secondary" onClick={()=>setShowPicker(true)}>{passageRef}<ChevronDown size={14}/></button>
           <details className="bible-translations"><summary>Translations ({columns.length})</summary><div>{availableTranslations.filter(t=>t.id!==readingTranslation).map(t=><label key={t.id}><input type="checkbox" checked={compareIds.includes(t.id)} onChange={()=>setCompareIds(ids=>ids.includes(t.id)?ids.filter(id=>id!==t.id):[...ids,t.id])}/>{t.short}</label>)}</div></details>
+          <details className="bible-translations bible-highlights"><summary><Highlighter size={14} aria-hidden="true"/> Highlights{anyHighlight?` (${HIGHLIGHT_OPTIONS.filter(o=>highlights[o.key]).length})`:''}</summary><div>{HIGHLIGHT_OPTIONS.map(o=><label key={o.key} title={o.help}><input type="checkbox" checked={highlights[o.key]} onChange={()=>toggleHighlight(o.key)}/><span className={`study-hl study-hl-${o.key}`}>{o.label}</span></label>)}<p>Worked out from the wording of each translation, so treat them as a reading aid.</p></div></details>
           <div className="bible-chapter-nav"><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(-1)} disabled={chapter<=1} aria-label="Previous chapter"><ChevronLeft size={16}/></button><button className="btn btn-icon btn-secondary" onClick={()=>stepChapter(1)} disabled={chapterCount!=null && chapter>=chapterCount} aria-label="Next chapter"><ChevronRight size={16}/></button></div>
-          <div className="bible-view-modes"><button className={`btn ${showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={showCompare} onClick={()=>setShowCompare(true)}>Parallel</button><button className={`btn ${!showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={!showCompare} onClick={()=>setShowCompare(false)}>Single</button><a className="btn btn-secondary" href={interlinearUrl} target="_blank" rel="noreferrer" title="Open interlinear on Bible Hub in a new tab">Interlinear ↗ <span className="sr-only">(Bible Hub, new tab)</span><ExternalLink size={12}/></a></div>
+          <div className="bible-view-modes"><button className={`btn ${showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={showCompare} onClick={()=>setShowCompare(true)}>Parallel</button><button className={`btn ${!showCompare?'btn-primary':'btn-secondary'}`} aria-pressed={!showCompare} onClick={()=>setShowCompare(false)}>Single</button><button className="btn btn-secondary" aria-pressed={versePanel?.kind==='interlinear'} disabled={!displayedVerses?.length} onClick={()=>versePanel?.kind==='interlinear'?setVersePanel(null):openVersePanel('interlinear')}>Interlinear</button></div>
         </div>
         {fullscreenError && <p role="alert">{fullscreenError}</p>}
         <div className="card bible-reader-card">
           <div className="bible-reader-heading"><h2>{passageRef}</h2><div><button className="btn btn-icon" onClick={()=>copy('passage',`${passageRef} (${readingMeta.short})\n${(displayedVerses||[]).map(v=>`${v.number} ${v.text}`).join('\n')}`)} aria-label="Copy passage"><Copy size={17}/></button><button className="btn btn-icon" onClick={()=>draftNote()} aria-label="Create study note"><NotebookPen size={17}/></button></div></div>
           {selectionSaveError && <p role="status">Your browser could not save these translation choices. Allow site storage to remember them next time.</p>}
+          {highlights.repeat && <div className="study-hl-legend" role="group" aria-label="Repeated words in this passage">{repeated.length?<><span>Repeated words:</span>{repeated.map(r=><button key={r.word} className="study-hl study-hl-repeat" aria-pressed={focusWord===r.word} onClick={()=>setFocusWord(w=>w===r.word?'':r.word)}>{r.word} <small>×{r.count}</small></button>)}{focusWord&&<button className="btn btn-ghost" onClick={()=>setFocusWord('')}>Show all</button>}</>:<span>No word is used three or more times in this passage.</span>}</div>}
           {showCompare && <p className="bible-swipe-hint">Swipe across to compare translations.</p>}
           <div className={`bible-parallel ${showCompare?'':'is-single'}`} tabIndex={0} role="region" aria-label="Bible translation text">
             {columns.map(({id,meta,entry},index)=><article className="bible-translation" key={id}><h3>{meta?.short}</h3>{!entry || entry.status==='loading'?<p role="status">Loading {meta?.short}…</p>:entry.status==='error'?<p role="alert">Could not load {meta?.short}. {entry.message}</p>:entry.verses?.length?renderVerses(entry.verses,index===0,id):<p>No text is available for this passage.</p>}{(entry?.copyright||entry?.verses?.copyright)&&<small className="bible-attribution">{entry.copyright||entry.verses.copyright}</small>}</article>)}
@@ -628,6 +665,8 @@ export default function BibleStudy() {
           <button onClick={()=>{const v=displayedVerses?.find(v=>selectedVerses.has(v.number))||displayedVerses?.[0];if(v)openWordStudy(v,readingTranslation)}} disabled={!displayedVerses?.length}><Languages/>Word Study <small>Strong’s details</small></button>
           <button onClick={()=>{setWordStudy(null);setVariantRequest({book,bookNumber:CANONICAL_BOOKS.indexOf(book)+1,chapter,verse:[...selectedVerses][0]||null})}}><FileText/>Textual Variants <small>Greek edition comparisons</small></button>
           <button aria-pressed={showCompare} onClick={()=>setShowCompare(v=>!v)}><BookOpen/>Translation Compare</button>
+          <button aria-pressed={versePanel?.kind==='interlinear'} disabled={!displayedVerses?.length} onClick={()=>openVersePanel('interlinear')}><Languages/>Interlinear <small>{CANONICAL_BOOKS.indexOf(book)<39?'Hebrew':'Greek'} word by word</small></button>
+          <button aria-pressed={versePanel?.kind==='parallel'} disabled={!displayedVerses?.length} onClick={()=>openVersePanel('parallel')}><Columns3/>Every Translation <small>One verse, side by side</small></button>
           <button onClick={()=>draftNote()}><NotebookPen/>Study Notes</button>
           <button onClick={()=>draftNote(true)}><ChartColumn/>Passage Analysis <small>Guided note</small></button>
           <a href="https://biblehub.com/atlas/" target="_blank" rel="noreferrer"><MapPin/>Biblical Maps <small>External ↗</small></a>

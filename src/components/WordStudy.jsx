@@ -1,9 +1,11 @@
 import {useEffect,useRef,useState} from 'react'
 import {alignedWord, normalizeWord, strongsEntry, strongsVerse, wordParts} from '../lib/strongs'
+import {splitPunctuation} from '../lib/studyHighlights'
 import './WordStudy.css'
 import {WordDetails} from './WordStudyDetails'
 
-export function StudyWords({text,onStudy}) {
+// `kinds` (optional) runs parallel to wordParts(text): a study-highlight class for each part, or null.
+export function StudyWords({text,onStudy,kinds}) {
   const timer=useRef(null)
   const held=useRef(false)
   const start=useRef(null)
@@ -13,12 +15,13 @@ export function StudyWords({text,onStudy}) {
   return wordParts(text).map((part,i)=>{
     if (!part.trim()||!normalizeWord(part)) return part
     const wordIndex=++index
+    const [lead,core,trail]=kinds?.[i]?splitPunctuation(part):[]
     return <span key={i} onContextMenu={e=>{e.preventDefault();e.stopPropagation();cancel();onStudy(part,wordIndex)}} onPointerDown={e=>{
       held.current=false
       if(e.pointerType==='mouse') return
       start.current={x:e.clientX,y:e.clientY};cancel()
       timer.current=setTimeout(()=>{held.current=true;onStudy(part,wordIndex)},600)
-    }} onPointerMove={e=>{if(start.current&&Math.hypot(e.clientX-start.current.x,e.clientY-start.current.y)>10)cancel()}} onPointerUp={cancel} onPointerCancel={cancel} onPointerLeave={cancel} onClick={e=>{if(held.current){e.preventDefault();e.stopPropagation();held.current=false}}}>{part}</span>
+    }} onPointerMove={e=>{if(start.current&&Math.hypot(e.clientX-start.current.x,e.clientY-start.current.y)>10)cancel()}} onPointerUp={cancel} onPointerCancel={cancel} onPointerLeave={cancel} onClick={e=>{if(held.current){e.preventDefault();e.stopPropagation();held.current=false}}}>{kinds?.[i]?<>{lead}<span className={`study-hl study-hl-${kinds[i]}`}>{core}</span>{trail}</>:part}</span>
   })
 }
 export function Definition({id}) {

@@ -28,3 +28,10 @@ Conversions simplify lexicon formatting and group source rows into chapter JSON.
 
 `npm run build`, `npm run lint`, and `node --test tests/*.test.* src/lib/*.test.js`.
 Tests cover real-source John 3:16 grammar and apparatus, identifiers, packed verse references, index deduplication, retries, and unsupported OT apparatus coverage.
+
+## Interlinear, highlights and every-translation view (1.13.0)
+
+- **Interlinear** (toolbar and Study Tools): the selected verse, or the first one shown, word by word from the same STEPBible chapter files (`src/lib/wordStudyData.js` → `interlinear`). Hebrew is laid out right to left. Glosses are STEP's contextual English. Words absent from some Greek editions carry a †. STEP's H9001–H9049 prefix/suffix tags are not treated as dictionary words. Choosing a word reuses the Word Study definition, lexicon, grammar and concordance. Bible Hub stays as a "Compare" link.
+- **Study highlights** (toolbar → Highlights, remembered per browser): names of God, Holy Spirit, repeated words (`src/lib/studyHighlights.js`). Everything is worked out from the wording; no per-chapter data or AI. Capitalized pronouns count as God's only in BSB/NKJV/NASB, and only mid-sentence.
+- **Every Translation**: one verse across every translation turned on in Settings, with chapters cached for the visit.
+- Six eBible.org translations were added (GNV, WBS, RV, BBE, FBV, T4T). Saved settings now record `knownTranslations`, so translations added later are switched on once for existing readers instead of staying hidden.

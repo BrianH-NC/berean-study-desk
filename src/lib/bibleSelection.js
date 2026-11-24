@@ -1,4 +1,5 @@
-export const bibleSelectionKey = userId => `bsd:bible-selection:${userId}`
+// v2: the redesign opens one translation (ESV) by default; earlier saved choices start fresh once.
+export const bibleSelectionKey = userId => `bsd:bible-selection:v2:${userId}`
 
 export function restoreBibleSelection(storage, userId, preferences) {
   let saved

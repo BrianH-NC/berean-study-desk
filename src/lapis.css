@@ -56,3 +56,35 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 .command-results li small { color: var(--bsd-muted); font-size: 12px; }
 .command-results li.is-active { background: var(--bsd-selected); color: var(--bsd-forest); }
 .command-results li.is-active svg { color: var(--bsd-forest); }
+
+/* Bible: one column of text with the study panel beside it */
+@media (min-width: 1100px) {
+  .bible-grid.is-desk { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 24px; }
+  .bible-grid.is-desk > .bible-reading { grid-column: 1; }
+  .bible-grid.is-desk > .bible-study-panel { grid-column: 2; position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow-y: auto; scrollbar-width: thin; }
+}
+.bible-study-panel { background: var(--bsd-surface); border: 1px solid var(--bsd-border); border-radius: 10px; padding: 0 16px 16px; }
+.bible-study-panel > .card, .bible-study-panel .bible-card { border: 0; padding-inline: 0 !important; background: transparent; }
+.study-panel-tabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 16px; overflow-x: auto; margin: 0 -16px 8px; padding: 0 16px; background: var(--bsd-surface); border-bottom: 1px solid var(--bsd-border); scrollbar-width: none; }
+.study-panel-tabs button { flex: none; min-height: 44px; padding: 10px 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--bsd-muted); font: 500 13px/18px Inter, system-ui, sans-serif; cursor: pointer; }
+.study-panel-tabs button.is-active { color: var(--bsd-forest); border-bottom-color: var(--bsd-forest); font-weight: 600; }
+.bible-title h1 { font-size: 24px; }
+.bible-parallel.is-single .bible-translation { max-width: 66ch; margin-inline: auto; }
+.bible-parallel.is-single .bible-translation > h3 { display: none; }
+.bible-selection { position: sticky; bottom: 16px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; width: fit-content; max-width: 100%; margin: 12px auto 0; padding: 4px 4px 4px 12px; background: var(--bsd-surface); border: 1px solid var(--bsd-border); border-radius: 10px; box-shadow: 0 8px 24px rgba(28, 27, 25, .12); }
+.bible-selection strong { margin-right: 8px; font: 600 13px/18px Inter, system-ui, sans-serif; }
+.bible-selection .btn { min-height: 36px; padding: 6px 10px; color: var(--bsd-charcoal); font-weight: 500; }
+.bible-selection .btn:hover { background: var(--bsd-selected); color: var(--bsd-forest); }
+.bible-verse-text .is-selected { background: var(--bsd-selected); box-shadow: 0 2px 0 var(--bsd-forest); }
+@media (max-width: 767px) { .bible-selection { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }
+
+/* Reading plan bar above the text */
+.plan-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px 10px 16px; margin: 0 0 12px; background: var(--bsd-selected); border: 1px solid var(--color-accent-200); border-radius: 10px; font: 400 13px/18px Inter, system-ui, sans-serif; }
+.plan-bar-where { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
+.plan-bar-where strong { font-weight: 600; color: var(--bsd-forest); }
+.plan-bar-steps { display: flex; gap: 6px; }
+.plan-bar-steps span { width: 10px; height: 10px; border-radius: 999px; border: 1.5px solid var(--bsd-control-border); background: var(--bsd-surface); }
+.plan-bar-steps .is-done { background: var(--bsd-forest); border-color: var(--bsd-forest); }
+.plan-bar-steps .is-current { outline: 2px solid var(--color-accent-300); outline-offset: 1px; }
+.plan-bar-done { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--verdict-sound-text); }
+.plan-bar-error { background: var(--bsd-surface-2); border-color: var(--bsd-border); }

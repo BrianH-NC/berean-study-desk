@@ -4,6 +4,21 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.14.0',
+    date: '2026-11-23',
+    title: 'A calmer study desk: Today, M’Cheyne and a new look',
+    changes: [
+      { kind: 'new', text: 'Today is the new start page: your M’Cheyne readings with a checkmark for each, the latest sermon, what you were last reading and writing, the verse of the day, quick capture and recent Doctrine Checks.' },
+      { kind: 'new', text: 'The Modified M’Cheyne plan is built in. Start on the day you’re on; earlier days count as read, and a missed day waits as the next unread day.' },
+      { kind: 'new', text: 'Open a reading from Today and the Bible shows where you are in the plan, with Mark read and a link to the next reading.' },
+      { kind: 'new', text: 'Search everything with Ctrl K: jump to any page, open a passage such as John 3:16, or search Scripture, books and notes.' },
+      { kind: 'improved', text: 'Six places in the sidebar: Today, Bible, Notes, Sermons, Library and Doctrine Check. Prayer Journal and the other pages sit under More.' },
+      { kind: 'improved', text: 'On your phone, Doctrine Check is the raised button in the middle of the bottom bar and opens the barcode scanner straight away.' },
+      { kind: 'improved', text: 'The Bible opens in the ESV, one translation at a time; turn on Parallel to compare. Select verses for Note, Word study, Cross-refs and Copy. Cross-references, commentary, sermons, your notes and study tools sit in one tabbed panel beside the text.' },
+      { kind: 'improved', text: 'A new look: lapis blue, Literata for reading, and no banners or page mottos.' },
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-11-22',
     title: 'Interlinear, study highlights, every translation and SermonIndex sermons',

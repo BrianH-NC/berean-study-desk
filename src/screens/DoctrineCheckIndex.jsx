@@ -12,7 +12,7 @@ import {
 } from '../lib/theologyCheck'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import { identifyShelfPhoto } from '../lib/shelfPhoto'
-import { DoctrineHeader, DoctrineLegend, CreationAssessment } from '../components/DoctrineChrome'
+import { DoctrineHeader, DoctrineLegend } from '../components/DoctrineChrome'
 import { saveTopicLink } from '../lib/topics'
 import BarcodeScanner from '../components/BarcodeScanner'
 
@@ -255,7 +255,7 @@ export default function DoctrineCheckIndex() {
   return (
     <div className="page doctrine-desk doctrine-index">
       <DoctrineHeader/>
-      <div className="doctrine-layout"><div className="doctrine-main">
+      <div className="doctrine-layout is-single"><div className="doctrine-main"><DoctrineLegend compact/>
 
       {/* New check card */}
       <CreatePanel title="Check a book or teacher" editing={!!topicContext} defaultOpen>
@@ -465,27 +465,6 @@ export default function DoctrineCheckIndex() {
 
       </CreatePanel>
       <div className="mb-4"><FindMissingCovers books={checks} saveCover={async (book, cover) => { await checksUpdate(book.id, {cover_url: cover}) }} onComplete={loadChecks}/></div>
-      {/* Stat cells */}
-      {stats && (
-        <div className="flex flex-wrap gap-6 mb-5 pt-3 pb-3" style={{ borderTop: '1px solid var(--color-divider)', borderBottom: '1px solid var(--color-divider)' }}>
-          {[
-            ['Checks run', stats.total],
-            ['Sound', stats.Sound],
-            ['Caution', stats.Caution],
-            ['Concern', stats.Concern],
-            ['Distinctive', stats.Distinctive],
-            ['Unable to Assess', stats['Unable to Assess']],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <div className="font-heading" style={{ fontSize: 28 }}>
-                {value}
-              </div>
-              <div className="card-meta">{label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap mb-3">
         <div className="seg">
@@ -496,8 +475,9 @@ export default function DoctrineCheckIndex() {
               className="seg-opt"
               style={verdictFilter === v ? { background: 'var(--color-accent)', color: 'var(--color-bg)' } : undefined}
               onClick={() => setVerdictFilter(v)}
+              aria-pressed={verdictFilter === v}
             >
-              {v}
+              {v}{stats && <span className="seg-count">{v === 'All' ? stats.total : stats[v]}</span>}
             </button>
           ))}
         </div>
@@ -608,7 +588,7 @@ export default function DoctrineCheckIndex() {
       </div>
 
 
-      </div><div><DoctrineLegend/><CreationAssessment introduction/></div></div>
+      </div></div>
       {showScanner && <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
     </div>
   )

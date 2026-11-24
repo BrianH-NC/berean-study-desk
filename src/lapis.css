@@ -122,3 +122,22 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 .sermons-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 24px; background: var(--bsd-surface); border: 1px solid var(--bsd-border); border-radius: 10px; color: var(--bsd-muted); }
 .sermons-empty h2 { margin: 0; color: var(--bsd-charcoal); font: 600 18px/24px Literata, Georgia, serif; }
 @media (max-width: 767px) { .sermon-row-side small { display: none; } }
+
+/* Doctrine Check: the check form first; legend on request; counts live in the verdict filter */
+.doctrine-layout.is-single { grid-template-columns: minmax(0, 1fr); max-width: 1100px; }
+.doctrine-legend-compact { margin: 0 0 16px; font: 400 13px/18px Inter, system-ui, sans-serif; }
+.doctrine-legend-compact > summary { cursor: pointer; color: var(--bsd-forest); font-weight: 500; min-height: 32px; }
+.doctrine-legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 12px 0; }
+.doctrine-legend-grid p, .doctrine-legend-note { margin: 2px 0 0; color: var(--bsd-muted); }
+.seg-count { margin-left: 6px; font-weight: 500; opacity: .75; }
+
+/* Library: tabs, one Filters drawer above the books, summary on request */
+.heritage-library .library-workspace { grid-template-columns: minmax(0, 1fr); }
+.heritage-library .library-content-layout { display: block; }
+.heritage-library .library-facet-panel { margin-bottom: 16px; padding: 0; border: 0; background: transparent; }
+.heritage-library .library-facet-panel > details > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 8px 14px; border: 1px solid var(--bsd-control-border); border-radius: 6px; background: var(--bsd-surface); font: 500 14px/20px Inter, system-ui, sans-serif; cursor: pointer; list-style: none; }
+.heritage-library .library-facet-panel > details[open] { padding: 16px; border: 1px solid var(--bsd-border); border-radius: 10px; background: var(--bsd-surface); }
+.heritage-library .library-facet-panel > details[open] > summary { margin-bottom: 12px; }
+.library-summary-disclosure { margin-top: 24px; font: 400 13px/18px Inter, system-ui, sans-serif; }
+.library-summary-disclosure > summary { cursor: pointer; color: var(--bsd-forest); font-weight: 500; min-height: 32px; }
+.library-summary-disclosure[open] > *:not(summary) { margin-top: 12px; max-width: 420px; }

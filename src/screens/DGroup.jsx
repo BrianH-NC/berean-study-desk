@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import DOMPurify from 'dompurify'
-import { ArrowLeft, Check, Copy, Plus, Printer, RefreshCw, Sparkles, Users } from 'lucide-react'
+import { ArrowLeft, Check, Pencil, Plus, Printer, RefreshCw, Sparkles, Users } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { ownedRows, saveOwned, removeOwned } from '../lib/dailyStudyData'
 import { localDay } from '../lib/dailyStudyModel'
-import { DGROUP_DOCS, STATUS_LABELS, bookletSections, docStatus, nextFriday } from '../lib/dgroup'
-import { markdownToHtml } from '../lib/markdown'
+import { DGROUP_DOCS, LEADER_PARTS, STATUS_LABELS, docStatus, exerciseMix, nextFriday, timingTotal } from '../lib/dgroup'
+import { DiscussionClosing, DiscussionOpening, DiscussionSection, ESV_NOTICE, FieldEditor, LeaderPart } from '../components/DGroupGuide'
 import { authHeaders } from '../lib/functionAuth'
-import { fetchEsvPassage } from '../lib/esv'
 import './DGroup.css'
 
 const FUNCTIONS_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
 const longDate = day => day ? new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'No date set'
-export const Rendered = ({ markdown, className = 'dg-prose' }) => <div className={className} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(markdownToHtml(markdown)) }} />
 
 export async function createSessionFromSermon(userId, sermon) {
   return saveOwned('dgroup_sessions', userId, null, { sermon_id: sermon?.id || null, title: sermon?.title || 'D-Group session', passage: sermon?.primary_ref || '', meeting_date: nextFriday(localDay()), docs: {} })
 }
 
-async function generate(sessionId, doc) {
-  const res = await fetch(`${FUNCTIONS_BASE}/dgroup-generate`, { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ sessionId, doc }) })
+async function generate(sessionId, doc, extra = {}) {
+  const res = await fetch(`${FUNCTIONS_BASE}/dgroup-generate`, { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ sessionId, doc, ...extra }) })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || data.error) throw new Error(data.error || `Generation failed (${res.status}).`)
   return data.session
@@ -40,9 +37,39 @@ export function DGroupIndex() {
   return <div className="page dg-page">
     <header className="dg-head"><div><Link className="dg-back" to="/sermons"><ArrowLeft size={16} aria-hidden="true" />Sermons</Link><h1>D-Group</h1><p className="dg-muted">Friday 7:15 AM. Start a session from a sermon, or a blank one here.</p></div><button className="btn btn-primary" disabled={busy} onClick={create}><Plus size={16} aria-hidden="true" />New session</button></header>
     {error && <p role="alert">{error}</p>}
-    {sessions === null ? <p role="status">Loading sessions…</p> : sessions.length === 0 ? <section className="dg-card dg-empty"><Users size={28} aria-hidden="true" /><h2>No sessions yet</h2><p className="dg-muted">Open a sermon and choose Build this week’s D-Group session. The five documents are drafted from the sermon and its passage.</p><Link className="btn btn-secondary" to="/sermons">Go to Sermons</Link></section>
+    {sessions === null ? <p role="status">Loading sessions…</p> : sessions.length === 0 ? <section className="dg-card dg-empty"><Users size={28} aria-hidden="true" /><h2>No sessions yet</h2><p className="dg-muted">Open a sermon and choose Build this week’s D-Group session. The discussion guide and leader guide are drafted from the sermon and its passage.</p><Link className="btn btn-secondary" to="/sermons">Go to Sermons</Link></section>
       : <ul className="dg-list">{sessions.map(s => { const done = DGROUP_DOCS.filter(d => docStatus(s, d.id) === 'ready').length; return <li key={s.id}><Link to={`/dgroup/${s.id}`}><span><strong>{s.title || 'Untitled session'}</strong><small>{[s.passage, longDate(s.meeting_date)].filter(Boolean).join(' · ')}</small></span><span className="dg-muted">{done} of {DGROUP_DOCS.length} ready</span></Link></li> })}</ul>}
   </div>
+}
+
+// The reviewable pieces of a guide: each can be edited, and most redrafted on their own.
+function guideItems(docId, data) {
+  if (!data) return []
+  if (docId === 'discussion') return [
+    { id: 'opening', title: 'Title, big idea and psalms', pick: ['title', 'subtitle', 'big_idea', 'call_to_worship', 'benediction'] },
+    ...(data.sections || []).map((sec, i) => ({ id: `s${i}`, title: sec?.title || `Section ${i + 1}`, section: i })),
+  ]
+  return [{ id: 'title', title: 'Title', pick: ['title'] }, ...LEADER_PARTS.filter(p => data[p.key] !== undefined).map(p => ({ id: p.key, title: p.title, part: p.key }))]
+}
+
+function itemValue(item, data) {
+  if (item.section !== undefined) return data.sections[item.section]
+  if (item.part) return { [item.part]: data[item.part] }
+  return Object.fromEntries(item.pick.map(k => [k, data[k] ?? (k === 'call_to_worship' || k === 'benediction' ? { ref: '' } : '')]))
+}
+
+function applyItem(item, data, value) {
+  if (item.section !== undefined) return { ...data, sections: data.sections.map((x, i) => i === item.section ? value : x) }
+  return { ...data, ...value }
+}
+
+function ItemPreview({ docId, item, data }) {
+  if (docId === 'discussion') {
+    if (item.section !== undefined) return <DiscussionSection s={data.sections[item.section]} />
+    return <><h2 className="pk-title">{data.title}</h2>{data.subtitle && <p className="pk-muted">{data.subtitle}</p>}<DiscussionOpening data={data} /><DiscussionClosing data={data} /></>
+  }
+  if (item.part) return <LeaderPart k={item.part} value={data[item.part]} title={item.title} />
+  return <h2 className="pk-title">{data.title}</h2>
 }
 
 export function DGroupSession() {
@@ -53,11 +80,9 @@ export function DGroupSession() {
   const [sermon, setSermon] = useState(null)
   const [error, setError] = useState('')
   const [working, setWorking] = useState({})
-  const [openDoc, setOpenDoc] = useState('exegetical')
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState('')
+  const [openDoc, setOpenDoc] = useState('discussion')
+  const [editing, setEditing] = useState(null)
   const [fields, setFields] = useState(null)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -75,59 +100,63 @@ export function DGroupSession() {
   if (!session || !fields) return <div className="page dg-page"><p role="status">Loading session…</p></div>
 
   async function saveFields() { try { const row = await saveOwned('dgroup_sessions', user.id, session, { ...fields, meeting_date: fields.meeting_date || null }); setSession(row); setError('') } catch (e) { setError(e.message) } }
-  async function run(docId) {
+  async function run(docId, extra = {}, key = docId) {
     if (dirty) await saveFields()
-    setWorking(w => ({ ...w, [docId]: true })); setError('')
-    try { const row = await generate(session.id, docId); setSession(row); setOpenDoc(docId); setEditing(false) } catch (e) { setError(e.message) } finally { setWorking(w => ({ ...w, [docId]: false })) }
+    setWorking(w => ({ ...w, [key]: true })); setError('')
+    try { const row = await generate(session.id, docId, extra); setSession(row); setOpenDoc(docId); setEditing(null) } catch (e) { setError(e.message) } finally { setWorking(w => ({ ...w, [key]: false })) }
   }
-  async function runMissing() { for (const d of DGROUP_DOCS) if (docStatus(session, d.id) === 'empty') await run(d.id) }
-  async function saveDoc(changes) {
-    try { const docs = { ...session.docs, [openDoc]: { ...(session.docs?.[openDoc] || {}), ...changes, edited_at: new Date().toISOString() } }; const row = await saveOwned('dgroup_sessions', user.id, session, { docs }); setSession(row); setError(''); return true } catch (e) { setError(e.message); return false }
+  async function saveDoc(docId, changes) {
+    try { const docs = { ...session.docs, [docId]: { ...(session.docs?.[docId] || {}), ...changes, edited_at: new Date().toISOString() } }; const row = await saveOwned('dgroup_sessions', user.id, session, { docs }); setSession(row); setError(''); return true } catch (e) { setError(e.message); return false }
   }
-  async function remove() { if (!confirm('Delete this D-Group session and its documents? The sermon stays.')) return; try { await removeOwned('dgroup_sessions', user.id, session); navigate('/dgroup') } catch (e) { setError(e.message) } }
+  async function remove() { if (!confirm('Delete this D-Group session and its guides? The sermon stays.')) return; try { await removeOwned('dgroup_sessions', user.id, session); navigate('/dgroup') } catch (e) { setError(e.message) } }
 
   const current = DGROUP_DOCS.find(d => d.id === openDoc)
-  const doc = session.docs?.[openDoc]
+  const data = session.docs?.[openDoc]?.data
   const status = docStatus(session, openDoc)
-  const anyMissing = DGROUP_DOCS.some(d => docStatus(session, d.id) === 'empty')
+  const busy = working[openDoc] || status === 'generating'
+  const needsDiscussion = openDoc === 'leader' && !session.docs?.discussion?.data
+  const mix = exerciseMix(session.docs?.discussion?.data)
+  const items = guideItems(openDoc, data)
   return <div className="page dg-page">
     <header className="dg-head"><div><Link className="dg-back" to="/dgroup"><ArrowLeft size={16} aria-hidden="true" />D-Group</Link><h1>{session.title || 'D-Group session'}</h1><p className="dg-muted">{[session.passage, longDate(session.meeting_date)].filter(Boolean).join(' · ')}{sermon && <> · from <Link to={`/sermons/${sermon.id}`}>{sermon.title}</Link></>}</p></div>
-      <div className="dg-actions">{anyMissing && <button className="btn btn-primary" disabled={Object.values(working).some(Boolean) || !fields.passage.trim()} onClick={runMissing}><Sparkles size={16} aria-hidden="true" />Generate the missing documents</button>}<button className="btn btn-ghost" onClick={remove}>Delete</button></div></header>
+      <div className="dg-actions"><button className="btn btn-ghost" onClick={remove}>Delete</button></div></header>
     {error && <p role="alert" className="dg-error">{error}</p>}
     <div className="dg-layout">
       <aside className="dg-side">
+        <nav className="dg-card dg-docs" aria-label="Guides">{DGROUP_DOCS.map(d => { const st = docStatus(session, d.id); return <button key={d.id} type="button" className={`dg-doc ${openDoc === d.id ? 'is-open' : ''}`} aria-current={openDoc === d.id ? 'true' : undefined} onClick={() => { setOpenDoc(d.id); setEditing(null) }}><span><strong>{d.title}</strong><small>{d.sub}</small></span><StatusPill status={working[d.id] ? 'generating' : st} /></button> })}</nav>
+        {mix.length > 0 && <section className="dg-card"><p className="dg-label">Exercises this week</p><p className="dg-muted">{mix.join(', ')}</p></section>}
         <section className="dg-card">
           <label className="dg-field">Title<input className="input" value={fields.title} maxLength={200} onChange={e => setFields(f => ({ ...f, title: e.target.value }))} /></label>
           <label className="dg-field">Passage<input className="input" value={fields.passage} maxLength={200} placeholder="1 Peter 2:13-17" onChange={e => setFields(f => ({ ...f, passage: e.target.value }))} /></label>
           <label className="dg-field">Meets<input className="input" type="date" value={fields.meeting_date} onChange={e => setFields(f => ({ ...f, meeting_date: e.target.value }))} /></label>
-          <details className="dg-notes"><summary>Your notes for the drafts</summary><textarea className="input" rows={5} maxLength={20000} value={fields.notes} placeholder="Emphases, questions from last week, men’s situations to keep in mind…" onChange={e => setFields(f => ({ ...f, notes: e.target.value }))} /></details>
+          <details className="dg-notes"><summary>Your notes for the drafts</summary><textarea className="input" rows={5} maxLength={20000} value={fields.notes} placeholder="Emphases, questions from last week, men’s situations to keep in mind, next Sunday’s passage…" onChange={e => setFields(f => ({ ...f, notes: e.target.value }))} /></details>
           {dirty && <button className="btn btn-secondary" onClick={saveFields}>Save details</button>}
         </section>
-        <nav className="dg-card dg-docs" aria-label="Documents">{DGROUP_DOCS.map(d => { const st = docStatus(session, d.id); return <button key={d.id} type="button" className={`dg-doc ${openDoc === d.id ? 'is-open' : ''}`} aria-current={openDoc === d.id ? 'true' : undefined} onClick={() => { setOpenDoc(d.id); setEditing(false) }}><span><strong>{d.title}</strong><small>{d.sub}</small></span><StatusPill status={working[d.id] ? 'generating' : st} /></button> })}</nav>
       </aside>
-      <section className="dg-card dg-main" aria-labelledby="doc-title">
-        <div className="dg-doc-head"><h2 id="doc-title">{current.title}</h2>
+      <section className="dg-main" aria-labelledby="doc-title">
+        <div className="dg-card dg-doc-head"><div><h2 id="doc-title">{current.title}</h2>{data && <p className="dg-muted">{openDoc === 'leader' && data.timing ? `Timing adds to ${timingTotal(data.timing)} minutes · ` : ''}Review each section, then print.</p>}</div>
           <div className="dg-actions">
-            {doc?.markdown && !editing && <><button className="btn btn-ghost" onClick={() => { setDraft(doc.markdown); setEditing(true) }}>Edit</button>
-              {openDoc === 'text' ? <button className="btn btn-ghost" onClick={() => { navigator.clipboard?.writeText(doc.markdown).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500) }) }}><Copy size={16} aria-hidden="true" />{copied ? 'Copied' : 'Copy'}</button> : <Link className="btn btn-ghost" to={`/dgroup/${session.id}/print/${openDoc}`}><Printer size={16} aria-hidden="true" />Print / PDF</Link>}
-              <button className="btn btn-secondary" onClick={() => saveDoc({ status: status === 'ready' ? 'draft' : 'ready' })}><Check size={16} aria-hidden="true" />{status === 'ready' ? 'Mark as draft' : 'Mark ready'}</button></>}
-            {!editing && <button className="btn btn-primary" disabled={working[openDoc] || status === 'generating' || !fields.passage.trim()} onClick={() => { if (doc?.markdown && !confirm(`Replace the current ${current.title.toLowerCase()} with a new draft?`)) return; void run(openDoc) }}>{doc?.markdown ? <RefreshCw size={16} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}{working[openDoc] || status === 'generating' ? 'Generating…' : doc?.markdown ? 'Regenerate' : 'Generate'}</button>}
+            {data && <><Link className="btn btn-ghost" to={`/dgroup/${session.id}/print/${openDoc}`}><Printer size={16} aria-hidden="true" />Print / PDF</Link>
+              <button className="btn btn-secondary" onClick={() => saveDoc(openDoc, { status: status === 'ready' ? 'draft' : 'ready' })}><Check size={16} aria-hidden="true" />{status === 'ready' ? 'Mark as draft' : 'Mark ready'}</button></>}
+            <button className="btn btn-primary" disabled={busy || needsDiscussion || !fields.passage.trim()} onClick={() => { if (data && !confirm(`Replace the whole ${current.title.toLowerCase()} with a new draft? Your edits to it will be lost.`)) return; void run(openDoc) }}>{data ? <RefreshCw size={16} aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}{busy ? 'Drafting…' : data ? 'Redraft all' : 'Draft it'}</button>
           </div></div>
-        {editing ? <div className="dg-editor"><textarea className="input" value={draft} onChange={e => setDraft(e.target.value)} aria-label={`Edit ${current.title}`} /><div className="dg-actions"><button className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button><button className="btn btn-primary" onClick={async () => { if (await saveDoc({ markdown: draft })) setEditing(false) }}>Save</button></div><p className="dg-muted">Markdown: # heading, - list, **bold**, *italic*, &gt; quote.</p></div>
-          : doc?.markdown ? <><Rendered markdown={doc.markdown} />{doc.truncated && <p className="dg-muted">This draft hit the length limit and may stop mid-section. Regenerate or edit the end.</p>}<p className="dg-muted dg-ai">AI-drafted from the passage{sermon ? ' and the sermon' : ''}. Check it against Scripture before you use it.</p></>
-          : <p className="dg-muted">{fields.passage.trim() ? `Not drafted yet. Generate builds it from ${fields.passage}${sermon ? ` and “${sermon.title}”` : ''}; it takes about a minute.` : 'Add the passage first, then generate.'}</p>}
+        {!data ? <div className="dg-card"><p className="dg-muted">{!fields.passage.trim() ? 'Add the passage first, then draft.' : needsDiscussion ? 'Draft the discussion guide first. The leader guide is built from it, with answer keys, timing and the cut-out cards.' : busy ? 'Drafting from the sermon. This takes a minute or two.' : `Not drafted yet. Draft builds it from ${fields.passage}${sermon ? ` and “${sermon.title}”` : ''}, with exercises picked for this week.`}</p></div>
+          : <>{items.map(item => {
+            const key = `${openDoc}:${item.id}`
+            const isEditing = editing?.key === key
+            const canRedraft = item.section !== undefined || item.part
+            return <article key={key} className={`dg-card dg-item ${isEditing ? 'is-editing' : ''}`}>
+              <div className="dg-item-head"><h3>{item.title}</h3>{!isEditing && <div className="dg-actions">
+                <button className="btn btn-ghost" onClick={() => setEditing({ key, value: itemValue(item, data) })}><Pencil size={16} aria-hidden="true" />Edit</button>
+                {canRedraft && <button className="btn btn-ghost" disabled={working[key] || busy} onClick={() => run(openDoc, item.section !== undefined ? { section: item.section } : { part: item.part }, key)}><RefreshCw size={16} aria-hidden="true" />{working[key] ? 'Redrafting…' : 'Redraft'}</button>}
+              </div>}</div>
+              {isEditing ? <div className="dg-editor"><FieldEditor value={editing.value} onChange={value => setEditing(ed => ({ ...ed, value }))} /><div className="dg-actions"><button className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button><button className="btn btn-primary" onClick={async () => { if (await saveDoc(openDoc, { data: applyItem(item, data, editing.value) })) setEditing(null) }}>Save</button></div></div>
+                : <div className="pk pk-screen"><ItemPreview docId={openDoc} item={item} data={data} /></div>}
+            </article>
+          })}<p className="dg-muted dg-ai">AI-drafted from the passage{sermon ? ' and the sermon' : ''}. Check it against Scripture before you use it.</p></>}
       </section>
     </div>
   </div>
-}
-
-function EsvText({ reference }) {
-  const [state, setState] = useState({ status: 'loading' })
-  useEffect(() => { let active = true; fetchEsvPassage(reference).then(r => { if (active) setState({ status: 'ok', text: r.text }) }).catch(() => { if (active) setState({ status: 'error' }) }); return () => { active = false } }, [reference])
-  if (state.status === 'loading') return <p className="dg-muted">Loading {reference}…</p>
-  if (state.status === 'error') return <p className="dg-muted">The ESV text for {reference} could not load. Reload to try again.</p>
-  const parts = state.text.replace(/\s*\(ESV\)\s*$/, '').split(/\[(\d+)\]/)
-  return <p className="dg-esv">{parts.map((part, i) => i % 2 ? <sup key={i}>{part}</sup> : <span key={i}>{part}</span>)}</p>
 }
 
 export function DGroupPrint() {
@@ -137,18 +166,14 @@ export function DGroupPrint() {
   useEffect(() => { let active = true; supabase.from('dgroup_sessions').select('*').eq('id', id).eq('user_id', user.id).maybeSingle().then(({ data }) => { if (active) setSession(data || false) }); return () => { active = false } }, [id, user.id])
   const spec = DGROUP_DOCS.find(d => d.id === docId)
   if (session === null) return <p role="status">Loading…</p>
-  const markdown = session?.docs?.[docId]?.markdown
-  if (!session || !spec || !markdown) return <div className="page"><p>This document isn’t available.</p><Link to={`/dgroup/${id}`}>Back to the session</Link></div>
-  const booklet = docId === 'booklet'
-  return <div className={`dg-print ${booklet ? 'is-booklet' : ''}`}>
-    {booklet && <style>{'@page { size: letter landscape; margin: 0.5in; }'}</style>}
-    <div className="dg-print-bar"><Link to={`/dgroup/${id}`}><ArrowLeft size={16} aria-hidden="true" />Back</Link><span>Choose Print, then Save as PDF{booklet ? ', landscape' : ''}.</span><button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button></div>
-    <header className="dg-print-head"><div className="dg-print-kicker">Parkside Baptist Church · D-Group</div><h1>{booklet ? session.passage : spec.title}</h1><p>{[booklet ? 'Inductive study' : session.passage, session.meeting_date && longDate(session.meeting_date)].filter(Boolean).join(' · ')}</p></header>
-    {booklet ? <>{bookletSections(markdown).map((s, i) => s.ref
-      ? <section className="dg-print-pair" key={i}><div className="dg-print-text"><h2>{s.ref.replace(/-/g, '–')}</h2><EsvText reference={s.ref} /></div><div className="dg-print-questions"><Rendered markdown={s.markdown} className="dg-print-prose" /><div className="dg-lines" aria-hidden="true" /></div></section>
-      : <section className="dg-print-wrap" key={i}>{s.heading && <h2>{s.heading}</h2>}<Rendered markdown={s.markdown} className="dg-print-prose" /></section>)}
-      <p className="dg-copyright">Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.</p></>
-      : <Rendered markdown={markdown} className="dg-print-prose" />}
+  const data = session?.docs?.[docId]?.data
+  if (!session || !spec || !data) return <div className="page"><p>This guide isn’t available.</p><Link to={`/dgroup/${id}`}>Back to the session</Link></div>
+  const leader = docId === 'leader'
+  return <div className="pk pk-print">
+    <div className="pk-print-bar"><Link to={`/dgroup/${id}`}><ArrowLeft size={16} aria-hidden="true" />Back</Link><span>Choose Print, then Save as PDF. Turn on background graphics for the shaded boxes.</span><button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button></div>
+    <header className="pk-head"><div className="pk-kicker">Parkside Baptist Church · D-Group{leader ? ' · Leader guide' : ''}</div><h1>{data.title || session.title}</h1><p>{[!leader && data.subtitle, session.passage, session.meeting_date && longDate(session.meeting_date)].filter(Boolean).join(' · ')}</p></header>
+    {leader ? <>{data.overview && <LeaderPart k="overview" value={data.overview} title="The aim for Friday" />}{LEADER_PARTS.filter(p => p.key !== 'overview' && data[p.key] !== undefined).map(p => <LeaderPart key={p.key} k={p.key} value={data[p.key]} title={p.title} />)}</>
+      : <><DiscussionOpening data={data} />{(data.sections || []).map((sec, i) => <DiscussionSection key={i} s={sec} />)}<DiscussionClosing data={data} /><p className="pk-copyright">{ESV_NOTICE}</p></>}
   </div>
 }
 

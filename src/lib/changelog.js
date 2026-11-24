@@ -4,6 +4,17 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.16.0',
+    date: '2026-11-23',
+    title: 'D-Group: the discussion guide and leader guide',
+    changes: [
+      { kind: 'new', text: 'Each D-Group session now drafts two guides in the format you use on Fridays. The discussion guide opens with a psalm, then warm-up, Mark the Text beside the ESV passage, observation questions, a Greek word study, Dig In questions tied to the sermon’s own points and quotes, Make It Personal, prayer in pairs and This Week, closing with a benediction psalm.' },
+      { kind: 'new', text: 'Every guide includes at least six interactive exercises picked for that week: rating scales, dials, a two-ditches road, market booths, name tags, matching, fill-in tables, put-off and put-on, chains, circles and checklists.' },
+      { kind: 'new', text: 'The leader guide is built from the discussion guide: timing that adds to 60 minutes, what to cut when you run short, prep for Friday, background, an answer key, section-by-section notes, guardrails, gentle notes on any sermon slips, and a page of four cut-out scenario cards.' },
+      { kind: 'new', text: 'Review each section before you print. Edit its wording, or redraft just that section, then print to PDF in the Parkside colors.' },
+    ],
+  },
+  {
     version: '1.15.0',
     date: '2026-11-23',
     title: 'D-Group sessions, sermons by series, and calmer Library, Notes and Doctrine Check',

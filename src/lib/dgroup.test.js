@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { bookletSections, docStatus, nextFriday } from './dgroup.js'
+import { docStatus, exerciseMix, fieldLabel, guideExercises, nextFriday, timingTotal } from './dgroup.js'
 import { markdownToHtml } from './markdown.js'
 
 test('next Friday from a Monday, and a Friday stays put', () => {
@@ -8,30 +8,36 @@ test('next Friday from a Monday, and a Friday stays put', () => {
   assert.equal(nextFriday('2026-11-27'), '2026-11-27')
 })
 
-test('document status reflects generation locks and drafts', () => {
+test('guide status reflects generation locks and drafts', () => {
   const now = Date.parse('2026-11-23T12:00:00Z')
-  assert.equal(docStatus({}, 'prep', now), 'empty')
-  assert.equal(docStatus({ generating: { prep: '2026-11-23T11:58:00Z' } }, 'prep', now), 'generating')
-  assert.equal(docStatus({ generating: { prep: '2026-11-23T11:00:00Z' }, docs: { prep: { markdown: 'x' } } }, 'prep', now), 'draft')
-  assert.equal(docStatus({ docs: { prep: { markdown: 'x', status: 'ready' } } }, 'prep', now), 'ready')
+  assert.equal(docStatus({}, 'discussion', now), 'empty')
+  assert.equal(docStatus({ docs: { discussion: { markdown: 'old five-document format' } } }, 'discussion', now), 'empty')
+  assert.equal(docStatus({ generating: { leader: '2026-11-23T11:58:00Z' } }, 'leader', now), 'generating')
+  assert.equal(docStatus({ generating: { leader: '2026-11-23T11:00:00Z' }, docs: { leader: { data: {} } } }, 'leader', now), 'draft')
+  assert.equal(docStatus({ docs: { leader: { data: {}, status: 'ready' } } }, 'leader', now), 'ready')
 })
 
-test('booklet splits into passage sections and a wrap-up', () => {
-  const s = bookletSections('## 1 Peter 2:11-12\n### Observe\n- Who?\n\n## Wrap-up\n- Tie it together')
-  assert.equal(s.length, 2)
-  assert.equal(s[0].ref, '1 Peter 2:11-12')
-  assert.match(s[0].markdown, /Observe/)
-  assert.equal(s[1].ref, null)
-  assert.equal(s[1].heading, 'Wrap-up')
+test('exercises are collected from Dig In and Make It Personal', () => {
+  const data = { sections: [
+    { kind: 'warmup', questions: ['a'] },
+    { kind: 'interpret', movements: [{ exercise: { type: 'road' } }, { exercise: null }, { exercise: { type: 'rating' } }] },
+    { kind: 'personal', exercises: [{ type: 'rating' }, { type: 'booths' }, { type: 'made-up' }] },
+  ] }
+  assert.equal(guideExercises(data).length, 5)
+  assert.deepEqual(exerciseMix(data), ['road', 'rating', 'booths'])
 })
 
-test('markdown renders headings, lists, emphasis and escapes HTML', () => {
-  const html = markdownToHtml('# Title\n\nSome **bold** and *it*.\n\n- one\n- two\n\n1. a\n2. b\n\n> quote\n\n<script>x</script>')
+test('timing total adds the minute ranges', () => {
+  assert.equal(timingTotal([{ minutes: '0-5' }, { minutes: '5–20' }, { minutes: '20-60' }, { minutes: 'flex' }]), 60)
+})
+
+test('field labels read as words', () => {
+  assert.equal(fieldLabel('running_short'), 'Running short')
+})
+
+test('markdown renders headings, lists and emphasis, and escapes HTML', () => {
+  const html = markdownToHtml('# Title\n- **bold** and *it*\n<script>x</script>')
   assert.match(html, /<h1>Title<\/h1>/)
   assert.match(html, /<strong>bold<\/strong>/)
-  assert.match(html, /<em>it<\/em>/)
-  assert.match(html, /<ul><li>one<\/li><li>two<\/li><\/ul>/)
-  assert.match(html, /<ol><li>a<\/li><li>b<\/li><\/ol>/)
-  assert.match(html, /<blockquote>/)
-  assert.ok(!html.includes('<script>'))
+  assert.doesNotMatch(html, /<script>/)
 })

@@ -1,17 +1,32 @@
-// D-Group sessions: one per week, five documents each, drafted by the dgroup-generate Edge Function.
+// D-Group sessions: one per week, two guides each (the men's discussion guide and the leader guide),
+// drafted as structured JSON by the dgroup-generate Edge Function, reviewed section by section, printed to PDF.
 export const DGROUP_DOCS = [
-  { id: 'exegetical', title: 'Exegetical study guide', sub: 'Your personal study' },
-  { id: 'booklet', title: 'Inductive booklet', sub: 'Landscape, two columns, ESV' },
-  { id: 'prep', title: '4-day prep guide', sub: 'Monday to Thursday' },
-  { id: 'script', title: 'Facilitator script', sub: 'Leader only' },
-  { id: 'text', title: 'Group text', sub: 'Casual reminder' },
+  { id: 'discussion', title: 'Discussion guide', sub: 'For the men · about 5 pages' },
+  { id: 'leader', title: 'Leader guide', sub: 'For you · with cut-out cards' },
 ]
+
+// The leader guide's parts, in print order. Each can be edited or redrafted on its own.
+export const LEADER_PARTS = [
+  { key: 'overview', title: 'The aim for Friday' },
+  { key: 'timing', title: 'Timing' },
+  { key: 'running_short', title: 'Running short?' },
+  { key: 'before_friday', title: 'Before Friday' },
+  { key: 'background', title: 'Background' },
+  { key: 'answers', title: 'Answer key' },
+  { key: 'facilitation', title: 'Section by section' },
+  { key: 'guardrails', title: 'Guardrails' },
+  { key: 'sermon_flags', title: 'Sermon notes to handle gently' },
+  { key: 'cards', title: 'Scenario cards' },
+]
+
+// The exercise types the generator can choose from. New types go here and in Exercise.jsx.
+export const EXERCISE_TYPES = ['rating', 'dial', 'spectrum', 'table', 'checklist', 'match', 'nametags', 'booths', 'road', 'putoff', 'chain', 'circles', 'write']
 
 export function docStatus(session, docId, now = Date.now()) {
   const started = session?.generating?.[docId]
   if (started && now - Date.parse(started) < 300000) return 'generating'
   const doc = session?.docs?.[docId]
-  if (!doc?.markdown) return 'empty'
+  if (!doc?.data) return 'empty'
   return doc.status === 'ready' ? 'ready' : 'draft'
 }
 
@@ -24,18 +39,31 @@ export function nextFriday(day) {
   return date.toISOString().slice(0, 10)
 }
 
-// Split the booklet's Markdown into passage sections ("## 1 Peter 2:11-12") and the rest.
-export function bookletSections(markdown = '') {
-  const sections = []
-  let current = { ref: null, body: [] }
-  for (const line of String(markdown).split('\n')) {
-    const m = line.match(/^##\s+(.+?)\s*$/)
-    if (m) {
-      if (current.ref || current.body.some(l => l.trim())) sections.push(current)
-      const ref = m[1].trim()
-      current = { ref: /\d+:\d+/.test(ref) ? ref : null, heading: ref, body: [] }
-    } else current.body.push(line)
+// Every exercise in a discussion guide, wherever it sits.
+export function guideExercises(data) {
+  const out = []
+  for (const s of data?.sections || []) {
+    if (s.kind === 'interpret') for (const m of s.movements || []) if (m?.exercise) out.push(m.exercise)
+    if (Array.isArray(s.exercises)) out.push(...s.exercises.filter(Boolean))
   }
-  if (current.ref || current.body.some(l => l.trim())) sections.push(current)
-  return sections.map(s => ({ ref: s.ref, heading: s.heading || null, markdown: s.body.join('\n').trim() }))
+  return out
+}
+
+// Distinct known exercise types used, so the review screen can show the mix at a glance.
+export function exerciseMix(data) {
+  return [...new Set(guideExercises(data).map(e => e?.type).filter(t => EXERCISE_TYPES.includes(t)))]
+}
+
+// Minutes covered by a timing table such as [{minutes:'0-5'},{minutes:'5-15'}].
+export function timingTotal(rows = []) {
+  return rows.reduce((sum, r) => {
+    const m = String(r?.minutes || '').match(/(\d+)\s*[–-]\s*(\d+)/)
+    return m ? sum + Math.max(0, Number(m[2]) - Number(m[1])) : sum
+  }, 0)
+}
+
+// A readable label for a field key in the generic editor: "running_short" -> "Running short".
+export function fieldLabel(key) {
+  const s = String(key).replace(/_/g, ' ')
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }

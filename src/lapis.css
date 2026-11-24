@@ -61,6 +61,8 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 @media (min-width: 1100px) {
   .bible-grid.is-desk { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 24px; }
   .bible-grid.is-desk > .bible-reading { grid-column: 1; }
+  /* One translation: the reader keeps a comfortable line length and the study panel takes the rest. */
+  .bible-grid.is-desk.is-single { grid-template-columns: minmax(0, 800px) minmax(360px, 1fr); }
   .bible-grid.is-desk > .bible-study-panel { grid-column: 2; position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow-y: auto; scrollbar-width: thin; }
 }
 .bible-study-panel > * { flex-shrink: 0; }

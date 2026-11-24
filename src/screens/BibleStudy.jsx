@@ -629,7 +629,7 @@ export default function BibleStudy() {
     <header className="bible-title"><h1>Bible</h1></header>
     {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
-    {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':searchParams.get('sermon')?'is-sermon':'is-desk'}`}>
+    {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':searchParams.get('sermon')?'is-sermon':'is-desk'} ${showCompare?'':'is-single'}`}>
       {showCommentaryCompare && compareVerses.length > 0 && <CommentaryCompare book={book} chapter={chapter} verses={compareVerses} defaulted={!selectedSorted.length} noteTarget={noteTarget} onGoTo={(...target) => { setShowCommentaryCompare(false); goTo(...target) }} onClose={() => setShowCommentaryCompare(false)} />}
       <section className="bible-reading" aria-label="Passage reader" ref={readerRef}>
         {variantRequest&&<TextualVariants key={`${variantRequest.book}/${variantRequest.chapter}/${variantRequest.verse}`} request={variantRequest} onClose={()=>setVariantRequest(null)}/>}

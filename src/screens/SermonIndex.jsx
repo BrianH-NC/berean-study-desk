@@ -1,18 +1,59 @@
-import AccountLink from '../components/AccountLink'
-import {useEffect,useRef,useState} from 'react'
-import {Link,useNavigate} from 'react-router-dom'
-import {Mic,Search,Star,SlidersHorizontal} from 'lucide-react'
-import {useAuth} from '../App'
-import NoteMenu from '../components/NoteMenu'
-import {listSermons,updateSermon,deleteSermon} from '../lib/sermons'
-import {SERMON_SOURCES,sermonTitle,filterSermons} from '../lib/sermonModel'
-import {safeNoteUrl} from '../lib/noteModel'
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Mic, Search, Star, SlidersHorizontal, Users, Check } from 'lucide-react'
+import { useAuth } from '../App'
+import { listSermons } from '../lib/sermons'
+import { SERMON_SOURCES, sermonTitle, filterSermons } from '../lib/sermonModel'
 import './Sermons.css'
-export default function SermonIndex(){const navigate=useNavigate(),user=useAuth(),[rows,setRows]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[retry,setRetry]=useState(0),[filter,setFilter]=useState({}),[tab,setTab]=useState('All Sermons'),[view,setView]=useState('list'),[sort,setSort]=useState('date'),[limit,setLimit]=useState(30);const drawer=useRef(null);useEffect(()=>{let active=true;listSermons(user.id).then(data=>{if(active){setRows(data);setError('');setLoading(false)}}).catch(e=>{if(active){setError(e.message);setLoading(false)}});return()=>{active=false}},[user.id,retry]);const set=(k,v)=>{setFilter(f=>({...f,[k]:v}));setLimit(30)};const distinct=k=>[...new Set(rows.map(s=>s[k]).filter(Boolean))].sort();
- async function patch(s,values){try{const row=await updateSermon(user.id,s.id,values);setRows(rs=>rs.map(r=>r.id===s.id?row:r))}catch(e){setError(e.message)}}
- async function remove(s){if(!confirm(`Remove “${sermonTitle(s)}” and its uploaded transcript? Linked notes will remain.`))return;try{await deleteSermon(user.id,s);setRows(rs=>rs.filter(r=>r.id!==s.id))}catch(e){setError(e.message)}}
- const recent=[...rows].filter(s=>s.last_viewed).sort((a,b)=>Date.parse(b.last_viewed)-Date.parse(a.last_viewed));const featured=rows.find(s=>s.featured)||recent[0]||rows[0];let visible=filterSermons(rows,{...filter,favorite:tab==='Favorites'});if(tab==='Recent')visible=visible.filter(s=>s.last_viewed);visible.sort((a,b)=>sort==='title'?sermonTitle(a).localeCompare(sermonTitle(b)):sort==='speaker'?a.speaker.localeCompare(b.speaker):sort==='added'?Date.parse(b.created_at)-Date.parse(a.created_at):tab==='Recent'?Date.parse(b.last_viewed)-Date.parse(a.last_viewed):Date.parse(b.sermon_date||b.created_at)-Date.parse(a.sermon_date||a.created_at));
- const filters=<><header><h2>Filters</h2><button onClick={()=>setFilter({})}>Clear All</button></header>{[['source','Source',Object.entries(SERMON_SOURCES)],['series','Series',distinct('series').map(s=>[s,s])],['speaker','Speaker',distinct('speaker').map(s=>[s,s])],['tag','Topic',[...new Set(rows.flatMap(s=>s.tags))].sort().map(s=>[s,s])],['church','Church',distinct('church').map(s=>[s,s])]].map(([key,label,options])=><label key={key}>{label}<select className="input" value={filter[key]||''} onChange={e=>set(key,e.target.value)}><option value="">All</option>{options.map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>)}<details><summary>Dates and transcript</summary><label>Date preached — from<input type="date" className="input" value={filter.from||''} onChange={e=>set('from',e.target.value)}/></label><label>Through<input type="date" className="input" value={filter.to||''} onChange={e=>set('to',e.target.value)}/></label><label>Added on or after<input type="date" className="input" value={filter.added||''} onChange={e=>set('added',e.target.value)}/></label><label>Has transcript<select className="input" value={filter.transcript||''} onChange={e=>set('transcript',e.target.value)}><option value="">Either</option><option value="yes">Yes</option><option value="no">No</option></select></label></details></>
- function item(s){return <article className="sermon-list-row" key={s.id}><Link className="sermon-card-link" to={`/sermons/${s.id}`}><div className="sermon-thumb">{safeNoteUrl(s.image_url)?<img src={s.image_url} alt=""/>:<Mic size={26}/>}</div><div><h2>{sermonTitle(s)} {s.favorite&&<Star size={13}/>}</h2><small className="sermon-mobile-meta">{s.speaker} · {s.detected_refs.length} refs</small><small>{s.primary_text||s.detected_refs?.[0]?.raw}</small><p>{s.description||s.notes||'Open sermon to read and study.'}</p><div className="sermon-chips">{s.tags.slice(0,3).map(t=><span key={t}>{t}</span>)}</div></div></Link><div className="sermon-row-meta"><strong>{s.speaker||'Speaker not specified'}</strong><small>{s.series||'Stand-alone'}</small></div><span>{s.sermon_date||'—'}</span><span>{s.detected_refs.length} refs{ s.study_guide&&<small>Study guide</small>}</span><span>{SERMON_SOURCES[s.source_type]}</span><NoteMenu label={`Actions for ${sermonTitle(s)}`} actions={[{label:s.favorite?'Remove Favorite':'Add Favorite',run:()=>patch(s,{favorite:!s.favorite})},{label:s.featured?'Unfeature Sermon':'Feature Sermon',run:()=>patch(s,{featured:!s.featured})},{label:'Edit Sermon',run:()=>navigate(`/sermons/${s.id}/edit`)},{label:'Delete Sermon',danger:true,run:()=>remove(s)}]}/></article>}
- return <div className="page sermons-page"><div className="sermon-topbar"><Search size={20}/><input type="search" aria-label="Search sermons" placeholder="Search sermons (title, speaker, series, topic, or passage)…" value={filter.query||''} onChange={e=>set('query',e.target.value)}/><AccountLink user={user}/></div><header><div><h1>Sermons</h1></div><div className="sermon-actions"><Link className="btn btn-secondary" to="/sermons/new?source=sermonaudio">Add from SermonAudio</Link><Link className="btn btn-primary" to="/sermons/new">+ New Sermon</Link></div></header><div className="sermon-stats"><span>{rows.length} sermons</span><span>{rows.filter(s=>s.created_at.slice(0,7)===new Date().toISOString().slice(0,7)).length} added this month</span><span>{distinct('speaker').length} speakers</span><span>{distinct('series').length} series</span></div><div className="sermon-toolbar"><nav className="sermon-tabs">{['All Sermons','Recent','Favorites','Series','Topics'].map(t=><button key={t} aria-pressed={tab===t} onClick={()=>{setTab(t);setLimit(30)}}>{t}</button>)}</nav><button className="sermon-filter-toggle" onClick={()=>drawer.current.showModal()}><SlidersHorizontal size={18}/>Filters</button><button aria-pressed={view==='grid'} onClick={()=>setView('grid')}>Grid</button><button aria-pressed={view==='list'} onClick={()=>setView('list')}>List</button><select aria-label="Sort sermons" className="input" value={sort} onChange={e=>setSort(e.target.value)}><option value="date">Date (Newest)</option><option value="added">Recently Added</option><option value="title">Title A–Z</option><option value="speaker">Speaker</option></select></div>{error&&<p role="alert">Could not complete the request: {error} <button onClick={()=>setRetry(r=>r+1)}>Retry</button></p>}<div className="sermon-layout"><aside className="card sermon-filters">{filters}</aside><section><div className="sermon-groups">{tab==='Series'&&distinct('series').map(s=><button key={s} onClick={()=>set('series',filter.series===s?'':s)} aria-pressed={filter.series===s}>{s} ({rows.filter(r=>r.series===s).length})</button>)}{tab==='Topics'&&[...new Set(rows.flatMap(s=>s.tags))].map(t=><button key={t} onClick={()=>set('tag',filter.tag===t?'':t)} aria-pressed={filter.tag===t}>{t} ({rows.filter(r=>r.tags.includes(t)).length})</button>)}</div><div className={`sermon-list-heading ${view==='grid'?'is-hidden':''}`}><span>Sermon</span><span>Speaker / Series</span><span>Date</span><span>Refs</span><span>Type</span><span/></div><div className={`sermon-results ${view==='grid'?'is-grid':''}`}>{loading?<p role="status">Loading sermons…</p>:visible.length?visible.slice(0,limit).map(item):<div className="card"><h2>{rows.length?'No sermons match your filters.':'Add your first sermon.'}</h2><p>Save a source link and paste or upload a transcript to begin.</p><Link to="/sermons/new">+ New Sermon</Link></div>}</div>{visible.length>limit&&<button className="btn" onClick={()=>setLimit(n=>n+30)}>Load more</button>}</section><aside className="sermon-discovery">{featured&&<section className="card"><h2>Featured Sermon</h2><Link className="sermon-feature" to={`/sermons/${featured.id}`}><strong>{sermonTitle(featured)}</strong><span>{featured.speaker}</span><span>Open Sermon →</span></Link></section>}<section className="card"><h2>Recently Viewed</h2>{recent.slice(0,5).map(s=><Link key={s.id} to={`/sermons/${s.id}`}><strong>{sermonTitle(s)}</strong><small>{s.speaker} · {new Date(s.last_viewed).toLocaleDateString()}</small></Link>)}{!recent.length&&<p>Opened sermons appear here.</p>}</section></aside></div><dialog className="topic-dialog" ref={drawer} aria-label="Sermon filters"><button onClick={()=>drawer.current.close()}>Done</button>{filters}</dialog></div>
+
+const when = s => s.sermon_date || s.created_at?.slice(0, 10) || ''
+const shortDate = day => day ? new Date(`${day.slice(0, 10)}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+
+// Sermons grouped by series, newest series first; filters stay one click away.
+export function groupBySeries(rows) {
+  const groups = new Map()
+  for (const s of rows) { const key = s.series?.trim() || ''; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(s) }
+  return [...groups.entries()].map(([series, items]) => ({ series, items: items.sort((a, b) => when(b).localeCompare(when(a))) }))
+    .sort((a, b) => (a.series === '') - (b.series === '') || when(b.items[0]).localeCompare(when(a.items[0])))
+}
+
+export default function SermonIndex() {
+  const user = useAuth()
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
+  const [filter, setFilter] = useState({})
+  useEffect(() => { let active = true; listSermons(user.id).then(data => { if (active) { setRows(data); setError(''); setLoading(false) } }).catch(e => { if (active) { setError(e.message); setLoading(false) } }); return () => { active = false } }, [user.id, retry])
+  const set = (k, v) => setFilter(f => ({ ...f, [k]: v }))
+  const distinct = k => [...new Set(rows.map(s => s[k]).filter(Boolean))].sort()
+  const groups = useMemo(() => groupBySeries(filterSermons(rows, filter)), [rows, filter])
+  const activeFilters = Object.entries(filter).filter(([k, v]) => v && k !== 'query').length
+
+  return <div className="page sermons-page sermons-index">
+    <header className="sermons-head"><h1>Sermons</h1><div className="sermon-actions"><Link className="btn btn-ghost" to="/dgroup"><Users size={16} aria-hidden="true" />D-Group</Link><Link className="btn btn-secondary" to="/sermons/new?source=sermonaudio">Add from SermonAudio</Link><Link className="btn btn-primary" to="/sermons/new">New sermon</Link></div></header>
+    <div className="sermons-tools">
+      <label className="sermons-search"><Search size={16} aria-hidden="true" /><span className="sr-only">Search sermons</span><input type="search" placeholder="Search title, speaker, series, topic or passage" value={filter.query || ''} onChange={e => set('query', e.target.value)} /></label>
+      <details className="sermons-filters"><summary className="btn btn-secondary"><SlidersHorizontal size={16} aria-hidden="true" />Filters{activeFilters ? ` (${activeFilters})` : ''}</summary>
+        <div className="sermons-filter-grid">
+          {[['series', 'Series', distinct('series').map(s => [s, s])], ['speaker', 'Speaker', distinct('speaker').map(s => [s, s])], ['tag', 'Topic', [...new Set(rows.flatMap(s => s.tags))].sort().map(s => [s, s])], ['church', 'Church', distinct('church').map(s => [s, s])], ['source', 'Source', Object.entries(SERMON_SOURCES)]].map(([key, label, options]) => <label key={key}>{label}<select className="input" value={filter[key] || ''} onChange={e => set(key, e.target.value)}><option value="">All</option>{options.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select></label>)}
+          <label>Preached from<input type="date" className="input" value={filter.from || ''} onChange={e => set('from', e.target.value)} /></label>
+          <label>Through<input type="date" className="input" value={filter.to || ''} onChange={e => set('to', e.target.value)} /></label>
+          <label>Transcript<select className="input" value={filter.transcript || ''} onChange={e => set('transcript', e.target.value)}><option value="">Either</option><option value="yes">Has one</option><option value="no">None yet</option></select></label>
+          <label className="sermons-fav"><input type="checkbox" checked={!!filter.favorite} onChange={e => set('favorite', e.target.checked)} />Favorites only</label>
+          <button type="button" className="btn btn-ghost" onClick={() => setFilter(f => ({ query: f.query || '' }))}>Clear filters</button>
+        </div>
+      </details>
+    </div>
+    {error && <p role="alert">{error} <button className="btn btn-ghost" onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
+    {loading ? <p role="status">Loading sermons…</p> : rows.length === 0 ? <section className="sermons-empty"><Mic size={28} aria-hidden="true" /><h2>No sermons yet</h2><p>Add Sunday’s sermon from SermonAudio or paste a transcript.</p></section>
+      : groups.length === 0 ? <p>No sermons match. <button className="btn btn-ghost" onClick={() => setFilter({})}>Clear search and filters</button></p>
+      : groups.map(g => <section className="sermon-series" key={g.series || 'other'} aria-labelledby={`series-${g.series || 'other'}`}>
+        <div className="sermon-series-head"><h2 id={`series-${g.series || 'other'}`}>{g.series || 'Other sermons'}</h2><span>{g.items.length} {g.items.length === 1 ? 'sermon' : 'sermons'}</span></div>
+        <ul>{g.items.map(s => <li key={s.id}><Link to={`/sermons/${s.id}`}>
+          <span className="sermon-row-main"><strong>{sermonTitle(s)}{s.favorite && <Star size={13} aria-label="Favorite" />}</strong><small>{[s.speaker, s.primary_text || s.detected_refs?.[0]?.raw].filter(Boolean).join(' · ')}</small></span>
+          <span className="sermon-row-side">{s.study_guide && <span className="sermon-guide-chip"><Check size={12} aria-hidden="true" />Study guide</span>}<small>{shortDate(s.sermon_date)}</small></span>
+        </Link></li>)}</ul>
+      </section>)}
+  </div>
 }

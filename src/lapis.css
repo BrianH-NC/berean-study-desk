@@ -68,7 +68,7 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 .bible-study-panel > * { flex-shrink: 0; }
 .bible-study-panel { background: var(--bsd-surface); border: 1px solid var(--bsd-border); border-radius: 10px; padding: 0 16px 16px; }
 .bible-study-panel > .card, .bible-study-panel .bible-card { border: 0; padding-inline: 0 !important; background: transparent; }
-.study-panel-tabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 16px; overflow-x: auto; margin: 0 -16px 8px; padding: 0 16px; background: var(--bsd-surface); border-bottom: 1px solid var(--bsd-border); scrollbar-width: none; }
+.study-panel-tabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px 8px; padding: 0 16px; background: var(--bsd-surface); border-bottom: 1px solid var(--bsd-border); scrollbar-width: none; }
 .study-panel-tabs button { flex: none; min-height: 44px; padding: 10px 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--bsd-muted); font: 500 13px/18px Inter, system-ui, sans-serif; cursor: pointer; }
 .study-panel-tabs button.is-active { color: var(--bsd-forest); border-bottom-color: var(--bsd-forest); font-weight: 600; }
 .bible-title h1 { font-size: 24px; }

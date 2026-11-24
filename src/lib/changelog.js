@@ -4,6 +4,19 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.15.0',
+    date: '2026-11-23',
+    title: 'D-Group sessions, sermons by series, and calmer Library, Notes and Doctrine Check',
+    changes: [
+      { kind: 'new', text: 'D-Group sessions: from a sermon, choose Build this week’s D-Group session to draft the exegetical study guide, inductive booklet, 4-day prep guide, facilitator script and group text. Edit each one, mark it ready, and print it in the Parkside format; the booklet prints landscape with the ESV text beside the questions.' },
+      { kind: 'new', text: 'Today shows the coming D-Group session and how many of its documents are ready.' },
+      { kind: 'improved', text: 'Sermons are grouped by series, newest first, and open on the study guide when there is one. Filters sit in one panel.' },
+      { kind: 'improved', text: 'Doctrine Check shows the check form first; verdict counts sit in the filter, and the legend opens from How verdicts work.' },
+      { kind: 'improved', text: 'Library tabs are All, Reading, Finished and Want to read; filters open from one button above your books.' },
+      { kind: 'improved', text: 'Notes shows the list and the note side by side; Details opens on request, and only the note types you use appear as filters.' },
+    ],
+  },
+  {
     version: '1.14.0',
     date: '2026-11-23',
     title: 'A calmer study desk: Today, M’Cheyne and a new look',

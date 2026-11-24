@@ -7,9 +7,9 @@ import { parseReference } from '../lib/bsb'
 export default function NoteContext({draft,note,notes,books,checks,links,version,change,details,setDetails,onOpen,onNavigate,onExport,onDuplicate,onDelete}) {
   const [editing,setEditing]=useState(details==='edit'),[tag,setTag]=useState(''),[all,setAll]=useState(false)
   const [message,setMessage]=useState('')
-  const [wide,setWide]=useState(()=>window.matchMedia('(min-width:1351px)').matches)
+  const [wide,setWide]=useState(()=>window.matchMedia('(min-width:100000px)').matches)
   const dialog=useRef(null),related=useRef(null)
-  useEffect(()=>{const media=window.matchMedia('(min-width:1351px)');const listener=()=>setWide(media.matches);media.addEventListener('change',listener);return()=>media.removeEventListener('change',listener)},[])
+  useEffect(()=>{const media=window.matchMedia('(min-width:100000px)');const listener=()=>setWide(media.matches);media.addEventListener('change',listener);return()=>media.removeEventListener('change',listener)},[])
   useEffect(()=>{if(details==='edit')setEditing(true);if(!wide&&details)dialog.current?.showModal();else dialog.current?.close()},[details,wide])
   const book=books.find(b=>b.id===draft.shelf_book_id),check=checks.find(c=>c.id===draft.doctrine_check_id)
   const reference=parseReference((draft.ref||'').replace(/[–—]/g,'-'))

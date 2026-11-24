@@ -141,3 +141,11 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 .library-summary-disclosure { margin-top: 24px; font: 400 13px/18px Inter, system-ui, sans-serif; }
 .library-summary-disclosure > summary { cursor: pointer; color: var(--bsd-forest); font-weight: 500; min-height: 32px; }
 .library-summary-disclosure[open] > *:not(summary) { margin-top: 12px; max-width: 420px; }
+
+/* Notes: list and editor; details open as a dialog from the editor */
+@media (min-width: 761px) { body .notes-layout { grid-template-columns: 320px minmax(0, 1fr); } }
+body .notes-details-toggle { display: inline-flex; }
+.notes-more-filters { margin: 4px 0 8px; font: 400 13px/18px Inter, system-ui, sans-serif; }
+.notes-more-filters > summary { cursor: pointer; color: var(--bsd-forest); font-weight: 500; min-height: 32px; }
+.notes-more-filters[open] { display: flex; flex-direction: column; gap: 8px; }
+body .notes-layout .card { border-radius: 10px; }

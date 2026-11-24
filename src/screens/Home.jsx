@@ -1,97 +1,118 @@
-import DailyQueue from '../components/DailyQueue'
-import AccountLink from '../components/AccountLink'
-import UploadBookButton from '../components/UploadBookButton'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, BookOpen, LibraryBig, NotebookPen, Search, ShieldCheck, Tags, BookMarked } from 'lucide-react'
+import { Check, ChevronRight, LibraryBig, Mic, NotebookPen, Play, Plus, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { fetchVerseOfTheDay } from '../lib/votd'
-import BookCover from '../components/BookCover'
-import { dailyHero } from '../lib/dailyHero'
+import { ownedRows, saveOwned } from '../lib/dailyStudyData'
+import { localDay, planQueue } from '../lib/dailyStudyModel'
+import { MCHEYNE_DAYS, MCHEYNE_TITLE, isMcheynePlan, mcheynePlanItems, mcheyneStart, mcheyneStatus, readingUrl, toggleMcheyneReading } from '../lib/mcheyne'
+import { verdictClass } from '../lib/verdict'
+import './Today.css'
 
-const shortcuts = [
-  {label:'Search',text:'Find Scripture, books, and your notes.',to:'/search',icon:Search},
-  {label:'Bible Study',text:'Study passages in context.',to:'/bible',icon:BookOpen},
-  {label:'Library',text:'Your personal theological library.',to:'/shelf',icon:LibraryBig},
-  {label:'Doctrine Check',text:'Evaluate with confessional clarity.',to:'/checks',icon:ShieldCheck},
-  {label:'Notes',text:'Capture and grow your insights.',to:'/notebook',icon:NotebookPen},
-  {label:'Topics',text:'Explore connections in your study.',to:'/topics',icon:Tags},
-  {label:'Reading',text:'Return to the books you are reading.',to:'/reading',icon:BookMarked},
-]
-function PanelTitle({children,to}) { return <div className="desk-panel-title"><h2>{children}</h2>{to && <Link to={to}>See all <ArrowRight size={13} aria-hidden="true" /></Link>}</div> }
+const greeting = (date = new Date()) => date.getHours() < 12 ? 'Good morning' : date.getHours() < 17 ? 'Good afternoon' : 'Good evening'
+const dayOfYear = (date = new Date()) => Math.min(MCHEYNE_DAYS, Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(), 0, 0)) / 864e5))
+const shortDate = value => value ? new Date(value.length === 10 ? `${value}T12:00:00` : value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+
+function PlanSetup({ onStart, busy }) {
+  const [day, setDay] = useState(dayOfYear())
+  return <section className="today-card today-plan" aria-labelledby="plan-heading">
+    <div className="today-kicker">M’Cheyne (Modified)</div>
+    <h2 id="plan-heading" className="today-plan-title">Read through the Bible this year</h2>
+    <p className="today-muted">Three readings a day, from the plan you follow on YouVersion. Tell me which day you’re on and I’ll start there; earlier days count as read.</p>
+    <form className="today-setup" onSubmit={event => { event.preventDefault(); onStart(day) }}>
+      <label htmlFor="mcheyne-day">I’m on day</label>
+      <input id="mcheyne-day" className="input" type="number" min="1" max={MCHEYNE_DAYS} required value={day} onChange={event => setDay(event.target.value)} />
+      <button className="btn btn-primary" disabled={busy}>{busy ? 'Starting…' : 'Start reading'}</button>
+    </form>
+  </section>
+}
+
+function PlanCard({ plan, onToggle, busy, others }) {
+  const status = mcheyneStatus(plan, localDay())
+  if (status.finished) return <section className="today-card today-plan"><div className="today-kicker">{MCHEYNE_TITLE}</div><h2 className="today-plan-title">You finished all {MCHEYNE_DAYS} days.</h2><p className="today-muted">Start a new year from <Link to="/reading-plans">Reading plans</Link>.</p></section>
+  const next = status.readings.find(r => !r.done)
+  return <section className="today-card today-plan" aria-labelledby="plan-heading">
+    <div className="today-plan-head">
+      <div><div className="today-kicker">{MCHEYNE_TITLE} · Day {status.index + 1}</div><h2 id="plan-heading" className="today-plan-title">Today’s readings</h2></div>
+      <div className="today-progress"><strong>{status.read} of {status.readings.length} read</strong><span className="today-bar"><span style={{ width: `${(status.read / status.readings.length) * 100}%` }} /></span>{status.behind > 0 && <small>{status.behind} {status.behind === 1 ? 'day' : 'days'} behind; this is the next unread day</small>}</div>
+    </div>
+    <ul className="today-readings">{status.readings.map(reading => <li key={reading.n} className={reading.done ? 'is-done' : ''}>
+      <button type="button" className="today-check" disabled={busy} aria-pressed={reading.done} aria-label={`${reading.done ? 'Mark unread' : 'Mark read'}: ${reading.label}`} onClick={() => onToggle(status.index, reading.n)}>{reading.done && <Check size={14} strokeWidth={3} aria-hidden="true" />}</button>
+      <Link to={readingUrl(plan, status.index, reading)}><span className="today-ref">{reading.label}</span><ChevronRight size={18} aria-hidden="true" /></Link>
+    </li>)}</ul>
+    <div className="today-plan-foot">
+      {next ? <Link className="btn btn-primary" to={readingUrl(plan, status.index, next)}><Play size={16} aria-hidden="true" />{status.read ? `Continue with ${next.label}` : `Start with ${next.label}`}</Link> : <span className="today-muted">Day {status.index + 1} is done. Tomorrow’s readings will be here.</span>}
+      {others.length > 0 && <span className="today-muted">Also: {others[0].plan.title} · {others.length} waiting <Link to="/reading-plans">Review</Link></span>}
+    </div>
+  </section>
+}
 
 export default function Home() {
   const user = useAuth()
   const navigate = useNavigate()
-  const [query,setQuery] = useState('')
-  const [data,setData] = useState(null)
-  const [error,setError] = useState(false)
-  const [reload,setReload] = useState(0)
-  const [votd,setVotd] = useState(null)
-  const [hero,setHero] = useState(()=>dailyHero())
-  useEffect(()=>{
-    const refresh=()=>setHero(dailyHero())
-    const timer=setInterval(refresh,30000)
-    window.addEventListener('focus',refresh)
-    return ()=>{clearInterval(timer);window.removeEventListener('focus',refresh)}
-  },[])
-  useEffect(()=>{
-    let active=true
-    fetchVerseOfTheDay().then(v=>{if(active)setVotd(v)}).catch(()=>{if(active)setVotd(false)})
-    return ()=>{active=false}
-  },[])
-  useEffect(()=>{
-    let active=true
-    async function load(){
-      try {
-        const results=await Promise.all([
-          supabase.from('books').select('id,title,author,cover_url,reading_status,updated_at').eq('user_id',user.id).eq('reading_status','in-progress').order('updated_at',{ascending:false}).limit(3),
-          supabase.from('entries').select('id,title,created_at').is('deleted_at',null).eq('user_id',user.id).order('created_at',{ascending:false}).limit(4),
-          supabase.from('theology_checks').select('id,title,name,created_at').order('created_at',{ascending:false}).limit(4),
-          supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id).eq('reading_status','read'),
-          supabase.from('books').select('id',{count:'exact',head:true}).eq('user_id',user.id),
-          supabase.from('entries').select('id',{count:'exact',head:true}).is('deleted_at',null).eq('user_id',user.id),
-        ])
-        if(results.some(r=>r.error))throw new Error('Could not load activity')
-        if(!active)return
-        const [books,notes,checks,completed,total,noteCount]=results
-        setData({reading:books.data||[],feed:[...(notes.data||[]).map(n=>({...n,kind:'Note',to:`/notebook/${n.id}`})),...(checks.data||[]).map(c=>({...c,kind:'Doctrine Check',to:`/checks/${c.id}`}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,4),completed:completed.count,total:total.count,notes:noteCount.count})
-        setError(false)
-      }catch{if(active)setError(true)}
-    }
-    void load()
-    return ()=>{active=false}
-  },[user.id,reload])
-  const verseTo=votd ? `/bible?book=${encodeURIComponent(votd.book)}&chapter=${votd.chapter}${votd.verseStart?`&verse=${votd.verseStart}`:''}${votd.verseEnd?`&verseEnd=${votd.verseEnd}`:''}` : '/bible'
-  return <div className="page desk-home" style={{'--daily-hero':`url("${hero}")`}}>
-    <header className="desk-topbar">
-      <form className="desk-search" role="search" onSubmit={e=>{e.preventDefault();if(query.trim())navigate(`/search?q=${encodeURIComponent(query.trim())}`)}}>
-        <Search size={21} aria-hidden="true"/><label className="sr-only" htmlFor="home-search">Search Scripture, books, and notes</label><input id="home-search" type="search" placeholder="Search Scripture, books, topics, or questions…" value={query} onChange={e=>setQuery(e.target.value)} required/><button className="btn btn-primary" type="submit">Search</button>
-      </form>
-      <AccountLink user={user}/>
-      <p className="desk-motto">Search diligently<br/>and with discernment.<small>Inspired by Acts 17:11</small></p>
+  const [plans, setPlans] = useState(null)
+  const [planError, setPlanError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [data, setData] = useState(null)
+  const [votd, setVotd] = useState(null)
+  const [capture, setCapture] = useState('')
+  const name = (user?.user_metadata?.display_name || user?.user_metadata?.full_name || '').trim().split(/\s+/)[0]
+
+  useEffect(() => { let active = true; ownedRows('reading_plans', user.id).then(rows => { if (active) setPlans(rows) }).catch(e => { if (active) { setPlans([]); setPlanError(e.message) } }); return () => { active = false } }, [user.id])
+  useEffect(() => { let active = true; fetchVerseOfTheDay().then(v => { if (active) setVotd(v) }).catch(() => { if (active) setVotd(false) }); return () => { active = false } }, [])
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      supabase.from('books').select('id,title,author,updated_at').eq('user_id', user.id).eq('reading_status', 'in-progress').order('updated_at', { ascending: false }).limit(2),
+      supabase.from('entries').select('id,title,created_at,ref').is('deleted_at', null).eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
+      supabase.from('theology_checks').select('id,title,name,verdict,created_at').order('created_at', { ascending: false }).limit(3),
+      supabase.from('sermons').select('id,title,speaker,series,sermon_date,primary_ref,study_guide_generated_at').eq('user_id', user.id).order('sermon_date', { ascending: false, nullsFirst: false }).limit(1),
+    ]).then(([books, notes, checks, sermons]) => { if (active) setData({ books: books.data || [], notes: notes.data || [], checks: checks.data || [], sermon: sermons.data?.[0] || null }) }).catch(() => { if (active) setData({ books: [], notes: [], checks: [], sermon: null, error: true }) })
+    return () => { active = false }
+  }, [user.id])
+
+  const mcheyne = useMemo(() => plans?.find(isMcheynePlan) || null, [plans])
+  const others = useMemo(() => plans ? planQueue(plans) : [], [plans])
+
+  async function start(dayNumber) {
+    setBusy(true); setPlanError('')
+    try { const row = await saveOwned('reading_plans', user.id, null, { title: MCHEYNE_TITLE, kind: 'bible', interval_days: 1, items: mcheynePlanItems(), ...mcheyneStart(dayNumber, localDay()) }); setPlans(rows => [...rows, row]) }
+    catch (e) { setPlanError(e.message) } finally { setBusy(false) }
+  }
+  async function toggle(dayIndex, n) {
+    if (busy) return
+    setBusy(true); setPlanError('')
+    try { const row = await saveOwned('reading_plans', user.id, mcheyne, { completed: toggleMcheyneReading(mcheyne, dayIndex, n) }); setPlans(rows => rows.map(p => p.id === row.id ? row : p)) }
+    catch (e) { setPlanError(e.message) } finally { setBusy(false) }
+  }
+
+  const verseTo = votd ? `/bible?book=${encodeURIComponent(votd.book)}&chapter=${votd.chapter}${votd.verseStart ? `&verse=${votd.verseStart}` : ''}${votd.verseEnd ? `&verseEnd=${votd.verseEnd}` : ''}` : '/bible'
+  const today = new Date()
+  return <div className="page today">
+    <header className="today-header">
+      <div><p className="today-greeting">{greeting(today)}{name ? `, ${name}` : ''}</p><h1>{today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h1></div>
+      <div className="today-actions"><Link className="btn btn-secondary" to="/notebook/new"><Plus size={16} aria-hidden="true" />New note</Link><Link className="btn btn-secondary" to="/checks"><ShieldCheck size={16} aria-hidden="true" />Doctrine Check</Link></div>
     </header>
-    <details className="upload-disclosure"><summary>Add a digital book or find free books</summary><UploadBookButton userId={user.id}/></details>
-    {error && <div className="card" role="alert">Study activity could not be loaded.<button className="btn btn-secondary" onClick={()=>setReload(n=>n+1)}>Retry</button></div>}
-    <div className="desk-layout">
-      <div className="desk-primary">
-        <section className="desk-hero" aria-labelledby="home-heading">
-          <div className="desk-hero-copy"><h1 id="home-heading">Search. Study. Discern.</h1><p>A deeper place for a deeper faith.</p></div>
-          <blockquote>“Your word is a lamp<br/>to my feet and a light<br/>to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
-        </section>
-        <nav className="desk-shortcuts" aria-label="Study shortcuts">{shortcuts.map(({label,text,to,icon:Icon})=><Link key={to} to={to}><Icon size={29} strokeWidth={1.8} aria-hidden="true"/><h2>{label}</h2><p>{text}</p><ArrowRight size={15} aria-hidden="true"/></Link>)}</nav>
-        <div className="desk-bottom">
-          <section className="card desk-verse"><PanelTitle>Verse of the Day</PanelTitle>{votd ? <><div className="desk-verse-body"><img className="desk-verse-image" src={hero} alt="" loading="lazy"/><p className="scripture-text">“{votd.text}”</p></div><Link to={verseTo}>{votd.reference} · BSB <ArrowRight size={13} aria-hidden="true"/></Link><small>Daily pick via <a href="https://www.biblegateway.com" target="_blank" rel="noopener noreferrer">BibleGateway</a></small></> : <p>{votd===false?'Today’s verse is unavailable. Open Bible Study to choose a passage.':'Loading today’s verse…'}</p>}</section>
-          <section className="card desk-thought"><PanelTitle>A Thought for Today</PanelTitle><p>A deeper understanding of God’s Word is not an end in itself, but a means to a deeper love for God and a clearer walk in His will.</p><span aria-hidden="true">—</span><Link to="/notebook/new">Reflect in a note <ArrowRight size={13} aria-hidden="true"/></Link></section>
-          <section className="card desk-progress"><PanelTitle>Study activity</PanelTitle><p className="card-meta">All time</p>{data ? <><div><BookOpen size={18} aria-hidden="true"/><span>Books completed</span><strong>{data.completed ?? '—'}</strong></div><div><NotebookPen size={18} aria-hidden="true"/><span>Notes created</span><strong>{data.notes ?? '—'}</strong></div><Link to="/reading">Continue your reading <ArrowRight size={13} aria-hidden="true"/></Link></> : <p>{error?'Activity unavailable.':'Loading progress…'}</p>}</section>
-        </div>
+    {planError && <p role="alert" className="today-error">{planError}</p>}
+    <div className="today-layout">
+      <div className="today-main">
+        {plans === null ? <section className="today-card" role="status">Loading your readings…</section> : mcheyne ? <PlanCard plan={mcheyne} onToggle={toggle} busy={busy} others={others} /> : <PlanSetup onStart={start} busy={busy} />}
+        {data?.sermon && <section className="today-card" aria-labelledby="week-heading"><h2 id="week-heading" className="today-h2">This week</h2>
+          <Link className="today-tile" to={`/sermons/${data.sermon.id}`}><span className="today-tile-icon"><Mic size={20} aria-hidden="true" /></span><span><span className="today-muted">Latest sermon{data.sermon.series ? ` · ${data.sermon.series}` : ''}</span><strong>{data.sermon.title || 'Untitled sermon'}</strong><span className="today-muted">{[data.sermon.speaker, data.sermon.primary_ref, data.sermon.study_guide_generated_at && 'Study guide ready'].filter(Boolean).join(' · ')}</span></span></Link>
+        </section>}
+        {data && (data.books.length > 0 || data.notes.length > 0) && <section className="today-card" aria-labelledby="pickup-heading"><h2 id="pickup-heading" className="today-h2">Pick up where you left off</h2>
+          <ul className="today-list">
+            {data.books.map(book => <li key={book.id}><Link to={`/reading/${book.id}`}><LibraryBig size={18} aria-hidden="true" /><span><strong>{book.title}</strong><small>{book.author ? `${book.author} · ` : ''}Book · updated {shortDate(book.updated_at)}</small></span></Link></li>)}
+            {data.notes.map(note => <li key={note.id}><Link to={`/notebook/${note.id}`}><NotebookPen size={18} aria-hidden="true" /><span><strong>{note.title || 'Untitled note'}</strong><small>Note{note.ref ? ` · ${note.ref}` : ''} · {shortDate(note.created_at)}</small></span></Link></li>)}
+          </ul></section>}
       </div>
-      <aside className="desk-activity" aria-label="Personal study activity">
-        <DailyQueue/>
-        <section className="card"><PanelTitle to="/reading">Continue Studying</PanelTitle>{data ? data.reading.length ? data.reading.map(book=><Link className="desk-activity-row" to={`/reading/${book.id}`} key={book.id}><BookCover book={book} compact/><span><strong>{book.title}</strong><small>{book.author || 'Currently reading'}</small>{book.updated_at && <small>Updated {new Date(book.updated_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small>}</span></Link>) : <p>Start a book in your <Link to="/shelf">Library</Link> to pick up your reading here.</p> : <p>{error?'Activity unavailable.':'Loading your books…'}</p>}</section>
-        <section className="card"><PanelTitle>Recent Items</PanelTitle>{data ? data.feed.length ? data.feed.map(item=><Link className="desk-activity-row" to={item.to} key={item.to}><span className="desk-item-icon">{item.kind==='Note'?<NotebookPen size={22}/>:<ShieldCheck size={22}/>}</span><span><strong>{item.title||item.name||'Untitled'}</strong><small>{item.kind} · {new Date(item.created_at).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</small></span></Link>) : <p>Your notes and doctrine checks will appear here.</p> : <p>{error?'Activity unavailable.':'Loading recent items…'}</p>}</section>
-        <Link className="desk-closing" to="/bible?book=Romans&chapter=10&verse=15"><span>“How beautiful are the feet<br/>of those who bring good news!”</span><small>Romans 10:15 · BSB</small></Link>
+      <aside className="today-side" aria-label="More for today">
+        <section className="today-card"><div className="today-kicker today-kicker-muted">Verse of the day</div>{votd ? <><p className="today-verse">“{votd.text}”</p><div className="today-row"><Link to={verseTo}>{votd.reference} · BSB</Link><Link to="/notebook/new" state={{ ref: votd.reference, body: `“${votd.text}”` }}>Reflect in a note</Link></div><small className="today-muted">Daily pick via <a href="https://www.biblegateway.com/" target="_blank" rel="noreferrer">BibleGateway</a></small></> : votd === false ? <p className="today-muted">The verse of the day could not load.</p> : <p className="today-muted" role="status">Loading…</p>}</section>
+        <section className="today-card"><h2 className="today-h2"><label htmlFor="quick-capture">Quick capture</label></h2>
+          <form onSubmit={event => { event.preventDefault(); if (capture.trim()) navigate('/notebook/new', { state: { body: capture.trim() } }) }}><textarea id="quick-capture" className="input" rows={3} placeholder="A thought, a verse, a question…" value={capture} onChange={event => setCapture(event.target.value)} /><div className="today-row today-row-end"><button className="btn btn-secondary" disabled={!capture.trim()}>Open as a note</button></div></form></section>
+        {data?.checks?.length > 0 && <section className="today-card"><div className="today-row"><h2 className="today-h2">Recent checks</h2><Link to="/checks">All checks</Link></div>
+          <ul className="today-checks">{data.checks.map(check => <li key={check.id}><Link to={`/checks/${check.id}`}>{check.title || check.name || 'Untitled'}</Link><span className={`tag ${verdictClass(check.verdict)}`}>{check.verdict || 'Not assessed'}</span></li>)}</ul></section>}
       </aside>
     </div>
   </div>

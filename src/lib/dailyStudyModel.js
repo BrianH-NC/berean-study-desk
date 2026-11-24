@@ -13,7 +13,7 @@ export function addDays(day, count) {
   return localDay(date)
 }
 export function planQueue(plans, today = localDay()) {
-  return plans.filter(p=>!p.paused).flatMap(p=>(p.items||[]).map((item,index)=>({plan:p,item,index,date:addDays(p.start_date,index*p.interval_days)})))
+  return plans.filter(p=>!p.paused&&p.items?.[0]?.mcheyne!=='mcheyne-modified').flatMap(p=>(p.items||[]).map((item,index)=>({plan:p,item,index,date:addDays(p.start_date,index*p.interval_days)})))
     .filter(row=>!row.plan.completed?.[row.index] && row.date<=today).sort((a,b)=>a.date.localeCompare(b.date))
 }
 export function pageAssignments(first, last, perDay) {

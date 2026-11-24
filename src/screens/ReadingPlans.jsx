@@ -42,7 +42,7 @@ export default function ReadingPlans() {
   }catch(e){setError(e.message)}finally{setBusy(false)}}
   async function remove(row){if(!confirm(`Delete “${row.title}” and its reading checklist? Your books and notes remain.`))return;setBusy(true);try{await removeOwned('reading_plans',user.id,row);setPlans(rows=>rows.filter(p=>p.id!==row.id));if(edit?.id===row.id)reset()}catch(e){setError(e.message)}finally{setBusy(false)}}
   function toggle(plan,index){const completed={...plan.completed};if(completed[index])delete completed[index];else completed[index]=new Date().toISOString();void change(plan,{completed})}
-  function destination(plan,item){return plan.kind==='bible'?scriptureUrl(item):plan.book_id?`/reading/${plan.book_id}`:null}
+  function destination(plan,item){return plan.kind==='bible'?(item.readings?null:scriptureUrl(item)):plan.book_id?`/reading/${plan.book_id}`:null}
   const queue=planQueue(plans)
   return <div className="daily-study"><header><div><h1>Reading Plans</h1></div><Link to="/reading">Reading now →</Link></header>
     {error&&<p role="alert">{error} <button onClick={()=>setRetry(n=>n+1)}>Reload</button></p>}

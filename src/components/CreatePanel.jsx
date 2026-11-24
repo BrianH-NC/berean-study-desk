@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function CreatePanel({ title, editing = false, children }) {
+export default function CreatePanel({ title, editing = false, defaultOpen = false, children }) {
   const panel = useRef(null)
   useEffect(() => {
     if (!editing) return
@@ -8,5 +8,5 @@ export default function CreatePanel({ title, editing = false, children }) {
     panel.current.scrollIntoView({ block: 'start', behavior: 'smooth' })
     panel.current.querySelector('input,textarea,select')?.focus({ preventScroll: true })
   }, [editing])
-  return <details ref={panel} className="create-panel"><summary>{editing ? 'Edit details' : title}</summary>{children}</details>
+  return <details ref={panel} className="create-panel" open={defaultOpen || undefined}><summary>{editing ? 'Edit details' : title}</summary>{children}</details>
 }

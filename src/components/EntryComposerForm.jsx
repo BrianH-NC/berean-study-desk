@@ -171,7 +171,7 @@ export default function EntryComposerForm({ userId, initial, initialRelated, pre
         </button>
       </div>
 
-<p className="card-meta">Capture. Connect. Grow. Format your writing, scan a page, and keep your study connections together.</p>
+<p className="card-meta">Format your writing, scan a page, and keep your study connections together.</p>
       <div className="entry-compose-fields">
         <div className="card notes-editor entry-writing mb-4" style={{ padding: '18px 20px' }}>
           <input

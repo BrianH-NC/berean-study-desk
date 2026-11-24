@@ -162,7 +162,7 @@ export default function DoctrineCheckReport() {
             </div>
           )}
           <div className="flex-1">
-            <h2 className="!mb-1" style={{ font: '600 22px/1.4 Lora, serif' }}>
+            <h2 className="!mb-1" style={{ font: '600 22px/1.4 Literata, serif' }}>
               {label}
             </h2>
             {check.kind === 'book' && check.authors && <div className="card-meta mb-2">{check.authors}</div>}

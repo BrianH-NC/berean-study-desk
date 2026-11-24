@@ -622,9 +622,8 @@ export default function BibleStudy() {
         <select aria-label="Reading translation" value={readingTranslation} onChange={e=>setReadingTranslation(e.target.value)}>{availableTranslations.map(t=><option key={t.id} value={t.id}>{t.short}</option>)}</select><button className="btn btn-primary">Go</button>
       </form>
       <AccountLink user={user}/>
-      <blockquote className="bible-header-quote">“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
     </div>
-    <header className="bible-title"><h1>Bible Study</h1><p>Read. Compare. Explore. Understand.</p></header>
+    <header className="bible-title"><h1>Bible</h1></header>
     {sessionMode?<StudySessionBar state={sessionState} onRestore={restoreSession} onReady={setSessionReady} onNote={setSessionNoteId} onSermon={setSessionSermonId} saveRef={sessionSaveRef}/>:<div className="session-actions mb-3"><Link className="btn btn-secondary" to={`/bible?${new URLSearchParams({book,chapter:String(chapter),study:'new',...(searchParams.get('sermon')?{sermon:searchParams.get('sermon')}:{})})}`}>Start a Study Session</Link><Link className="btn btn-ghost" to="/study-sessions">Saved sessions →</Link></div>}
     {refError && <p role="alert">{refError}</p>}
     {sessionMode&&!sessionReady?<p role="status">Select a saved session or retry opening it above.</p>:viewMode === 'Read' ? <div className={`bible-grid ${sessionMode?'is-session':''}`}>

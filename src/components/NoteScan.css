@@ -1,6 +1,6 @@
 .note-scan { width:min(740px,94vw); max-height:90dvh; overflow:auto; padding:24px; border:1px solid var(--bsd-border); border-radius:10px; color:var(--bsd-charcoal); background:var(--bsd-surface); }
 .note-scan::backdrop { background:#08291fcc; }
-.note-scan h2 { font-family:Lora,Georgia,serif; }
+.note-scan h2 { font-family:Literata,Georgia,serif; }
 .note-scan label { display:grid; gap:6px; font:14px Inter,sans-serif; margin:12px 0; }
 .note-scan input,.note-scan textarea,.note-scan select { max-width:100%; min-width:0; padding:8px; border:1px solid var(--bsd-border); border-radius:4px; background:var(--bsd-parchment); }
 .note-scan textarea { width:100%; line-height:1.5; }

@@ -7,7 +7,7 @@
 
 .reading-lists .rl-summary { display: flex; flex-wrap: wrap; gap: 12px 40px; padding: 16px 20px; margin-bottom: 16px; font-variant-numeric: tabular-nums; }
 .reading-lists .rl-figure { display: flex; align-items: baseline; gap: 8px; }
-.reading-lists .rl-figure strong { font-size: 28px; line-height: 1; font-family: Lora, Georgia, serif; }
+.reading-lists .rl-figure strong { font-size: 28px; line-height: 1; font-family: Literata, Georgia, serif; }
 .reading-lists .rl-figure small { opacity: .65; }
 
 .reading-lists .rl-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
@@ -22,7 +22,7 @@
 .reading-lists .rl-section { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; text-align: left; cursor: pointer; font: inherit; color: inherit; }
 .reading-lists .rl-section:hover { border-color: var(--color-accent); }
 .reading-lists .rl-section:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.reading-lists .rl-section-name { font-family: Lora, Georgia, serif; font-size: 17px; line-height: 1.3; }
+.reading-lists .rl-section-name { font-family: Literata, Georgia, serif; font-size: 17px; line-height: 1.3; }
 .reading-lists .rl-bar { display: block; width: 100%; height: 6px; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
 .reading-lists .rl-bar > span { display: block; height: 100%; background: var(--color-accent); }
 

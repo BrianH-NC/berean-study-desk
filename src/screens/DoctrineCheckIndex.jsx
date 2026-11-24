@@ -4,7 +4,7 @@ import { useAuth } from '../App'
 import { loadCheckLibrary } from '../lib/checkLibrary'
 import { findCheckBook } from '../lib/checkLibraryMatch'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Search as SearchIcon, User, Loader2, ScanBarcode, Camera, Images } from 'lucide-react'
 import { verdictClass, verdictIcon } from '../lib/verdict'
 import {
@@ -48,7 +48,10 @@ export default function DoctrineCheckIndex() {
   const [name, setName] = useState('')
   const [running, setRunning] = useState(false)
   const [runError, setRunError] = useState('')
-  const [showScanner, setShowScanner] = useState(false)
+  const [scanParams, setScanParams] = useSearchParams()
+  // The phone's Doctrine Check tab links here with ?scan=1 so the camera opens straight away.
+  const [showScanner, setShowScanner] = useState(() => scanParams.get('scan') === '1')
+  useEffect(() => { if (scanParams.get('scan') === '1') { setShowScanner(true); setScanParams(params => { params.delete('scan'); return params }, { replace: true }) } }, [scanParams, setScanParams])
   const [scanLookupLoading, setScanLookupLoading] = useState(false)
 
   const shelfFileRef = useRef(null)
@@ -255,7 +258,7 @@ export default function DoctrineCheckIndex() {
       <div className="doctrine-layout"><div className="doctrine-main">
 
       {/* New check card */}
-      <CreatePanel title="+ New Doctrine Check" editing={!!topicContext}>
+      <CreatePanel title="Check a book or teacher" editing={!!topicContext} defaultOpen>
       <div className="card mb-5 doctrine-new-check" style={{ background: 'var(--color-accent-100)', padding: '18px 20px' }}>
         <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
           <div className="seg self-start">

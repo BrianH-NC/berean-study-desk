@@ -1,5 +1,5 @@
 /* Shared workspace rhythm; preserve Modern Heritage colors and reading faces. */
-body .page h1, body .page h2, body .page h3 { font-family:var(--font-body,'Lora',Georgia,serif); font-variant:normal; text-transform:none; }
+body .page h1, body .page h2, body .page h3 { font-family:var(--font-body,'Literata',Georgia,serif); font-variant:normal; text-transform:none; }
 body .page h1 { font-size:clamp(26px,2.4vw,34px); line-height:1.25; }
 body .daily-study { padding:24px; }
 body .daily-study>header { margin-bottom:16px; }
@@ -27,7 +27,7 @@ body .notes-title-input { font-size:22px; }
 body .notes-source-line { margin:4px 0; }
 body .notes-editor .notes-tags:empty { display:none; }
 body .notes-editor .notes-toolbar { padding:8px; }
-body .settings-save { position:sticky; top:0; z-index:12; background:var(--bsd-parchment,#f8f3e7); padding:12px 0; border-bottom:1px solid var(--bsd-border); }
+body .settings-save { position:sticky; top:0; z-index:12; background:var(--bsd-parchment,var(--bsd-parchment)); padding:12px 0; border-bottom:1px solid var(--bsd-border); }
 body .library-viewbar nav { flex-basis:100%; flex-wrap:wrap; overflow:visible; }
 body .library-view-options { margin-left:auto; }
 .nav-group-label { font:600 10px/1.5 Inter,sans-serif; text-transform:uppercase; letter-spacing:.12em; margin:14px 10px 5px; opacity:.7; }
@@ -102,7 +102,7 @@ body .book-identity h1 { font-size:clamp(24px,2.5vw,32px); }
 .policy-contents ul { columns:2; padding-left:20px; font:13px/1.8 Inter,sans-serif; }
 @media(max-width:600px){.policy-contents ul { columns:1; }}
 .search-result mark { background:#f3e5ad; color:inherit; border-radius:2px; }
-.search-result:focus-visible, .notes-toolbar button:focus-visible, .study-form button:focus-visible { outline:3px solid var(--bsd-forest, #0f3d2e); outline-offset:3px; }
+.search-result:focus-visible, .notes-toolbar button:focus-visible, .study-form button:focus-visible { outline:3px solid var(--bsd-forest, var(--bsd-forest)); outline-offset:3px; }
 /* Keyboard focus remains visible on parchment, dark navigation, and compact controls. */
 body :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible { outline:3px solid var(--bsd-forest); outline-offset:2px; }
 body .heritage-sidebar :is(a,button):focus-visible { outline-color:var(--bsd-parchment); outline-offset:-3px; }

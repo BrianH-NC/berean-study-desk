@@ -1,5 +1,5 @@
-.wishlist-page h2,.wishlist-page .card-title { font-family:Lora,Georgia,serif; font-variant:normal; text-transform:none; }
-.wishlist-subtitle { font-family:Lora,Georgia,serif; font-style:italic; margin:8px 0; }
+.wishlist-page h2,.wishlist-page .card-title { font-family:Literata,Georgia,serif; font-variant:normal; text-transform:none; }
+.wishlist-subtitle { font-family:Literata,Georgia,serif; font-style:italic; margin:8px 0; }
 .wishlist-intro { background:var(--bsd-forest); color:white; padding:22px; border-radius:8px; margin-bottom:24px; line-height:1.6; }
 .wishlist-intro small { display:block; opacity:.8; margin-top:6px; }
 .wishlist-search { flex:1; min-width:220px; }

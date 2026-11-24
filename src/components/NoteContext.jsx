@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { BookOpen, Library, ShieldCheck, FileText, Tags, Mic } from 'lucide-react'
 import { NOTE_TYPES, safeNoteUrl, relatedNotes, noteMarkdown } from '../lib/noteModel'
 import { parseReference } from '../lib/bsb'
-import { dailyHero } from '../lib/dailyHero'
 
 export default function NoteContext({draft,note,notes,books,checks,links,version,change,details,setDetails,onOpen,onNavigate,onExport,onDuplicate,onDelete}) {
   const [editing,setEditing]=useState(details==='edit'),[tag,setTag]=useState(''),[all,setAll]=useState(false)
@@ -63,7 +62,6 @@ export default function NoteContext({draft,note,notes,books,checks,links,version
       {check&&<button onClick={()=>onNavigate(`/checks/${check.id}`)}>Doctrine Check: {check.title||check.name}</button>}
     </section>
     {draft.ref&&<PassageSermons reference={draft.ref}/>}
-    <blockquote className="notes-image-quote" style={{backgroundImage:`linear-gradient(#0f3d2e33,#0f3d2ed9),url(${dailyHero()})`}}>“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
   </>
   return wide?<aside className="notes-context" aria-label="Note context">{content}</aside>:<dialog ref={dialog} className="notes-context-dialog" aria-label="Note details and related content" onCancel={()=>setDetails(false)} onClose={()=>setDetails(false)}><header><h2>Note Details</h2><button autoFocus onClick={()=>setDetails(false)}>Close</button></header><div className="notes-context">{content}</div></dialog>
 }

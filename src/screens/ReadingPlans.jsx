@@ -44,7 +44,7 @@ export default function ReadingPlans() {
   function toggle(plan,index){const completed={...plan.completed};if(completed[index])delete completed[index];else completed[index]=new Date().toISOString();void change(plan,{completed})}
   function destination(plan,item){return plan.kind==='bible'?scriptureUrl(item):plan.book_id?`/reading/${plan.book_id}`:null}
   const queue=planQueue(plans)
-  return <div className="daily-study"><header><div><h1>Reading Plans</h1><p>Make room for daily study. Missed readings stay in your queue.</p></div><Link to="/reading">Reading now →</Link></header>
+  return <div className="daily-study"><header><div><h1>Reading Plans</h1></div><Link to="/reading">Reading now →</Link></header>
     {error&&<p role="alert">{error} <button onClick={()=>setRetry(n=>n+1)}>Reload</button></p>}
     <p className="draft-hint">Unfinished edits are kept in this browser tab.</p>{recovery.error&&<p role="alert">{recovery.error}</p>}<div className="study-columns task-first"><CreatePanel title="+ New reading plan" editing={!!edit}><form className="card study-form" onSubmit={save}><h2>{edit?'Edit schedule':'Create a plan'}</h2><fieldset disabled={busy||loading} className="study-form">
       <label>Plan name<input className="input" required maxLength={200} value={title} onChange={e=>setTitle(e.target.value)}/></label>

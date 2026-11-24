@@ -5,7 +5,6 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { parseReference } from '../lib/bsb'
 import StudySection from './StudySection'
-import { dailyHero } from '../lib/dailyHero'
 
 async function loadOwned(table, userId) {
   const rows = []
@@ -44,6 +43,5 @@ export default function StudyPersonalSidebar({ book, chapter, passageRef }) {
     <StudySection title="Related Resources" className="bible-card bible-card-resources"><Link className="bible-see-all" to="/shelf">Your library →</Link>
       {data.loading ? <p>Loading your library…</p> : data.error ? <p>Your library could not be loaded.</p> : books.length ? books.slice(0, 4).map(item => <Link className="bible-related-item" key={item.id} to={`/shelf/${item.id}`}>{item.cover_url ? <img src={item.cover_url} alt=""/> : <BookOpen size={24}/>}<span><strong>{item.title}</strong><small>{item.author}</small></span></Link>) : <p className="bible-muted">Books linked through your notes or tagged “{book}” appear here.</p>}
     </StudySection>
-    <blockquote className="bible-image-quote bible-card bible-card-quote" style={{ backgroundImage: `linear-gradient(#0f3d2e55,#0f3d2ecc),url(${dailyHero()})` }}>“Your word is a lamp to my feet and a light to my path.”<cite>Psalm 119:105 · BSB</cite></blockquote>
   </aside>
 }

@@ -1,0 +1,58 @@
+/* Lapis shell: loaded last so it settles the navigation, headings and surfaces over older page styles. */
+body { background: var(--bsd-parchment); color: var(--bsd-charcoal); }
+.card { box-shadow: none; }
+body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-heading h1 { font: 600 clamp(26px, 2.2vw, 32px)/1.25 Literata, Georgia, serif; letter-spacing: -0.01em; margin: 0 0 8px; }
+.library-heading { margin: 8px 0 20px; }
+.brand-mark { display: inline-grid; place-items: center; flex: none; border-radius: 6px; background: var(--bsd-forest); color: #fff; font-family: Literata, Georgia, serif; font-weight: 600; line-height: 1; }
+
+/* Phone header and bottom bar */
+.heritage-header { background: var(--bsd-surface); color: var(--bsd-charcoal); border-bottom: 1px solid var(--bsd-border); position: sticky; top: 0; z-index: 30; }
+.heritage-header-title { font: 600 16px/1.2 Literata, Georgia, serif; flex: 1; }
+.heritage-header-search { color: var(--bsd-muted); }
+.heritage-bottom { grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; }
+.heritage-bottom > a, .heritage-bottom > button { border-top: 0; min-height: 60px; color: var(--bsd-muted); font: 500 11px/14px Inter, system-ui, sans-serif; text-align: center; }
+.heritage-bottom [aria-current='page'], .heritage-bottom .is-active { background: transparent; color: var(--bsd-forest); font-weight: 600; }
+.heritage-bottom .bottom-check { justify-content: flex-end; gap: 2px; padding-bottom: 6px; color: var(--bsd-forest); font-weight: 600; line-height: 13px; }
+.bottom-check-disc { width: 52px; height: 52px; margin-top: -22px; border-radius: 999px; background: var(--bsd-forest); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(31, 78, 121, .35); }
+.nav-sheet-rule { border: 0; border-top: 1px solid var(--bsd-border); margin: 8px 0; }
+.nav-count { margin-left: auto; padding-left: 8px; font: 500 12px/16px Inter, system-ui, sans-serif; color: var(--bsd-muted); }
+
+/* Desktop sidebar: light, six destinations, More below */
+@media (min-width: 768px) {
+  body .heritage-sidebar { background: var(--bsd-surface-2); color: var(--bsd-charcoal); border-right: 1px solid var(--bsd-border); padding: 16px 12px; gap: 8px; }
+  body .heritage-sidebar .nav-item { color: var(--bsd-charcoal); min-height: 40px; font: 500 14px/20px Inter, system-ui, sans-serif; border-radius: 6px; padding: 8px 12px; }
+  body .heritage-sidebar .nav-item svg { color: var(--bsd-muted); }
+  body .heritage-sidebar .nav-item:hover { background: var(--bsd-selected); color: var(--bsd-forest); }
+  body .heritage-sidebar .nav-item[aria-current='page'] { background: var(--bsd-selected); color: var(--bsd-forest); font-weight: 600; }
+  body .heritage-sidebar .nav-item[aria-current='page'] svg { color: var(--bsd-forest); }
+  body .heritage-sidebar :focus-visible { outline-color: var(--bsd-forest); }
+  body .heritage-sidebar .sidebar-footer { border-top: 1px solid var(--bsd-border); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+  body .heritage-sidebar .nav-group-label { margin: 4px 12px; opacity: 1; color: var(--bsd-muted); font: 600 11px/16px Inter, system-ui, sans-serif; letter-spacing: .04em; }
+  .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 8px; font: 600 15px/20px Literata, Georgia, serif; }
+  .sidebar-search { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; margin-bottom: 8px; border: 1px solid var(--bsd-border); border-radius: 6px; background: var(--bsd-surface); color: var(--bsd-muted); font: 400 13px/18px Inter, system-ui, sans-serif; cursor: pointer; justify-content: center; }
+  .sidebar-search .nav-label { flex: 1; text-align: left; }
+  .sidebar-search kbd { font: 500 11px/16px Inter, system-ui, sans-serif; border: 1px solid var(--bsd-border); border-radius: 4px; padding: 0 5px; }
+  .sidebar-more > summary { list-style: none; cursor: pointer; }
+  .sidebar-more > summary::-webkit-details-marker { display: none; }
+  .sidebar-more[open] > summary svg { transform: rotate(180deg); }
+  .heritage-sidebar .brand-detail, .heritage-sidebar .sidebar-search kbd { display: none; }
+  .heritage-sidebar.is-expanded .brand-detail, .heritage-sidebar.is-expanded .sidebar-search kbd { display: inline; }
+}
+@media (min-width: 1280px) {
+  body .heritage-sidebar:not(.is-collapsed) { width: 232px; }
+  .heritage-sidebar:not(.is-collapsed) .brand-detail, .heritage-sidebar:not(.is-collapsed) .sidebar-search kbd { display: inline; }
+}
+
+/* Command palette */
+.command-palette { width: min(640px, calc(100% - 32px)); max-height: min(560px, calc(100dvh - 64px)); margin: 10vh auto auto; padding: 0; border: 1px solid var(--bsd-border); border-radius: 10px; background: var(--bsd-surface); color: var(--bsd-charcoal); box-shadow: 0 8px 24px rgba(28, 27, 25, .12); overflow: hidden; }
+.command-palette::backdrop { background: rgba(28, 27, 25, .35); }
+.command-input { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--bsd-border); color: var(--bsd-muted); }
+.command-input input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; padding: 16px 0; font: 400 16px/24px Inter, system-ui, sans-serif; color: var(--bsd-charcoal); }
+.command-input kbd { font: 500 11px/16px Inter, system-ui, sans-serif; border: 1px solid var(--bsd-border); border-radius: 4px; padding: 0 5px; }
+.command-results { list-style: none; margin: 0; padding: 6px; overflow-y: auto; max-height: 440px; }
+.command-results li { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 6px; cursor: pointer; font: 500 14px/20px Inter, system-ui, sans-serif; }
+.command-results li svg { color: var(--bsd-muted); flex: none; }
+.command-results li span { flex: 1; min-width: 0; }
+.command-results li small { color: var(--bsd-muted); font-size: 12px; }
+.command-results li.is-active { background: var(--bsd-selected); color: var(--bsd-forest); }
+.command-results li.is-active svg { color: var(--bsd-forest); }

@@ -10,7 +10,6 @@ import { parseReference, fetchChapter, searchVerses } from '../lib/bsb'
 import { COMMENTARIES, fetchCommentaryChapter } from '../lib/helloao'
 import { SEARCH_TYPES, matchesSearch, sortSearchResults, commentarySections, searchExcerpt } from '../lib/searchModel'
 import { fetchRecommendations } from '../lib/searchRecommendations'
-import { dailyHero } from '../lib/dailyHero'
 
 import {sermonTitle,sermonPassageMatch} from '../lib/sermonModel'
 
@@ -141,7 +140,7 @@ function SearchContent(){
   </>
   return <div className="page search-workspace">
     <form className="search-main-form" role="search" onSubmit={e=>{e.preventDefault();update({q:draft.trim()})}}><SearchIcon aria-hidden="true" size={21}/><label className="sr-only" htmlFor="search-query">Search Scripture and your content</label><input id="search-query" type="search" value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Search Scripture, books, topics, and resources…"/><label className="sr-only" htmlFor="search-content">Content type</label><select id="search-content" value={type} onChange={e=>update({type:e.target.value==='All'?'':e.target.value})}><option value="All">All Content</option>{SEARCH_TYPES.map(t=><option key={t}>{t}</option>)}</select><button type="submit" className="btn btn-primary">Search</button></form>
-    <header className="search-title"><div><h1>Search</h1><p>Find Scripture, books, topics, and trusted resources.</p></div><details className="search-advanced"><summary>Advanced Search</summary><label><input type="checkbox" checked={exact} onChange={e=>update({exact:e.target.checked?'1':''})}/> Match exact phrase</label><p>Use a reference such as Romans 5:8 for passage and commentary lookup. Scripture uses BSB.</p></details></header>
+    <header className="search-title"><div><h1>Search</h1></div><details className="search-advanced"><summary>Advanced Search</summary><label><input type="checkbox" checked={exact} onChange={e=>update({exact:e.target.checked?'1':''})}/> Match exact phrase</label><p>Use a reference such as Romans 5:8 for passage and commentary lookup. Scripture uses BSB.</p></details></header>
     <nav className="search-type-tabs" aria-label="Search categories">{['All',...SEARCH_TYPES].map(t=><button key={t} aria-pressed={type===t} onClick={()=>update({type:t==='All'?'':t})}>{t} <span>({t==='All'?rows.length:rows.filter(r=>r.type===t).length})</span></button>)}</nav>
     {(localErrors.length>0||bible.error||resources.error) && <div className="search-error" role="alert">Some sources could not load: {[...localErrors,...(bible.error?['BSB']:[]),...(resources.error?[resources.error]:[])].join(', ')}. Available results are shown. <button onClick={()=>setRetry(n=>n+1)}>Retry</button></div>}
     <div className="search-columns">
@@ -163,7 +162,6 @@ function SearchContent(){
       <aside className="search-related">
         <section className="card"><h2>Related Topics</h2>{relatedTopics.length?relatedTopics.map(tag=><Link className="search-related-link" key={tag} to={`/topics?tag=${encodeURIComponent(tag)}`}><Tags size={20}/><span>{tag}<small>From your notes</small></span></Link>):<p>Related tags from your notes appear here.</p>}</section>
         <section className="card"><h2>Discover Books <ExternalLink size={14}/></h2><p className="search-scope">External suggestions · Google Books / Open Library</p>{recommendations.loading?<p>Finding suggestions…</p>:recommendations.error?<p>Suggestions are unavailable. <button onClick={()=>setRetry(n=>n+1)}>Retry</button></p>:recommendations.rows.map(row=><a key={row.url} className="search-related-book" href={row.url} target="_blank" rel="noopener noreferrer">{row.cover?<img src={row.cover} alt="" loading="lazy"/>:<LibraryBig size={22}/>}<span><strong><MatchedText text={row.title} query={query}/></strong><small>{row.author}{row.year?` · ${row.year}`:''} · {row.source}</small></span></a>)}{!query&&<p>Search to discover related books beyond your library.</p>}</section>
-        <div className="search-quote" style={{backgroundImage:`linear-gradient(#102d21b3,#102d21b3),url(${dailyHero()})`}}>“The unfolding of Your words gives light; it informs the simple.”<small>Psalm 119:130 · BSB</small></div>
       </aside>
     </div>
   </div>

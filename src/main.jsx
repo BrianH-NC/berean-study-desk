@@ -13,3 +13,4 @@ createRoot(document.getElementById('root')).render(
 )
 
 import './ux.css'
+import './lapis.css'

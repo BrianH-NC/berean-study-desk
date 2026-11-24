@@ -8,7 +8,7 @@
 .xref-ref:hover,.xref-ref:focus-visible{text-decoration-color:currentColor}
 .xref-strength{flex:1;max-width:72px;height:4px;border-radius:2px;background:var(--color-accent-100);overflow:hidden}
 .xref-strength>span{display:block;height:100%;background:var(--color-accent-400)}
-.xref-text{margin:3px 0 0;font:13px/1.55 Lora,serif;color:var(--color-text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.xref-text{margin:3px 0 0;font:13px/1.55 Literata,serif;color:var(--color-text);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .xref-none{color:var(--bsd-muted)}
 .xref-more{margin-top:4px}
 .xref-note{margin:0;font:11px/1.5 Inter,sans-serif;color:var(--bsd-muted)}

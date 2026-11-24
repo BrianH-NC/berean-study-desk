@@ -79,7 +79,7 @@ export default function Sidebar({ user }) {
     <aside className={`heritage-sidebar ${collapsed ? 'is-collapsed' : ''} ${expanded ? 'is-expanded' : ''}`} aria-label="Study desk sidebar">
       <div className="sidebar-brand"><BrandMark /><span className="brand-detail">Berean Study Desk</span></div>
       <button type="button" className="sidebar-search" onClick={() => setPaletteOpen(true)} aria-label="Search everything (Ctrl K)">
-        <Search size={16} aria-hidden="true" /><span className="nav-label">Search everything</span><kbd className="nav-label">Ctrl K</kbd>
+        <Search size={16} aria-hidden="true" /><span className="nav-label">Search</span><kbd className="nav-label">Ctrl K</kbd>
       </button>
       <nav aria-label="Main navigation" className="sidebar-destinations">
         {destinations.map(item => <NavigationLink key={item.to} item={item} />)}

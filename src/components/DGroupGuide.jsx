@@ -44,15 +44,26 @@ export function Exercise({ ex }) {
   else if (t === 'match') { const l = list(ex.left), r = list(ex.right); body = <div className="pk-match">{Array.from({ length: Math.max(l.length, r.length) }, (_, i) => <div key={i} className="pk-match-row"><span>{str(l[i])}</span><i aria-hidden="true" /><i aria-hidden="true" /><span>{str(r[i])}</span></div>)}</div> }
   else if (t === 'nametags') body = <div className="pk-tags">{list(ex.tags).map((tag, i) => <div key={i} className="pk-tag"><div className="pk-tag-top"><strong>HELLO</strong><span>my name is</span></div><div className="pk-tag-blank" /><small>{str(tag?.hint ?? tag)}</small></div>)}</div>
   else if (t === 'booths') body = <div className="pk-booths">{list(ex.labels).map((l, i) => <Booth key={i} label={str(l)} />)}</div>
-  else if (t === 'road') body = <svg className="pk-road" viewBox="0 0 600 120" role="img" aria-label={`Mark where you drift: ${str(ex.left)}, ${str(ex.center)}, ${str(ex.right)}`}>
-    <rect x="0" y="30" width="150" height="70" fill="var(--pk-tan)" opacity=".35" /><rect x="450" y="30" width="150" height="70" fill="var(--pk-tan)" opacity=".35" />
-    <rect x="150" y="30" width="300" height="70" fill="#e9e6df" /><line x1="160" y1="65" x2="440" y2="65" stroke="var(--pk-charcoal)" strokeWidth="2" strokeDasharray="14 10" />
-    <text x="75" y="20" fontSize="14" textAnchor="middle" fill="var(--pk-charcoal)" fontWeight="600">{str(ex.left)}</text><text x="300" y="20" fontSize="14" textAnchor="middle" fill="var(--pk-sage-ink)" fontWeight="600">{str(ex.center) || 'The road'}</text><text x="525" y="20" fontSize="14" textAnchor="middle" fill="var(--pk-charcoal)" fontWeight="600">{str(ex.right)}</text>
-    <text x="75" y="115" fontSize="10" textAnchor="middle" fill="var(--pk-charcoal)">ditch</text><text x="525" y="115" fontSize="10" textAnchor="middle" fill="var(--pk-charcoal)">ditch</text>
-  </svg>
+  else if (t === 'road') body = <div className="pk-road">
+    <div className="pk-road-labels"><span>{str(ex.left)}</span><span className="is-center">{str(ex.center) || 'The road'}</span><span>{str(ex.right)}</span></div>
+    <svg viewBox="0 0 600 86" role="img" aria-label={`Mark where you drift: ${str(ex.left)}, ${str(ex.center)}, ${str(ex.right)}`}>
+      <rect x="0" y="0" width="150" height="70" fill="var(--pk-tan)" opacity=".35" /><rect x="450" y="0" width="150" height="70" fill="var(--pk-tan)" opacity=".35" />
+      <rect x="150" y="0" width="300" height="70" fill="#e9e6df" /><line x1="160" y1="35" x2="440" y2="35" stroke="var(--pk-charcoal)" strokeWidth="2" strokeDasharray="14 10" />
+      <text x="75" y="84" fontSize="11" textAnchor="middle" fill="var(--pk-charcoal)">ditch</text><text x="525" y="84" fontSize="11" textAnchor="middle" fill="var(--pk-charcoal)">ditch</text>
+    </svg>
+  </div>
   else if (t === 'putoff') body = <table className="pk-table pk-fill pk-putoff"><thead><tr><th>{str(ex.off) || 'Put off'}</th><th>{str(ex.on) || 'Put on'}</th></tr></thead><tbody>{Array.from({ length: Math.min(6, Number(ex.rows) || 3) }, (_, i) => <tr key={i}><td /><td /></tr>)}</tbody></table>
   else if (t === 'chain') body = <div className="pk-chain">{list(ex.links).map((l, i) => <div key={i} className={`pk-link ${str(l).trim() ? '' : 'is-blank'}`}>{str(l)}</div>)}</div>
-  else if (t === 'circles') { const rings = list(ex.rings).slice(0, 4); body = <svg className="pk-circles" viewBox="0 0 320 200" role="img" aria-label={`Concentric circles: ${rings.map(str).join(', ')}`}>{rings.map((_, i) => rings.length - 1 - i).map(i => <circle key={i} cx="160" cy="100" r={28 + i * 24} fill={i === 0 ? 'var(--pk-sage)' : 'none'} fillOpacity=".25" stroke="var(--pk-sage-ink)" strokeWidth="1.4" />)}{rings.map((r, i) => <text key={i} x="160" y={i === 0 ? 104 : 100 - (28 + i * 24) + 13} fontSize="10" textAnchor="middle" fill="var(--pk-charcoal)" fontWeight={i === 0 ? 600 : 400}>{str(r)}</text>)}</svg> }
+  else if (t === 'circles') {
+    const rings = list(ex.rings).slice(0, 4), radii = rings.map((_, i) => 34 + i * 30), outer = radii[radii.length - 1] || 34, c = outer + 4
+    body = <div className="pk-circles">
+      <svg viewBox={`0 0 ${c * 2} ${c * 2}`} role="img" aria-label={`Concentric circles: ${rings.map(str).join(', ')}`}>
+        {radii.map((r, i) => radii.length - 1 - i).map(i => <circle key={i} cx={c} cy={c} r={radii[i]} fill={i === 0 ? 'var(--pk-sage)' : 'none'} fillOpacity=".25" stroke="var(--pk-sage-ink)" strokeWidth="1.4" />)}
+        {radii.map((r, i) => <text key={i} x={c + (i === 0 ? 0 : r - 15)} y={c + 4} fontSize="11" fontWeight="700" textAnchor="middle" fill="var(--pk-sage-ink)">{i + 1}</text>)}
+      </svg>
+      <ol className="pk-ring-key">{rings.map((r, i) => <li key={i}><b>{i + 1}</b>{str(r)}</li>)}</ol>
+    </div>
+  }
   else body = <Lines n={Number(ex.lines) || 3} />
   return <div className={`pk-ex pk-ex-${t || 'write'}`}><Prompt text={str(ex.prompt)} />{body}</div>
 }

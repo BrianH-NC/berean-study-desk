@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.16.1',
+    date: '2026-11-23',
+    title: 'Cleaner road and circles exercises in print',
+    changes: [
+      { kind: 'fixed', text: 'The two-ditches road and the concentric circles exercises no longer print overlapping text. Road labels wrap above the road, and the circles are numbered with a key beside them.' },
+    ],
+  },
+  {
     version: '1.16.0',
     date: '2026-11-23',
     title: 'D-Group: the discussion guide and leader guide',

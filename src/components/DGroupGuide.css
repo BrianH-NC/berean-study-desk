@@ -72,8 +72,15 @@
 .pk-booth { margin: 0; text-align: center; }
 .pk-booth svg { width: 100%; }
 .pk-booth figcaption { font-size: 9pt; font-weight: 600; }
-.pk-road, .pk-circles { display: block; width: 100%; max-height: 2.2in; }
-.pk-circles { max-height: 2.6in; }
+.pk-road { break-inside: avoid; }
+.pk-road svg { display: block; width: 100%; height: auto; }
+.pk-road-labels { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 0.12in; margin-bottom: 0.06in; text-align: center; font-weight: 600; font-size: 10.5pt; line-height: 1.25; color: var(--pk-charcoal); }
+.pk-road-labels .is-center { color: var(--pk-sage-ink); }
+.pk-circles { display: flex; align-items: center; gap: 0.3in; break-inside: avoid; }
+.pk-circles svg { flex: 0 0 auto; width: 2.6in; height: auto; }
+.pk-ring-key { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.08in; font-size: 10.5pt; line-height: 1.3; }
+.pk-ring-key li { display: flex; gap: 0.1in; align-items: baseline; }
+.pk-ring-key b { flex: 0 0 auto; width: 0.22in; height: 0.22in; border-radius: 50%; display: inline-grid; place-items: center; background: var(--pk-sage); color: #fff; font-size: 9pt; }
 .pk-chain { display: flex; flex-wrap: wrap; align-items: center; gap: 0; }
 .pk-link { min-width: 1.15in; min-height: 0.42in; display: grid; place-items: center; padding: 4px 10px; border: 2px solid var(--pk-sage-ink); border-radius: 999px; background: #fff; font-size: 9.5pt; font-weight: 600; text-align: center; }
 .pk-link + .pk-link { margin-left: 18px; position: relative; }

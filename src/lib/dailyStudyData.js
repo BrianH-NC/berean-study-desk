@@ -5,6 +5,7 @@ const fieldsByTable = {
   reading_plans:['title','kind','book_id','start_date','interval_days','items','completed','paused'],
   prayer_requests:['title','body','ref','category','answered_at','updates','source','request_date'],
   book_quotations:['book_id','quote','page','reflection','tags'],
+  dgroup_sessions:['sermon_id','title','passage','meeting_date','notes','docs'],
 }
 export async function ownedRows(table,userId,columns='*') {
   const rows=[]

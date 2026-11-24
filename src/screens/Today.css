@@ -60,3 +60,5 @@
   .today-progress small { text-align: left; }
   .today-actions { display: none; }
 }
+.today-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.today-tile-ochre { background: var(--bsd-ochre-soft); color: #8A5A00; }

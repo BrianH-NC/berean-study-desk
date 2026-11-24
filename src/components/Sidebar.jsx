@@ -2,7 +2,7 @@ import AccountLink from './AccountLink'
 import CommandPalette from './CommandPalette'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { CalendarCheck, BookOpen, NotebookPen, Mic, LibraryBig, ShieldCheck, ScanBarcode, Search, Settings, Menu, X, PanelLeft, Heart, Sparkles, ChevronDown, Tags, BookOpenText, CalendarDays, Quote, RotateCcw, Layers } from 'lucide-react'
+import { CalendarCheck, BookOpen, NotebookPen, Mic, LibraryBig, ShieldCheck, ScanBarcode, Search, Settings, Menu, X, PanelLeft, Heart, Sparkles, ChevronDown, Tags, BookOpenText, CalendarDays, Quote, RotateCcw, Layers, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { APP_VERSION, hasUnseenUpdate } from '../lib/changelog'
 
@@ -18,6 +18,7 @@ export const DESTINATIONS = [
 // Everything else stays reachable, one step away, until it folds into a destination.
 export const MORE = [
   { to: '/prayer', label: 'Prayer Journal', icon: Heart },
+  { to: '/dgroup', label: 'D-Group', icon: Users },
   { to: '/reading-plans', label: 'Reading plans', icon: CalendarDays },
   { to: '/reading', label: 'Reading now', icon: BookOpenText },
   { to: '/topics', label: 'Topics', icon: Tags },
@@ -59,7 +60,7 @@ export default function Sidebar({ user }) {
   const collapsed = railExpanded === false
   const [menuOpen, setMenuOpen] = useState(false)
   const moreActive = [...MORE, ...ACCOUNT, DESTINATIONS[3], DESTINATIONS[4]].some(item => item.to !== '/' && pathname.startsWith(item.to))
-  const moreRouteOpen = MORE.slice(1).some(item => pathname.startsWith(item.to))
+  const moreRouteOpen = MORE.slice(2).some(item => pathname.startsWith(item.to))
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
@@ -87,9 +88,10 @@ export default function Sidebar({ user }) {
       <div className="sidebar-footer">
         <h2 className="nav-group-label">More</h2>
         <NavigationLink item={MORE[0]} />
+        <NavigationLink item={MORE[1]} />
         <details className="sidebar-more" open={moreRouteOpen || undefined}>
           <summary className="nav-item"><ChevronDown size={20} aria-hidden="true" /><span className="nav-label">Tools &amp; pages</span></summary>
-          {MORE.slice(1).map(item => <NavigationLink key={item.to} item={item} />)}
+          {MORE.slice(2).map(item => <NavigationLink key={item.to} item={item} />)}
         </details>
         {account.map(item => <NavigationLink key={item.to} item={item} />)}
         <button type="button" className="nav-item" title="Resize navigation" aria-label="Expand or collapse navigation" onClick={toggleRail}>

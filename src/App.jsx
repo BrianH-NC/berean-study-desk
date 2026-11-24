@@ -34,6 +34,9 @@ const SermonIndex = lazy(() => import('./screens/SermonIndex'))
 const SermonComposer = lazy(() => import('./screens/SermonComposer'))
 const SermonDetail = lazy(() => import('./screens/SermonDetail'))
 const Topics = lazy(() => import('./screens/TopicWorkspace'))
+const DGroupIndex = lazy(() => import('./screens/DGroup').then(m => ({ default: m.DGroupIndex })))
+const DGroupSession = lazy(() => import('./screens/DGroup').then(m => ({ default: m.DGroupSession })))
+const DGroupPrint = lazy(() => import('./screens/DGroup').then(m => ({ default: m.DGroupPrint })))
 import Settings from './screens/Settings'
 import Privacy from './screens/Privacy'
 import Terms from './screens/Terms'
@@ -84,6 +87,9 @@ function ProtectedLayout() {
           <Route path="/sermons/new" element={<SermonComposer />} />
           <Route path="/sermons/:id/edit" element={<SermonComposer />} />
           <Route path="/sermons/:id" element={<SermonDetail />} />
+          <Route path="/dgroup" element={<DGroupIndex />} />
+          <Route path="/dgroup/:id" element={<DGroupSession />} />
+          <Route path="/dgroup/:id/print/:doc" element={<DGroupPrint />} />
           <Route path="/topics" element={<Topics />} />
           <Route path="/topics/index" element={<TopicIndex />} />
           <Route path="/topics/:topicKey" element={<Topics />} />

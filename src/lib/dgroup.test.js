@@ -41,3 +41,11 @@ test('markdown renders headings, lists and emphasis, and escapes HTML', () => {
   assert.match(html, /<strong>bold<\/strong>/)
   assert.doesNotMatch(html, /<script>/)
 })
+
+test('passageLabel formats stored references', async () => {
+  const { passageLabel } = await import('./dgroup.js')
+  assert.equal(passageLabel('{"book":"1 Peter","chapter":2,"verseEnd":17,"verseStart":15}'), '1 Peter 2:15–17')
+  assert.equal(passageLabel({ book: 'Psalm', chapter: 23 }), 'Psalm 23')
+  assert.equal(passageLabel('1 Peter 2:13-17'), '1 Peter 2:13-17')
+  assert.equal(passageLabel(null), '')
+})

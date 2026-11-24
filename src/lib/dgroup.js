@@ -67,3 +67,15 @@ export function fieldLabel(key) {
   const s = String(key).replace(/_/g, ' ')
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
+
+// A passage for display. Older sessions stored the sermon's parsed reference
+// object, sometimes as a JSON string; turn either into "1 Peter 2:15–17".
+export function passageLabel(p) {
+  let v = p
+  if (typeof v === 'string' && v.trim().startsWith('{')) { try { v = JSON.parse(v) } catch { return v } }
+  if (!v) return ''
+  if (typeof v === 'string') return v
+  if (typeof v !== 'object' || !v.book) return ''
+  const verses = v.verseStart ? `:${v.verseStart}${v.verseEnd && v.verseEnd !== v.verseStart ? `–${v.verseEnd}` : ''}` : ''
+  return `${v.book}${v.chapter ? ` ${v.chapter}${verses}` : ''}`
+}

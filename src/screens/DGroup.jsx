@@ -5,7 +5,7 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { ownedRows, saveOwned, removeOwned } from '../lib/dailyStudyData'
 import { localDay } from '../lib/dailyStudyModel'
-import { DGROUP_DOCS, LEADER_PARTS, STATUS_LABELS, docStatus, exerciseMix, nextFriday, timingTotal } from '../lib/dgroup'
+import { DGROUP_DOCS, LEADER_PARTS, STATUS_LABELS, docStatus, exerciseMix, nextFriday, passageLabel, timingTotal } from '../lib/dgroup'
 import { DiscussionClosing, DiscussionOpening, DiscussionSection, ESV_NOTICE, FieldEditor, LeaderPart } from '../components/DGroupGuide'
 import { authHeaders } from '../lib/functionAuth'
 import './DGroup.css'
@@ -14,7 +14,7 @@ const FUNCTIONS_BASE = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
 const longDate = day => day ? new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'No date set'
 
 export async function createSessionFromSermon(userId, sermon) {
-  return saveOwned('dgroup_sessions', userId, null, { sermon_id: sermon?.id || null, title: sermon?.title || 'D-Group session', passage: sermon?.primary_ref || '', meeting_date: nextFriday(localDay()), docs: {} })
+  return saveOwned('dgroup_sessions', userId, null, { sermon_id: sermon?.id || null, title: sermon?.title || 'D-Group session', passage: sermon?.primary_text || passageLabel(sermon?.primary_ref), meeting_date: nextFriday(localDay()), docs: {} })
 }
 
 async function generate(sessionId, doc, extra = {}) {
@@ -38,7 +38,7 @@ export function DGroupIndex() {
     <header className="dg-head"><div><Link className="dg-back" to="/sermons"><ArrowLeft size={16} aria-hidden="true" />Sermons</Link><h1>D-Group</h1><p className="dg-muted">Friday 7:15 AM. Start a session from a sermon, or a blank one here.</p></div><button className="btn btn-primary" disabled={busy} onClick={create}><Plus size={16} aria-hidden="true" />New session</button></header>
     {error && <p role="alert">{error}</p>}
     {sessions === null ? <p role="status">Loading sessions…</p> : sessions.length === 0 ? <section className="dg-card dg-empty"><Users size={28} aria-hidden="true" /><h2>No sessions yet</h2><p className="dg-muted">Open a sermon and choose Build this week’s D-Group session. The discussion guide and leader guide are drafted from the sermon and its passage.</p><Link className="btn btn-secondary" to="/sermons">Go to Sermons</Link></section>
-      : <ul className="dg-list">{sessions.map(s => { const done = DGROUP_DOCS.filter(d => docStatus(s, d.id) === 'ready').length; return <li key={s.id}><Link to={`/dgroup/${s.id}`}><span><strong>{s.title || 'Untitled session'}</strong><small>{[s.passage, longDate(s.meeting_date)].filter(Boolean).join(' · ')}</small></span><span className="dg-muted">{done} of {DGROUP_DOCS.length} ready</span></Link></li> })}</ul>}
+      : <ul className="dg-list">{sessions.map(s => { const done = DGROUP_DOCS.filter(d => docStatus(s, d.id) === 'ready').length; return <li key={s.id}><Link to={`/dgroup/${s.id}`}><span><strong>{s.title || 'Untitled session'}</strong><small>{[passageLabel(s.passage), longDate(s.meeting_date)].filter(Boolean).join(' · ')}</small></span><span className="dg-muted">{done} of {DGROUP_DOCS.length} ready</span></Link></li> })}</ul>}
   </div>
 }
 
@@ -89,13 +89,13 @@ export function DGroupSession() {
     supabase.from('dgroup_sessions').select('*').eq('id', id).eq('user_id', user.id).maybeSingle().then(({ data, error: e }) => {
       if (!active) return
       if (e || !data) { setError('This session could not be found.'); return }
-      setSession(data); setFields({ title: data.title, passage: data.passage, meeting_date: data.meeting_date || '', notes: data.notes })
+      setSession(data); setFields({ title: data.title, passage: passageLabel(data.passage), meeting_date: data.meeting_date || '', notes: data.notes })
       if (data.sermon_id) supabase.from('sermons').select('id,title,speaker,series,primary_ref').eq('id', data.sermon_id).maybeSingle().then(({ data: s }) => { if (active) setSermon(s) })
     })
     return () => { active = false }
   }, [id, user.id])
 
-  const dirty = useMemo(() => session && fields && (fields.title !== session.title || fields.passage !== session.passage || (fields.meeting_date || null) !== (session.meeting_date || null) || fields.notes !== session.notes), [session, fields])
+  const dirty = useMemo(() => session && fields && (fields.title !== session.title || fields.passage !== passageLabel(session.passage) || (fields.meeting_date || null) !== (session.meeting_date || null) || fields.notes !== session.notes), [session, fields])
   if (error && !session) return <div className="page dg-page"><p role="alert">{error}</p><Link to="/dgroup">Back to D-Group</Link></div>
   if (!session || !fields) return <div className="page dg-page"><p role="status">Loading session…</p></div>
 
@@ -118,7 +118,7 @@ export function DGroupSession() {
   const mix = exerciseMix(session.docs?.discussion?.data)
   const items = guideItems(openDoc, data)
   return <div className="page dg-page">
-    <header className="dg-head"><div><Link className="dg-back" to="/dgroup"><ArrowLeft size={16} aria-hidden="true" />D-Group</Link><h1>{session.title || 'D-Group session'}</h1><p className="dg-muted">{[session.passage, longDate(session.meeting_date)].filter(Boolean).join(' · ')}{sermon && <> · from <Link to={`/sermons/${sermon.id}`}>{sermon.title}</Link></>}</p></div>
+    <header className="dg-head"><div><Link className="dg-back" to="/dgroup"><ArrowLeft size={16} aria-hidden="true" />D-Group</Link><h1>{session.title || 'D-Group session'}</h1><p className="dg-muted">{[passageLabel(session.passage), longDate(session.meeting_date)].filter(Boolean).join(' · ')}{sermon && <> · from <Link to={`/sermons/${sermon.id}`}>{sermon.title}</Link></>}</p></div>
       <div className="dg-actions"><button className="btn btn-ghost" onClick={remove}>Delete</button></div></header>
     {error && <p role="alert" className="dg-error">{error}</p>}
     <div className="dg-layout">
@@ -171,7 +171,7 @@ export function DGroupPrint() {
   const leader = docId === 'leader'
   return <div className="pk pk-print">
     <div className="pk-print-bar"><Link to={`/dgroup/${id}`}><ArrowLeft size={16} aria-hidden="true" />Back</Link><span>Choose Print, then Save as PDF. Turn on background graphics for the shaded boxes.</span><button className="btn btn-primary" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button></div>
-    <header className="pk-head"><div className="pk-kicker">Parkside Baptist Church · D-Group{leader ? ' · Leader guide' : ''}</div><h1>{data.title || session.title}</h1><p>{[!leader && data.subtitle, session.passage, session.meeting_date && longDate(session.meeting_date)].filter(Boolean).join(' · ')}</p></header>
+    <header className="pk-head"><div className="pk-kicker">Parkside Baptist Church · D-Group{leader ? ' · Leader guide' : ''}</div><h1>{data.title || session.title}</h1><p>{[!leader && data.subtitle, passageLabel(session.passage), session.meeting_date && longDate(session.meeting_date)].filter(Boolean).join(' · ')}</p></header>
     {leader ? <>{data.overview && <LeaderPart k="overview" value={data.overview} title="The aim for Friday" />}{LEADER_PARTS.filter(p => p.key !== 'overview' && data[p.key] !== undefined).map(p => <LeaderPart key={p.key} k={p.key} value={data[p.key]} title={p.title} />)}</>
       : <><DiscussionOpening data={data} />{(data.sections || []).map((sec, i) => <DiscussionSection key={i} s={sec} />)}<DiscussionClosing data={data} /><p className="pk-copyright">{ESV_NOTICE}</p></>}
   </div>

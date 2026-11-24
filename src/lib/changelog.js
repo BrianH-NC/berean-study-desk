@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.16.2',
+    date: '2026-11-24',
+    title: 'Clean passage in D-Group headers',
+    changes: [
+      { kind: 'fixed', text: 'D-Group sessions show the passage as a plain reference, like 1 Peter 2:15–17, in the session header and on the printed guides.' },
+    ],
+  },
+  {
     version: '1.16.1',
     date: '2026-11-23',
     title: 'Cleaner road and circles exercises in print',

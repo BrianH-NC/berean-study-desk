@@ -10,6 +10,7 @@ export const CHANGELOG = [
     changes: [
       { kind: 'fixed', text: 'Next in the reading plan bar now opens the next passage in the reader, not only the bar.' },
       { kind: 'improved', text: 'The three markers in the reading plan bar are clickable, so you can jump to any of the day’s readings.' },
+      { kind: 'fixed', text: 'The latest sermon on Today shows its passage instead of [object Object].' },
     ],
   },
   {

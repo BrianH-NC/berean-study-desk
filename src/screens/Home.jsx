@@ -8,7 +8,7 @@ import { ownedRows, saveOwned } from '../lib/dailyStudyData'
 import { localDay, planQueue } from '../lib/dailyStudyModel'
 import { MCHEYNE_DAYS, MCHEYNE_TITLE, isMcheynePlan, mcheynePlanItems, mcheyneStart, mcheyneStatus, readingUrl, toggleMcheyneReading } from '../lib/mcheyne'
 import { verdictClass } from '../lib/verdict'
-import { DGROUP_DOCS, docStatus } from '../lib/dgroup'
+import { DGROUP_DOCS, docStatus, passageLabel } from '../lib/dgroup'
 import './Today.css'
 
 const greeting = (date = new Date()) => date.getHours() < 12 ? 'Good morning' : date.getHours() < 17 ? 'Good afternoon' : 'Good evening'
@@ -68,7 +68,7 @@ export default function Home() {
       supabase.from('books').select('id,title,author,updated_at').eq('user_id', user.id).eq('reading_status', 'in-progress').order('updated_at', { ascending: false }).limit(2),
       supabase.from('entries').select('id,title,created_at,ref').is('deleted_at', null).eq('user_id', user.id).order('created_at', { ascending: false }).limit(2),
       supabase.from('theology_checks').select('id,title,name,verdict,created_at').order('created_at', { ascending: false }).limit(3),
-      supabase.from('sermons').select('id,title,speaker,series,sermon_date,primary_ref,study_guide_generated_at').eq('user_id', user.id).order('sermon_date', { ascending: false, nullsFirst: false }).limit(1),
+      supabase.from('sermons').select('id,title,speaker,series,sermon_date,primary_text,primary_ref,study_guide_generated_at').eq('user_id', user.id).order('sermon_date', { ascending: false, nullsFirst: false }).limit(1),
       supabase.from('dgroup_sessions').select('id,title,passage,meeting_date,docs,generating').eq('user_id', user.id).gte('meeting_date', localDay()).order('meeting_date', { ascending: true }).limit(1),
     ]).then(([books, notes, checks, sermons, groups]) => { if (active) setData({ books: books.data || [], notes: notes.data || [], checks: checks.data || [], sermon: sermons.data?.[0] || null, group: groups.data?.[0] || null }) }).catch(() => { if (active) setData({ books: [], notes: [], checks: [], sermon: null, group: null, error: true }) })
     return () => { active = false }
@@ -101,7 +101,7 @@ export default function Home() {
       <div className="today-main">
         {plans === null ? <section className="today-card" role="status">Loading your readings…</section> : mcheyne ? <PlanCard plan={mcheyne} onToggle={toggle} busy={busy} others={others} /> : <PlanSetup onStart={start} busy={busy} />}
         {(data?.sermon || data?.group) && <section className="today-card" aria-labelledby="week-heading"><h2 id="week-heading" className="today-h2">This week</h2><div className="today-week">
-          {data.sermon && <Link className="today-tile" to={`/sermons/${data.sermon.id}`}><span className="today-tile-icon"><Mic size={20} aria-hidden="true" /></span><span><span className="today-muted">Latest sermon{data.sermon.series ? ` · ${data.sermon.series}` : ''}</span><strong>{data.sermon.title || 'Untitled sermon'}</strong><span className="today-muted">{[data.sermon.speaker, data.sermon.primary_ref, data.sermon.study_guide_generated_at && 'Study guide ready'].filter(Boolean).join(' · ')}</span></span></Link>}
+          {data.sermon && <Link className="today-tile" to={`/sermons/${data.sermon.id}`}><span className="today-tile-icon"><Mic size={20} aria-hidden="true" /></span><span><span className="today-muted">Latest sermon{data.sermon.series ? ` · ${data.sermon.series}` : ''}</span><strong>{data.sermon.title || 'Untitled sermon'}</strong><span className="today-muted">{[data.sermon.speaker, data.sermon.primary_text || passageLabel(data.sermon.primary_ref), data.sermon.study_guide_generated_at && 'Study guide ready'].filter(Boolean).join(' · ')}</span></span></Link>}
           {data.group ? <Link className="today-tile" to={`/dgroup/${data.group.id}`}><span className="today-tile-icon today-tile-ochre"><Users size={20} aria-hidden="true" /></span><span><span className="today-muted">D-Group · {new Date(`${data.group.meeting_date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long' })}</span><strong>{data.group.passage || data.group.title}</strong><span className="today-muted">{DGROUP_DOCS.filter(d => docStatus(data.group, d.id) === 'ready').length} of {DGROUP_DOCS.length} guides ready</span></span></Link>
             : data.sermon && <Link className="today-tile" to={`/sermons/${data.sermon.id}`}><span className="today-tile-icon today-tile-ochre"><Users size={20} aria-hidden="true" /></span><span><span className="today-muted">D-Group · Friday</span><strong>No session yet</strong><span className="today-muted">Build one from this sermon</span></span></Link>}
         </div></section>}

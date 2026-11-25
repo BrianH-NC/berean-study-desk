@@ -39,7 +39,7 @@ export default function PlanReadingBar({ planId, dayIndex, readingIndex }) {
 
   return <div className="plan-bar" role="region" aria-label="Reading plan">
     <span className="plan-bar-where"><strong>{plan.title} · Day {dayIndex + 1}</strong><span>Reading {readingIndex + 1} of {readings.length}: {current.label}</span></span>
-    <span className="plan-bar-steps" aria-hidden="true">{readings.map(r => <span key={r.n} className={`${r.done ? 'is-done' : ''} ${r.n === readingIndex ? 'is-current' : ''}`} />)}</span>
+    <nav className="plan-bar-steps" aria-label="Today's readings">{readings.map(r => <Link key={r.n} to={readingUrl(plan, dayIndex, r)} title={`${r.label}${r.done ? ' (read)' : ''}`} aria-label={`Reading ${r.n + 1}: ${r.label}${r.done ? ', read' : ''}`} aria-current={r.n === readingIndex ? 'step' : undefined} className={`${r.done ? 'is-done' : ''} ${r.n === readingIndex ? 'is-current' : ''}`} />)}</nav>
     {current.done
       ? <><span className="plan-bar-done"><Check size={16} aria-hidden="true" />Read</span>{next ? <Link className="btn btn-secondary" to={readingUrl(plan, dayIndex, next)}>Next: {next.label}<ChevronRight size={16} aria-hidden="true" /></Link> : <Link className="btn btn-secondary" to="/">Back to Today</Link>}<button type="button" className="btn btn-ghost" disabled={busy} onClick={markRead}>Undo</button></>
       : <button type="button" className="btn btn-primary" disabled={busy} onClick={markRead}><Check size={16} aria-hidden="true" />{next ? 'Mark read and continue' : 'Mark read and finish the day'}</button>}

@@ -86,7 +86,9 @@ body .page h1, .daily-study h1, .doctrine-title h1, .bible-title h1, .library-he
 .plan-bar-where { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
 .plan-bar-where strong { font-weight: 600; color: var(--bsd-forest); }
 .plan-bar-steps { display: flex; gap: 6px; }
-.plan-bar-steps span { width: 10px; height: 10px; border-radius: 999px; border: 1.5px solid var(--bsd-control-border); background: var(--bsd-surface); }
+.plan-bar-steps a { width: 14px; height: 14px; border-radius: 999px; border: 1.5px solid var(--bsd-control-border); background: var(--bsd-surface); cursor: pointer; }
+.plan-bar-steps a:hover { border-color: var(--bsd-forest); }
+.plan-bar-steps a:focus-visible { outline: 2px solid var(--color-accent-500, var(--bsd-forest)); outline-offset: 2px; }
 .plan-bar-steps .is-done { background: var(--bsd-forest); border-color: var(--bsd-forest); }
 .plan-bar-steps .is-current { outline: 2px solid var(--color-accent-300); outline-offset: 1px; }
 .plan-bar-done { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--verdict-sound-text); }

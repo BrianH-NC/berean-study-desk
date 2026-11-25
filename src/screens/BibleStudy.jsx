@@ -309,14 +309,17 @@ export default function BibleStudy() {
 
   // Deep link from global Search or the Notebook reference tagger:
   // /bible?book=Romans&chapter=8&verse=28 (optionally &verseEnd=30 for a range)
-  const appliedDeepLink = useRef(false)
+  // Apply the passage named in the URL whenever it changes, so in-app links
+  // (such as the reading plan's Next) move the reader as well as the bar.
+  const appliedDeepLink = useRef('')
   useEffect(() => {
-    if (appliedDeepLink.current) return
-    appliedDeepLink.current = true
     const qBook = searchParams.get('book')
     const qChapter = searchParams.get('chapter')
     const qVerse = searchParams.get('verse')
     const qVerseEnd = searchParams.get('verseEnd')
+    const key = [qBook, qChapter, qVerse, qVerseEnd, searchParams.get('reading')].join('|')
+    if (appliedDeepLink.current === key) return
+    appliedDeepLink.current = key
     if (qBook && qChapter) {
       setBook(qBook)
       setChapter(parseInt(qChapter, 10) || 1)

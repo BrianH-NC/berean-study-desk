@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.16.3',
+    date: '2026-11-25',
+    title: 'Reading plan moves between passages',
+    changes: [
+      { kind: 'fixed', text: 'Next in the reading plan bar now opens the next passage in the reader, not only the bar.' },
+      { kind: 'improved', text: 'The three markers in the reading plan bar are clickable, so you can jump to any of the day’s readings.' },
+    ],
+  },
+  {
     version: '1.16.2',
     date: '2026-11-24',
     title: 'Clean passage in D-Group headers',

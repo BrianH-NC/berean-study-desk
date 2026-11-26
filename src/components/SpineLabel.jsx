@@ -4,7 +4,15 @@ import './SpineLabel.css'
 
 // Label stock settings. Defaults: 1" wide × 1½" tall spine labels on US Letter,
 // 8 across × 7 down (the common 56-per-sheet library spine label layout).
-export const DEFAULT_LABEL_SETTINGS = { width: 1, height: 1.5, top: 0.25, left: 0.25, gapX: 0, gapY: 0, columns: 8, rows: 7, padding: 0.06, fontPt: 9, bar: 0.125 }
+export const DEFAULT_LABEL_SETTINGS = { width: 1, height: 1.5, top: 0.25, left: 0.25, gapX: 0, gapY: 0, columns: 8, rows: 7, padding: 0.06, fontPt: 9, bar: 0.125, rotate: 0 }
+
+// Sheet presets. width/height are the label as it sits on the spine; with
+// rotate set, the stock is cut sideways and the label prints turned 90°.
+export const LABEL_PRESETS = [
+  { key: 'spine56', name: 'Spine labels 1″ wide × 1½″ tall, 56 per sheet', values: { width: 1, height: 1.5, columns: 8, rows: 7, top: 0.25, left: 0.25, gapX: 0, gapY: 0, rotate: 0 } },
+  { key: 'side32', name: 'Sideways 1½″ × 1″ labels, 32 per sheet (Sliverdew, Avery 94219)', values: { width: 1, height: 1.5, columns: 4, rows: 8, top: 0.625, left: 0.75, gapX: 0.333, gapY: 0.25, rotate: 1 } },
+  { key: 'side50', name: 'Sideways 1½″ × 1″ labels, 50 per sheet (Library Store, Premium Label Supply)', values: { width: 1, height: 1.5, columns: 5, rows: 10, top: 0.5, left: 0.25, gapX: 0.125, gapY: 0, rotate: 1 } },
+]
 const SETTINGS_KEY = 'bsd:shelf-label-settings'
 
 export function loadLabelSettings() {
@@ -22,7 +30,7 @@ export function saveLabelSettings(settings) {
 // on screen and in print, so wrapping and overflow are decided the same way.
 // Text that doesn't fit is never clipped silently: the label is marked and
 // onOverflow reports it.
-export default function SpineLabel({ lines, verdict = null, settings = DEFAULT_LABEL_SETTINGS, onOverflow, className = '' }) {
+export default function SpineLabel({ lines, verdict = null, settings = DEFAULT_LABEL_SETTINGS, onOverflow, className = '', rotated = false }) {
   const ref = useRef(null)
   const [over, setOver] = useState(false)
   const key = (lines || []).join('|')
@@ -32,7 +40,10 @@ export default function SpineLabel({ lines, verdict = null, settings = DEFAULT_L
     const inner = el.firstElementChild
     const cs = window.getComputedStyle(el)
     const availH = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-    const width = () => inner.getBoundingClientRect().width
+    // Measured on screen, where a sideways label is drawn turned 90°: swap the
+    // axes back so the fit is judged in the label's own orientation.
+    const rect = node => { const b = node.getBoundingClientRect(); return rotated ? { width: b.height, height: b.width } : b }
+    const width = () => rect(inner).width
     // Shrink any line that is wider than the label, one step at a time, down
     // to about 78% of the base size. Fractional sizes are used so sub-pixel
     // rounding never counts as overflow.
@@ -41,13 +52,13 @@ export default function SpineLabel({ lines, verdict = null, settings = DEFAULT_L
       span.style.fontSize = ''
       const base = parseFloat(window.getComputedStyle(span).fontSize)
       let size = base
-      while (span.getBoundingClientRect().width > width() + 0.5 && size > base * 0.78) { size -= 0.25; span.style.fontSize = `${size}px` }
+      while (rect(span).width > width() + 0.5 && size > base * 0.78) { size -= 0.25; span.style.fontSize = `${size}px` }
     }
-    const tooWide = spans.some(span => span.getBoundingClientRect().width > width() + 0.5)
-    const overflow = tooWide || inner.getBoundingClientRect().height > availH + 0.5
+    const tooWide = spans.some(span => rect(span).width > width() + 0.5)
+    const overflow = tooWide || rect(inner).height > availH + 0.5
     setOver(overflow)
     onOverflow?.(overflow)
-  }, [key, settings.width, settings.height, settings.padding, settings.fontPt, settings.bar, verdict, onOverflow])
+  }, [key, settings.width, settings.height, settings.padding, settings.fontPt, settings.bar, verdict, rotated, onOverflow])
   if (!lines) return null
   const color = settings.bar > 0 ? verdictBarColor(verdict) : null
   // The bar's space is reserved whether or not this book has a verdict, so

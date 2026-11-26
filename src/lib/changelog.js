@@ -4,6 +4,14 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.19.1',
+    date: '2026-11-26',
+    title: 'Print spine labels on sideways label stock',
+    changes: [
+      { kind: 'new', text: 'Print shelf labels has a Stock choice with presets for 56-per-sheet spine labels and for sideways 1½″ × 1″ labels at 32 or 50 per sheet. On sideways stock each label prints turned 90°, so it reads upright once it’s on the spine.' },
+    ],
+  },
+  {
     version: '1.19.0',
     date: '2026-11-26',
     title: 'Doctrine color bar on spine labels, author rules and bulk checks',

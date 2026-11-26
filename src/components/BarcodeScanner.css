@@ -1,0 +1,11 @@
+/* The video keeps its own aspect ratio (no cropping), so the band drawn here
+   lines up exactly with the strip of the frame being decoded. */
+.scan-view { position: relative; background: #111; border-radius: 8px; overflow: hidden; min-height: 200px; display: grid; place-items: center; }
+.scan-view video { display: block; width: 100%; height: auto; }
+.scan-band { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 6px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35); pointer-events: none; transition: border-color 0.15s; }
+.scan-band span { position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; background: rgba(220, 60, 60, 0.85); }
+.scan-view.is-starting .scan-band { opacity: 0; }
+.scan-view.is-found .scan-band { border-color: #4ade80; }
+.scan-hint { position: absolute; color: #fff; font-size: 14px; margin: 0; }
+.scan-torch { position: absolute; right: 10px; bottom: 10px; width: 40px; height: 40px; border-radius: 999px; border: 0; background: rgba(0, 0, 0, 0.55); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.scan-torch[aria-pressed="true"] { background: #fff; color: #111; }

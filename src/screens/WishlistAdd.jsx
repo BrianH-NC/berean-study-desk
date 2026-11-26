@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Camera, Loader2, ScanBarcode } from 'lucide-react'
 import { useAuth } from '../App'
@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import { identifyBookImage } from '../lib/bookPhoto'
 import BarcodeScanner from '../components/BarcodeScanner'
+import { preloadBarcodeReaderWhenIdle } from '../lib/barcodeReader'
 
 const PRIORITIES = [
   { value: 'high', label: 'High' },
@@ -14,6 +15,7 @@ const PRIORITIES = [
 ]
 
 export default function WishlistAdd() {
+  useEffect(() => { preloadBarcodeReaderWhenIdle() }, [])
   const user = useAuth()
   const navigate = useNavigate()
 

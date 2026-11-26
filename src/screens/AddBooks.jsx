@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Camera, Images, Loader2, ScanBarcode } from 'lucide-react'
 import { useAuth } from '../App'
@@ -7,10 +7,12 @@ import { identifyShelfPhoto } from '../lib/shelfPhoto'
 import { identifyBookImage } from '../lib/bookPhoto'
 import { fetchBookByISBN } from '../lib/googleBooks'
 import BarcodeScanner from '../components/BarcodeScanner'
+import { preloadBarcodeReaderWhenIdle } from '../lib/barcodeReader'
 import BookCover from '../components/BookCover'
 import { isValidISBN, normalizeISBN } from '../lib/isbn'
 
 export default function AddBooks() {
+  useEffect(() => { preloadBarcodeReaderWhenIdle() }, [])
   const user = useAuth()
   const navigate = useNavigate()
   const fileInputRef = useRef(null)

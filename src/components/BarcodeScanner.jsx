@@ -1,88 +1,128 @@
 import { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { Flashlight, FlashlightOff, X } from 'lucide-react'
 import { isValidISBN, normalizeISBN } from '../lib/isbn'
+import { decodeFrame, preloadBarcodeReader } from '../lib/barcodeReader'
+import './BarcodeScanner.css'
 
-// Camera barcode scan + manual ISBN fallback, ported from
-// holy-shelf/src/components/BarcodeScanner.jsx (same html5-qrcode usage),
-// restyled to the Organic design system and wrapped in the .dialog pattern.
+// The scan band, as a share of the video frame. Book barcodes are wide and
+// short, so only this centre strip is decoded: less work per frame, more frames.
+const BAND = { w: 0.86, h: 0.42 }
+const MAX_BAND_WIDTH = 1400
+
+// Camera barcode scan with a manual ISBN fallback.
 export default function BarcodeScanner({ onScan, onClose }) {
-  const scannerRef = useRef(null)
-  const hasScannedRef = useRef(false)
+  const videoRef = useRef(null)
+  const doneRef = useRef(false)
   const [error, setError] = useState(null)
+  const [status, setStatus] = useState('starting')
+  const [torch, setTorch] = useState({ supported: false, on: false })
+  const trackRef = useRef(null)
   const [manualIsbn, setManualIsbn] = useState('')
   const [isbnError, setIsbnError] = useState('')
 
   useEffect(() => {
-    let html5QrCode = null
+    let stream = null
+    let stopped = false
+    let lastWarning = 0
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
-    async function startScanner() {
-      try {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
-        // Book barcodes are EAN-13 (ISBN-13) or occasionally EAN-8/UPC --
-        // not QR codes. Without an explicit formatsToSupport list, the
-        // decoder isn't guaranteed to watch for 1D barcode formats at all.
-        html5QrCode = new Html5Qrcode('bsd-qr-reader', {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_128,
-          ],
-          verbose: false,
-        })
-        scannerRef.current = html5QrCode
+    function stop() {
+      stopped = true
+      if (stream) stream.getTracks().forEach(t => t.stop())
+      stream = null
+    }
 
-        await html5QrCode.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 150 } },
-          (decoded) => {
-            if (hasScannedRef.current) return
-            hasScannedRef.current = true
-
-            const isbn = normalizeISBN(decoded)
+    async function loop() {
+      const video = videoRef.current
+      while (!stopped && !doneRef.current) {
+        if (video && video.readyState >= 2 && video.videoWidth) {
+          const vw = video.videoWidth, vh = video.videoHeight
+          const sw = Math.round(vw * BAND.w), sh = Math.round(vh * BAND.h)
+          const scale = Math.min(1, MAX_BAND_WIDTH / sw)
+          canvas.width = Math.round(sw * scale); canvas.height = Math.round(sh * scale)
+          ctx.drawImage(video, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, canvas.width, canvas.height)
+          let text = null
+          try { text = await decodeFrame(ctx.getImageData(0, 0, canvas.width, canvas.height)) } catch { /* keep scanning */ }
+          if (stopped || doneRef.current) return
+          if (text) {
+            const isbn = normalizeISBN(text)
             if (isValidISBN(isbn)) {
-              const scanner = scannerRef.current
-              scannerRef.current = null
-              if (scanner) {
-                scanner.stop().catch(() => {}).finally(() => onScan(isbn))
-              } else {
-                onScan(isbn)
-              }
-            } else {
-              hasScannedRef.current = false
-              setIsbnError('That barcode is not a valid ISBN. Scan the book’s ISBN barcode or enter it below.')
+              doneRef.current = true
+              setStatus('found')
+              if (navigator.vibrate) navigator.vibrate(60)
+              stop()
+              onScan(isbn)
+              return
             }
-          },
-          () => {}
-        )
+            const now = Date.now()
+            if (now - lastWarning > 2500) {
+              lastWarning = now
+              setIsbnError('That barcode isn’t an ISBN. On paperbacks the ISBN barcode is sometimes inside the front cover.')
+            }
+          }
+        }
+        await new Promise(r => requestAnimationFrame(r))
+      }
+    }
+
+    async function start() {
+      try {
+        const [media] = await Promise.all([
+          navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          }),
+          preloadBarcodeReader(),
+        ])
+        if (stopped) { media.getTracks().forEach(t => t.stop()); return }
+        stream = media
+        const track = stream.getVideoTracks()[0]
+        trackRef.current = track
+        const caps = track.getCapabilities ? track.getCapabilities() : {}
+        const advanced = []
+        if (caps.focusMode?.includes?.('continuous')) advanced.push({ focusMode: 'continuous' })
+        // Newer iPhones can't focus their main camera close up; a little zoom
+        // lets you hold the book far enough away to stay sharp.
+        if (caps.zoom && caps.zoom.max >= 1.6) advanced.push({ zoom: Math.min(2, caps.zoom.max) })
+        if (advanced.length) track.applyConstraints({ advanced }).catch(() => {})
+        setTorch({ supported: Boolean(caps.torch), on: false })
+        const video = videoRef.current
+        video.srcObject = stream
+        await video.play()
+        setStatus('scanning')
+        loop()
       } catch (err) {
         console.error('Scanner start error:', err)
-        setError('Could not access the camera. Check permissions and try again, or enter the ISBN manually.')
+        stop()
+        setError(err?.name === 'NotAllowedError'
+          ? 'Camera access is blocked. Allow the camera for this site in your browser settings, or enter the ISBN below.'
+          : 'The camera scanner couldn’t start. Enter the ISBN below instead.')
       }
     }
 
-    startScanner()
-
-    return () => {
-      const scanner = scannerRef.current
-      if (scanner) {
-        scannerRef.current = null
-        scanner.stop().catch(() => {})
-      }
-    }
+    start()
+    return stop
+    // onScan is called once; restarting the camera on a new callback identity would flicker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  function toggleTorch() {
+    const track = trackRef.current
+    if (!track) return
+    const on = !torch.on
+    track.applyConstraints({ advanced: [{ torch: on }] }).then(() => setTorch(t => ({ ...t, on }))).catch(() => {})
+  }
+
   function handleManualSubmit(e) {
     e.preventDefault()
-    if (hasScannedRef.current) return
+    if (doneRef.current) return
     const isbn = normalizeISBN(manualIsbn)
     if (!isValidISBN(isbn)) {
       setIsbnError('Enter a valid 10- or 13-character ISBN, including its check digit.')
       return
     }
-    hasScannedRef.current = true
+    doneRef.current = true
     onScan(isbn)
   }
 
@@ -97,31 +137,29 @@ export default function BarcodeScanner({ onScan, onClose }) {
         </div>
 
         {error ? (
-          <div className="dialog-body" style={{ color: 'var(--color-accent-800)' }}>
-            {error}
-          </div>
+          <div className="dialog-body" role="alert" style={{ color: 'var(--color-accent-800)' }}>{error}</div>
         ) : (
-          <div id="bsd-qr-reader" className="rounded-md overflow-hidden bg-neutral-900" style={{ minHeight: 240 }} />
+          <div className={`scan-view is-${status}`}>
+            <video ref={videoRef} playsInline muted autoPlay aria-label="Camera view" />
+            <div className="scan-band" style={{ width: `${BAND.w * 100}%`, height: `${BAND.h * 100}%` }} aria-hidden="true"><span /></div>
+            {status === 'starting' && <p className="scan-hint" role="status">Starting the camera…</p>}
+            {torch.supported && (
+              <button type="button" className="scan-torch" onClick={toggleTorch} aria-pressed={torch.on} aria-label={torch.on ? 'Turn off the light' : 'Turn on the light'}>
+                {torch.on ? <FlashlightOff size={18} /> : <Flashlight size={18} />}
+              </button>
+            )}
+          </div>
         )}
 
         <p className="text-sm text-center" style={{ opacity: 0.6 }}>
-          Point your camera at the barcode on the back of the book
+          Fit the barcode on the back of the book inside the box
         </p>
 
         <div className="pt-3" style={{ borderTop: '1px solid var(--color-divider)' }}>
-          <p className="text-sm text-center mb-2" style={{ opacity: 0.6 }}>
-            Or enter ISBN manually
-          </p>
+          <p className="text-sm text-center mb-2" style={{ opacity: 0.6 }}>Or enter ISBN manually</p>
           <form onSubmit={handleManualSubmit} className="flex gap-2">
-            <input
-              className="input"
-              placeholder="e.g. 9780451524935"
-              value={manualIsbn}
-              onChange={(e) => setManualIsbn(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary shrink-0">
-              Look up
-            </button>
+            <input className="input" placeholder="e.g. 9780451524935" value={manualIsbn} onChange={(e) => setManualIsbn(e.target.value)} />
+            <button type="submit" className="btn btn-primary shrink-0">Look up</button>
           </form>
           {isbnError && <p className="text-sm mt-2" role="alert">{isbnError}</p>}
         </div>

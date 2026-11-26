@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.17.0',
+    date: '2026-11-26',
+    title: 'A much faster barcode scanner',
+    changes: [
+      { kind: 'improved', text: 'The ISBN scanner uses a new, much faster decoder and a sharper camera feed, so it locks onto a barcode in a fraction of the time. It loads in the background before you tap Scan.' },
+      { kind: 'new', text: 'A box shows where to hold the barcode, and phones that support it get a light button for dim shelves.' },
+    ],
+  },
+  {
     version: '1.16.3',
     date: '2026-11-25',
     title: 'Reading plan moves between passages',

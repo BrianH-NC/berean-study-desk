@@ -15,6 +15,7 @@ import { identifyShelfPhoto } from '../lib/shelfPhoto'
 import { DoctrineHeader, DoctrineLegend } from '../components/DoctrineChrome'
 import { saveTopicLink } from '../lib/topics'
 import BarcodeScanner from '../components/BarcodeScanner'
+import { preloadBarcodeReaderWhenIdle } from '../lib/barcodeReader'
 
 const VERDICT_FILTERS = ['All', 'Sound', 'Caution', 'Concern', 'Distinctive', 'Unable to Assess']
 
@@ -28,6 +29,7 @@ function verdictBucket(verdict) {
 }
 
 export default function DoctrineCheckIndex() {
+  useEffect(() => { preloadBarcodeReaderWhenIdle() }, [])
   const navigate = useNavigate()
   const topicContext = useLocation().state?.topicContext
   const user = useAuth()

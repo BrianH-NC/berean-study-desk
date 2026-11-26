@@ -35,7 +35,7 @@ export function previewLines(value) {
 }
 
 // The Shelf label section on a book: preview, edit, clear.
-export default function ShelfLabelCard({ book, userId, onSaved }) {
+export default function ShelfLabelCard({ book, verdict = null, userId, onSaved }) {
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -77,11 +77,11 @@ export default function ShelfLabelCard({ book, userId, onSaved }) {
       </div>}
     </div>
     {!editing ? (labeled
-      ? <div className="shelf-label-show"><SpineLabel lines={lines} settings={settings} onOverflow={setOver} /><div><p className="mb-1">{shelfCategory(book.shelf_category)?.name}</p><p className="card-meta mb-0">{shelfSubcategory(book.shelf_category, book.shelf_subcategory)?.name}</p>{over && <p className="shelf-over" role="status">This label doesn’t fit the current label size. Shorten the filing name or change the size on the print page.</p>}</div></div>
+      ? <div className="shelf-label-show"><SpineLabel lines={lines} verdict={verdict} settings={settings} onOverflow={setOver} /><div><p className="mb-1">{shelfCategory(book.shelf_category)?.name}</p><p className="card-meta mb-0">{shelfSubcategory(book.shelf_category, book.shelf_subcategory)?.name}</p>{over && <p className="shelf-over" role="status">This label doesn’t fit the current label size. Shorten the filing name or change the size on the print page.</p>}</div></div>
       : <p className="card-meta mb-0">No shelf label yet. Add one to file this book in shelf order and print its spine label.</p>)
       : <form className="shelf-label-form" onSubmit={save}>
           <ShelfLabelFields value={value} onChange={v => { setValue(v); setError('') }} idPrefix={`shelf-${book.id}`} />
-          <div className="shelf-label-preview"><p className="shelf-mini-label">Prints as</p>{previewLines(value) ? <SpineLabel lines={previewLines(value)} settings={settings} onOverflow={setOver} /> : <p className="card-meta">Choose a category to see the label.</p>}
+          <div className="shelf-label-preview"><p className="shelf-mini-label">Prints as</p>{previewLines(value) ? <SpineLabel lines={previewLines(value)} verdict={verdict} settings={settings} onOverflow={setOver} /> : <p className="card-meta">Choose a category to see the label.</p>}
             {over && <p className="shelf-over" role="status">Too long for a {settings.width}″ × {settings.height}″ label. Shorten the filing name, or add initials only where you need them.</p>}</div>
           {error && <p role="alert">{error}</p>}
           <div className="flex gap-2 flex-wrap"><button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save label'}</button><button type="button" className="btn btn-secondary" disabled={busy} onClick={() => { setEditing(false); setError('') }}>Cancel</button>{labeled && <button type="button" className="btn btn-ghost" disabled={busy} onClick={clear}>Clear label</button>}</div>

@@ -5,6 +5,8 @@ import { useAuth } from '../App'
 import { supabase } from '../lib/supabase'
 import { SHELF_TAXONOMY, hasShelfLabel, shelfLabelLines, sortShelfOrder } from '../lib/shelfLabels'
 import SpineLabel, { DEFAULT_LABEL_SETTINGS, loadLabelSettings, saveLabelSettings } from '../components/SpineLabel'
+import { VERDICTS, effectiveVerdict, verdictBarColor } from '../lib/verdictRules'
+import { loadChecksByIsbn, loadVerdictRules } from '../lib/verdictData'
 import './LabelPrint.css'
 
 const PAGE = { w: 8.5, h: 11 }
@@ -14,6 +16,7 @@ const FIELDS = [
   ['top', 'Top margin (in)', 0, 3, 0.01], ['left', 'Left margin (in)', 0, 3, 0.01],
   ['gapX', 'Gap across (in)', 0, 2, 0.01], ['gapY', 'Gap down (in)', 0, 2, 0.01],
   ['padding', 'Inner padding (in)', 0, 0.3, 0.01], ['fontPt', 'Text size (pt)', 5, 16, 0.5],
+  ['bar', 'Doctrine bar (in, 0 hides)', 0, 0.5, 0.025],
 ]
 
 function layoutProblem(s) {
@@ -36,13 +39,20 @@ export default function LabelPrint() {
   const [startAt, setStartAt] = useState(1)
   const [calibrate, setCalibrate] = useState(false)
   const [overflow, setOverflow] = useState({})
+  const [rules, setRules] = useState([])
+  const [checks, setChecks] = useState({})
+  const [verdictError, setVerdictError] = useState('')
 
   useEffect(() => {
     let active = true
     supabase.from('books').select('id,title,author,isbn,pub_date,shelf_category,shelf_subcategory,shelf_author').eq('user_id', user.id)
       .then(({ data, error: e }) => { if (!active) return; if (e) setError('Your books could not be loaded. Reload to try again.'); else setBooks(data || []) })
+    Promise.all([loadVerdictRules(user.id), loadChecksByIsbn()])
+      .then(([r, c]) => { if (active) { setRules(r); setChecks(c) } })
+      .catch(() => { if (active) setVerdictError('Doctrine Check results could not be loaded, so labels would print without color bars. Reload to try again.') })
     return () => { active = false }
   }, [user.id])
+  const verdictOf = b => effectiveVerdict(b, rules, checks[b.isbn]).verdict
 
   function change(key, raw) {
     const n = Number(raw)
@@ -83,6 +93,8 @@ export default function LabelPrint() {
         {missing.length > 0 && <details className="label-missing" open={missing.length <= 8}><summary>{missing.length} book{missing.length === 1 ? ' has' : 's have'} no shelf label and won’t print</summary><ul>{missing.map(b => <li key={b.id}><Link to={`/shelf/${b.id}`}>{b.title || 'Untitled'}</Link>{b.author ? ` · ${b.author}` : ''}</li>)}</ul></details>}
         {overBooks.length > 0 && !calibrate && <div className="label-warn" role="alert"><strong>{overBooks.length} label{overBooks.length === 1 ? '' : 's'} won’t fit</strong> and {overBooks.length === 1 ? 'is' : 'are'} outlined in red below. Shorten the filing name on the book, lower the text size, or use a larger label.<ul>{overBooks.slice(0, 12).map(b => <li key={b.id}><Link to={`/shelf/${b.id}`}>{shelfLabelLines(b).join(' / ')}</Link> · {b.title}</li>)}</ul></div>}
         {problem && <p className="label-warn" role="alert">{problem}</p>}
+        {verdictError && <p className="label-warn" role="alert">{verdictError}</p>}
+        {settings.bar > 0 && !calibrate && <div className="label-legend" aria-label="Doctrine bar colors">{VERDICTS.map(v => <span key={v}><span className="verdict-swatch" style={{ background: verdictBarColor(v) }} />{v} ({printable.filter(b => verdictOf(b) === v).length})</span>)}<span>No bar: no verdict yet ({printable.filter(b => !verdictOf(b)).length})</span><Link to="/shelf/doctrine-rules">Author rules</Link></div>}
         <details className="label-settings"><summary>Label size and sheet layout · {settings.width}″ × {settings.height}″, {settings.columns} × {settings.rows} per sheet</summary>
           <div className="label-settings-grid">{FIELDS.map(([key, label, min, max, step]) => <label key={key}>{label}<input className="input" type="number" min={min} max={max} step={step} value={settings[key]} onChange={e => change(key, e.target.value)} /></label>)}</div>
           <button type="button" className="btn btn-ghost" onClick={reset}><RotateCcw size={16} aria-hidden="true" />Reset to 1″ × 1½″ spine labels</button>
@@ -92,7 +104,7 @@ export default function LabelPrint() {
           <label className="label-inline label-check"><input type="checkbox" checked={calibrate} onChange={e => setCalibrate(e.target.checked)} />Calibration sheet</label>
           <button type="button" className="btn btn-primary" disabled={Boolean(problem) || (!calibrate && !printable.length)} onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print</button>
         </div>
-        <p className="label-tip">In the print dialog choose Letter, set the scale to Actual size or 100%, and turn off headers and footers. Print the calibration sheet on plain paper first and hold it against a blank label sheet to the light. If the outlines drift, adjust the margins and gaps above. Use Start at label to finish a partly used sheet.</p>
+        <p className="label-tip">In the print dialog choose Letter, set the scale to Actual size or 100%, turn off headers and footers, and turn on background graphics so the color bars print. Print the calibration sheet on plain paper first and hold it against a blank label sheet to the light. If the outlines drift, adjust the margins and gaps above. Use Start at label to finish a partly used sheet.</p>
       </>}
     </div>
 
@@ -100,7 +112,7 @@ export default function LabelPrint() {
       {pages.map((page, p) => <div key={p} className="label-sheet" style={{ width: `${PAGE.w}in`, height: `${PAGE.h}in` }}>
         {page.map((slot, i) => slot === null ? null : slot.calibration
           ? <div key={i} className="label-slot label-calibration" style={{ ...pos(i), width: `${settings.width}in`, height: `${settings.height}in` }}>{slot.calibration}</div>
-          : <div key={slot.id} className="label-slot" style={pos(i)}><SpineLabel lines={shelfLabelLines(slot)} settings={settings} onOverflow={over => reportOverflow(slot.id, over)} /></div>)}
+          : <div key={slot.id} className="label-slot" style={pos(i)}><SpineLabel lines={shelfLabelLines(slot)} verdict={verdictOf(slot)} settings={settings} onOverflow={over => reportOverflow(slot.id, over)} /></div>)}
       </div>)}
     </div>
   </div>

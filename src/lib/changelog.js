@@ -4,6 +4,16 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.19.0',
+    date: '2026-11-26',
+    title: 'Doctrine color bar on spine labels, author rules and bulk checks',
+    changes: [
+      { kind: 'new', text: 'Spine labels print a color bar across the top for the book’s Doctrine Check verdict: green Sound, amber Caution, red Concern, blue Baptism/Polity Distinctive, gray Unable to Assess. Books without a verdict print with no bar until they’re checked.' },
+      { kind: 'new', text: 'Author rules give authors you trust a standing verdict, like Beeke as Baptism/Polity Distinctive. Rules are private to your Library, win over an AI check, and show as “your rule” on the book.' },
+      { kind: 'new', text: 'Select books in the Library and run Doctrine Check on all of them at once, with a summary of what will run, progress as it goes and a way to stop.' },
+    ],
+  },
+  {
     version: '1.18.0',
     date: '2026-11-26',
     title: 'Shelf labels for your physical library',

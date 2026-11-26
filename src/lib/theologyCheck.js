@@ -83,3 +83,17 @@ export function mapAssessmentToRow(assessment) {
     alternative_suggestion: assessment.alternativeSuggestion ?? null,
   }
 }
+
+// Runs a Doctrine Check for one Library book and saves it. Returns the new
+// check's id and verdict. Used by the book page and by bulk checks.
+export async function runBookCheck(book) {
+  const assessment = await assessSubject({ kind: 'book', title: book.title, authors: book.author, isbn: book.isbn })
+  const id = crypto.randomUUID()
+  const row = {
+    id, kind: 'book', isbn: book.isbn, title: book.title, authors: book.author, cover_url: book.cover_url,
+    tags: [], is_wishlist: false, followups: [], confession_comparisons: {}, created_at: new Date().toISOString(),
+    ...mapAssessmentToRow(assessment),
+  }
+  await checksInsert(row)
+  return { id, isbn: book.isbn, verdict: row.verdict, created_at: row.created_at }
+}

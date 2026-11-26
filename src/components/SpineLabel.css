@@ -1,7 +1,8 @@
-.spine-label { box-sizing: border-box; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; font-family: Inter, Arial, Helvetica, sans-serif; line-height: 1.12; text-align: center; border: 1px solid #c9c9c9; border-radius: 3px; }
+.spine-label { position: relative; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; color: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; font-family: Inter, Arial, Helvetica, sans-serif; line-height: 1.12; text-align: center; border: 1px solid #c9c9c9; border-radius: 3px; }
 .spine-label-text { display: flex; flex-direction: column; align-items: center; gap: 0.35em; width: 100%; min-width: 0; overflow-wrap: normal; word-break: normal; }
 .spine-label .spine-cat { font-weight: 800; letter-spacing: 0.02em; }
 .spine-label .spine-sub { font-size: 0.9em; font-weight: 600; }
 .spine-label .spine-author { font-weight: 700; }
 .spine-label.is-over { outline: 2px solid #c0392b; outline-offset: 1px; }
 @media print { .spine-label { border-color: transparent; border-radius: 0; } .spine-label.is-over { outline: none; } }
+.spine-bar { position: absolute; top: 0; left: 0; right: 0; }

@@ -41,3 +41,7 @@
 .label-row-pick input { width: 18px; height: 18px; margin-top: 2px; flex: 0 0 auto; }
 .label-row-note { margin: 0; font-size: 0.85rem; opacity: 0.75; }
 .label-drafts .shelf-fields { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.verdict-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; flex: 0 0 auto; }
+.rule-verdict { width: auto; min-width: 200px; }
+.rule-books { margin: 4px 0 0 1.1rem; font-size: 0.9rem; }
+.label-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; align-items: center; }

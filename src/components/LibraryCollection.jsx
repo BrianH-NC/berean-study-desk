@@ -5,13 +5,14 @@ import BookCover from './BookCover'
 import AssessmentBadge from './AssessmentBadge'
 import { primaryCategory, readingStatus } from '../lib/libraryPresentation'
 import { shelfLabelText } from '../lib/shelfLabels'
+import { ruleFor } from '../lib/verdictRules'
 
 const LabelChip = ({ book }) => { const t = shelfLabelText(book); return t ? <span className="library-shelf-chip" title="Shelf label">{t}</span> : <span className="library-shelf-chip is-none">No label</span> }
 const SelectBox = ({ book, selected, onToggle }) => <input type="checkbox" className="library-select" checked={selected.has(book.id)} onChange={() => onToggle(book.id)} aria-label={`Select ${book.title || 'book'} for labels`} />
 
-export default function LibraryCollection({ books, assessments, view, libraryFrom, sort, direction, onSort, onEdit, onRemove, assessmentsUnavailable, selecting = false, selected = new Set(), onToggleSelect = () => {} }) {
+export default function LibraryCollection({ books, rules = [], assessments, view, libraryFrom, sort, direction, onSort, onEdit, onRemove, assessmentsUnavailable, selecting = false, selected = new Set(), onToggleSelect = () => {} }) {
   const state = { libraryFrom }
-  const badge = book => assessmentsUnavailable ? <span className="card-meta">Assessment unavailable</span> : <AssessmentBadge assessment={assessments[book.isbn]} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={state} />
+  const badge = book => assessmentsUnavailable ? <span className="card-meta">Assessment unavailable</span> : <AssessmentBadge assessment={assessments[book.isbn]} rule={ruleFor(book, rules)} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={state} />
   if (view === 'list') return <div className="library-records">
     <table className="library-table">
       <caption className="sr-only">Your Library</caption>

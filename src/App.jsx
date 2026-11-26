@@ -14,6 +14,7 @@ import LibraryImport from './screens/LibraryImport'
 import BookDetail from './screens/BookDetail'
 import LabelPrint from './screens/LabelPrint'
 import LabelReview from './screens/LabelReview'
+import DoctrineRules from './screens/DoctrineRules'
 import AddBooks from './screens/AddBooks'
 import Wishlist from './screens/Wishlist'
 import WishlistAdd from './screens/WishlistAdd'
@@ -69,6 +70,7 @@ function ProtectedLayout() {
           <Route path="/shelf/lists/:slug" element={<ReadingLists />} />
           <Route path="/shelf/labels" element={<LabelPrint />} />
           <Route path="/shelf/labels/review" element={<LabelReview />} />
+          <Route path="/shelf/doctrine-rules" element={<DoctrineRules />} />
           <Route path="/shelf/:id" element={<BookDetail />} />
           <Route path="/checks" element={<DoctrineCheckIndex />} />
           <Route path="/checks/:id" element={<DoctrineCheckReport />} />

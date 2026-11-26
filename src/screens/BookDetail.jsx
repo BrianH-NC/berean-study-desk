@@ -9,10 +9,12 @@ import BookCover from '../components/BookCover'
 import { removeBookWithFiles } from '../lib/bookFiles'
 import { primaryCategory, readingStatus } from '../lib/libraryPresentation'
 import { parseReference } from '../lib/bsb'
-import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
+import { runBookCheck } from '../lib/theologyCheck'
 import ChangeCoverDialog from '../components/ChangeCoverDialog'
 import SimilarBooks from '../components/SimilarBooks'
 import ShelfLabelCard from '../components/ShelfLabelCard'
+import { loadVerdictRules } from '../lib/verdictData'
+import { effectiveVerdict } from '../lib/verdictRules'
 
 const STATUSES = ['unread', 'in-progress', 'read']
 
@@ -39,6 +41,8 @@ export default function BookDetail() {
 
 
   const [book, setBook] = useState(null) // null = loading, false = not found
+  const [rules, setRules] = useState([])
+  useEffect(() => { let active = true; loadVerdictRules(user.id).then(r => { if (active) setRules(r) }).catch(() => {}); return () => { active = false } }, [user.id])
   const [check, setCheck] = useState(null) // null = not loaded/none
   const [notes, setNotes] = useState([])
   const [loadError, setLoadError] = useState('')
@@ -138,23 +142,7 @@ export default function BookDetail() {
   async function handleCheck() {
     setChecking(true)
     try {
-      const assessment = await assessSubject({ kind: 'book', title: book.title, authors: book.author, isbn: book.isbn })
-      const checkId = crypto.randomUUID()
-      const { error } = await checksInsert({
-        id: checkId,
-        kind: 'book',
-        isbn: book.isbn,
-        title: book.title,
-        authors: book.author,
-        cover_url: book.cover_url,
-        tags: [],
-        is_wishlist: false,
-        followups: [],
-        confession_comparisons: {},
-        created_at: new Date().toISOString(),
-        ...mapAssessmentToRow(assessment),
-      })
-      if (error) throw new Error(error)
+      const { id: checkId } = await runBookCheck(book)
       navigate(`/checks/${checkId}`)
     } catch (err) {
       alert('Could not run check: ' + err.message)
@@ -192,7 +180,7 @@ export default function BookDetail() {
           <p className="card-kicker">{primaryCategory(book)}</p>
           <h1>{book.title}</h1>
           <p className="text-muted">{book.author || 'Unknown author'}</p>
-          <div className="mb-3">{contextError ? <p className="card-meta">Assessment information unavailable</p> : <AssessmentBadge assessment={check} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={location.state} />}</div>
+          <div className="mb-3">{contextError ? <p className="card-meta">Assessment information unavailable</p> : <AssessmentBadge assessment={check} rule={effectiveVerdict(book, rules, check).rule} title={book.title} unassessedTo={`/shelf/${book.id}?tab=doctrine`} state={location.state} />}</div>
           <p className="font-ui text-sm text-muted">{readingStatus(book)} · Progress <span aria-label="Progress not recorded">—</span></p>
           <div className="flex gap-2 flex-wrap">
             <Link to={`/reading/${book.id}`} className="btn btn-primary">{book.reading_status === 'in-progress' ? 'Continue reading session' : 'Start reading session'}</Link>
@@ -201,7 +189,7 @@ export default function BookDetail() {
           </div>
         </div>
       </header>
-      <ShelfLabelCard book={book} userId={user.id} onSaved={values => setBook(prev => ({ ...prev, ...values }))} />
+      <ShelfLabelCard book={book} verdict={effectiveVerdict(book, rules, check).verdict} userId={user.id} onSaved={values => setBook(prev => ({ ...prev, ...values }))} />
       {contextError && <div className="card mb-4" role="alert"><p>Some notes or assessment information could not be loaded.</p><button className="btn btn-secondary self-start" onClick={load}>Retry</button></div>}
       {editing ? (
             <div className="card mb-5" style={{ padding: '18px 20px' }}>

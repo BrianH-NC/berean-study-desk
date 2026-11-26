@@ -1,4 +1,5 @@
 import { extractSortLastName } from './authorSort.js'
+import { sortShelfOrder } from './shelfLabels.js'
 
 export function primaryCategory(book) { return book.tags?.[0] || 'Uncategorized' }
 export function readingProgress(book) {
@@ -10,6 +11,7 @@ export function readingStatus(book) {
   return { unread: 'Not Started', 'in-progress': 'Reading', read: 'Completed', paused: 'Paused', reference: 'Reference' }[book.reading_status] || 'Not Started'
 }
 export function sortLibrary(books, sort, direction) {
+  if (sort === 'shelf') { const ordered = sortShelfOrder(books); return direction === 'desc' ? ordered.reverse() : ordered }
   const key = book => sort === 'author' ? extractSortLastName(book.author) : sort === 'category' ? primaryCategory(book) : book.title || ''
   return [...books].sort((a, b) => {
     const comparison = sort === 'recent' ? (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0) : key(a).localeCompare(key(b), undefined, { sensitivity: 'base' })

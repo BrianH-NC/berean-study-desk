@@ -4,6 +4,17 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.18.0',
+    date: '2026-11-26',
+    title: 'Shelf labels for your physical library',
+    changes: [
+      { kind: 'new', text: 'Every book can carry a three-line spine label: main category, subcategory and author filing name, like COMM / 1 PET / ELLIOTT. Set it from the Shelf label card on the book, with a live preview at printed size.' },
+      { kind: 'new', text: 'Library has a Shelf order sort beside Category, filters for label category, subcategory and unlabeled books, and the label on every book in each view.' },
+      { kind: 'new', text: 'Print shelf labels lays labels out in shelf order on 1″ × 1½″ spine label sheets, 56 to a page, with adjustable sizes, a calibration sheet and a start position for partly used sheets. Long names shrink to fit, and anything that still won’t fit is flagged before you print.' },
+      { kind: 'new', text: 'Label review loads a classification file and matches it to your books by ISBN for review before anything is applied, and suggests labels for books that don’t have one.' },
+    ],
+  },
+  {
     version: '1.17.0',
     date: '2026-11-26',
     title: 'A much faster barcode scanner',

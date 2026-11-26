@@ -12,6 +12,7 @@ import { parseReference } from '../lib/bsb'
 import { assessSubject, checksInsert, mapAssessmentToRow } from '../lib/theologyCheck'
 import ChangeCoverDialog from '../components/ChangeCoverDialog'
 import SimilarBooks from '../components/SimilarBooks'
+import ShelfLabelCard from '../components/ShelfLabelCard'
 
 const STATUSES = ['unread', 'in-progress', 'read']
 
@@ -200,6 +201,7 @@ export default function BookDetail() {
           </div>
         </div>
       </header>
+      <ShelfLabelCard book={book} userId={user.id} onSaved={values => setBook(prev => ({ ...prev, ...values }))} />
       {contextError && <div className="card mb-4" role="alert"><p>Some notes or assessment information could not be loaded.</p><button className="btn btn-secondary self-start" onClick={load}>Retry</button></div>}
       {editing ? (
             <div className="card mb-5" style={{ padding: '18px 20px' }}>

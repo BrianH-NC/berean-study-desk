@@ -3,7 +3,7 @@
 import {resolveSermonTopics} from './topicCatalog.js'
 
 export const DEFAULT_CHURCH='Parkside Baptist Church'
-export const DEFAULT_SPEAKER='Pastor Chase'
+export const DEFAULT_SPEAKER='Chase Jenkins'
 export const AUTOFILL_FIELDS=['title','speaker','series','church','primary_text','description']
 export const MIN_AUTOFILL_LENGTH=200
 

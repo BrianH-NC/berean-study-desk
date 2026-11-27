@@ -8,7 +8,7 @@ export const CHANGELOG = [
     date: '2026-11-26',
     title: 'Sermon details fill themselves from the transcript',
     changes: [
-      { kind: 'new', text: 'Upload or paste a sermon transcript and the empty fields fill in for you: title, speaker, series, Primary Text, a short description and 3–6 topics. Church defaults to Parkside Baptist Church, and Speaker to Pastor Chase when the transcript doesn’t name the preacher.' },
+      { kind: 'new', text: 'Upload or paste a sermon transcript and the empty fields fill in for you: title, speaker, series, Primary Text, a short description and 3–6 topics. Church defaults to Parkside Baptist Church, and Speaker to Chase Jenkins when the transcript doesn’t name the preacher.' },
       { kind: 'new', text: 'Anything you’ve already typed is never replaced. Topics reuse your existing Topics names, and the ones you keep are linked to their Topics pages when you save.' },
       { kind: 'new', text: 'A Fill details from transcript button runs it again, for example after clearing a field.' },
     ],

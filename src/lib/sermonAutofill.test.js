@@ -15,7 +15,7 @@ test('never overwrites what is already there',()=>{
 test('a named speaker beats the default',()=>{assert.equal(mergeAutofill(empty,{speaker:'Chase Smith'}).form.speaker,'Chase Smith')})
 test('skips the AI call when nothing is blank',()=>{
  const full={title:'a',speaker:'b',series:'c',church:'d',primary_text:'e',description:'f'}
- assert.equal(needsAutofill(full,'x'),false);assert.equal(needsAutofill(full,''),true);assert.equal(needsAutofill({...full,description:' '},'x'),true)
+ assert.equal(needsAutofill({...full,sermon_outline:{big_idea:'x'}},'x'),false);assert.equal(needsAutofill(full,''),true);assert.equal(needsAutofill({...full,sermon_outline:{big_idea:'x'},description:' '},'x'),true)
 })
 test('local default fills church only when blank',()=>{assert.deepEqual(localDefaults(empty),{church:DEFAULT_CHURCH});assert.deepEqual(localDefaults({church:'X'}),{})})
 test('topics reuse catalog names and aliases, and only kept tags are linked',()=>{
@@ -24,3 +24,12 @@ test('topics reuse catalog names and aliases, and only kept tags are linked',()=
  assert.deepEqual(topicsToLink(topics,[topics[1].name]).map(t=>t.name),[topics[1].name])
 })
 test('summary reads naturally',()=>{assert.equal(filledSummary(['title','tags']),'Filled title and topics from the transcript. Review before saving.')})
+test('outline fills only when empty and is cleaned',()=>{
+ const o={big_idea:' Fear God ',points:[{heading:'Live free',ref:'1 Peter 2:16',subpoints:['a',' ']},{heading:'  ',subpoints:[]}]}
+ const r=mergeAutofill(empty,{outline:o})
+ assert.deepEqual(r.form.sermon_outline,{big_idea:'Fear God',points:[{heading:'Live free',ref:'1 Peter 2:16',subpoints:['a']}]});assert.ok(r.filled.includes('sermon_outline'))
+ const kept={...empty,sermon_outline:{big_idea:'mine',points:[]}}
+ assert.equal(mergeAutofill(kept,{outline:o}).form.sermon_outline.big_idea,'mine')
+ const full={title:'a',speaker:'b',series:'c',church:'d',primary_text:'e',description:'f'}
+ assert.equal(needsAutofill(full,'x'),true);assert.equal(needsAutofill({...full,sermon_outline:o},'x'),false)
+})

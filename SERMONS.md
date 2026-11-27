@@ -70,3 +70,10 @@ Study-guide generation now suggests 3–6 sermon topics with reasons. On the Stu
 - `primaryRefSegments` expands a span into per-chapter refs for `sermonPassageMatch` (Search) and Passage Connections; `sermonBibleUrl` opens at the first verse without a `verseEnd`; `passageLabel` prints "1 Peter 1:22–2:3". Composer and SermonIndex import both use the new parser.
 - Fixed `dgroup-generate` interpolating the `primary_ref` object ("[object Object]") into its prompt; it now uses `primary_text`. Redeployed as version 3, verify_jwt unchanged (on).
 - "Abiding Word, Abiding Love" updated to 1 Peter 1:22-2:3.
+
+## Sermon outline (1.21.0) — 2026-11-26
+
+- New `sermons.sermon_outline jsonb` (`supabase/migrations/20261127_sermon_outline.sql`, applied): `{big_idea, points:[{heading, ref, subpoints[]}]}`. Null when empty.
+- `sermon-autofill` (version 2, max_tokens 3000) also returns the preacher's own outline; the composer fills it only when the outline is empty, like the other fields. `src/lib/sermonOutline.js` cleans and checks it; `src/components/SermonOutline.jsx` has the view and the editor.
+- Sermon detail has an Outline tab between Overview and Transcript; the composer has a Sermon outline editor (big idea, points with heading, verses and sub-points, reorder/remove/add).
+- The seven Parkside sermons had outlines written directly from their transcripts' announced points (no API calls).

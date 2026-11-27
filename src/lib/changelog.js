@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.21.0',
+    date: '2026-11-26',
+    title: 'Sermon outlines',
+    changes: [
+      { kind: 'new', text: 'Each sermon has an Outline tab with the preacher’s own big idea and points, each with its verses and a few sub-points. Verse references open in a preview like elsewhere in the app.' },
+      { kind: 'new', text: 'Uploading or pasting a transcript fills in the outline along with the other details, when the outline is empty. Edit it from Edit Sermon: add, remove or reorder points.' },
+    ],
+  },
+  {
     version: '1.20.1',
     date: '2026-11-26',
     title: 'Primary Text can span chapters',

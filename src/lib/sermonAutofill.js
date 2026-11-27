@@ -1,6 +1,7 @@
 // Fills blank sermon fields from an uploaded or pasted transcript.
 // Pure helpers live here so they can be tested with node:test; the network call is in sermons.js.
 import {resolveSermonTopics} from './topicCatalog.js'
+import {isEmptyOutline,cleanOutline} from './sermonOutline.js'
 
 export const DEFAULT_CHURCH='Parkside Baptist Church'
 export const DEFAULT_SPEAKER='Chase Jenkins'
@@ -11,7 +12,7 @@ const blank=v=>!(typeof v==='string'?v.trim():v)
 
 // True when at least one field the AI could fill is still empty, so we never pay for a call that changes nothing.
 export function needsAutofill(form,tagText=''){
- return ['title','speaker','series','primary_text','description'].some(k=>blank(form[k]))||blank(tagText)
+ return ['title','speaker','series','primary_text','description'].some(k=>blank(form[k]))||blank(tagText)||isEmptyOutline(form.sermon_outline)
 }
 
 // Values that need no AI: the default church and preacher for transcripts Brian uploads.
@@ -36,12 +37,14 @@ export function mergeAutofill(form,details={},topics=[],tagText=''){
  set('church',DEFAULT_CHURCH)
  set('primary_text',details.primary_text)
  set('description',details.description)
+ const outline=cleanOutline(details.outline)
+ if(isEmptyOutline(next.sermon_outline)&&outline){next.sermon_outline=outline;filled.push('sermon_outline')}
  let nextTags=tagText
  if(blank(tagText)&&topics.length){nextTags=topics.map(t=>t.name).join(', ');filled.push('tags')}
  return {form:next,tagText:nextTags,filled}
 }
 
-export const FIELD_LABELS={title:'title',speaker:'speaker',series:'series',church:'church',primary_text:'Primary Text',description:'description',tags:'topics'}
+export const FIELD_LABELS={title:'title',speaker:'speaker',series:'series',church:'church',primary_text:'Primary Text',description:'description',sermon_outline:'outline',tags:'topics'}
 export function filledSummary(filled){
  const names=filled.map(f=>FIELD_LABELS[f]||f)
  if(!names.length)return 'Nothing to fill; every field already has a value.'

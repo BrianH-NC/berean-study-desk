@@ -8,8 +8,8 @@ export const CHANGELOG = [
     date: '2026-11-26',
     title: 'Primary Text can span chapters',
     changes: [
-      { kind: 'fix', text: 'Primary Text now accepts ranges that cross chapters, like 1 Peter 1:22–2:3. The sermon opens at the first verse in Bible Study and matches any verse in the range on passage pages and in Search.' },
-      { kind: 'fix', text: 'D-Group guides drafted from a linked sermon now get its Primary Text instead of a garbled passage reference.' },
+      { kind: 'fixed', text: 'Primary Text now accepts ranges that cross chapters, like 1 Peter 1:22–2:3. The sermon opens at the first verse in Bible Study and matches any verse in the range on passage pages and in Search.' },
+      { kind: 'fixed', text: 'D-Group guides drafted from a linked sermon now get its Primary Text instead of a garbled passage reference.' },
     ],
   },
   {

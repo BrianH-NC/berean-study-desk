@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../App'
 import { ownedRows } from '../lib/dailyStudyData'
 import { overlaps } from '../lib/dailyStudyModel'
+import { primaryRefSegments } from '../lib/primaryText'
 import { findReferences } from '../lib/scriptureTagger'
 import { supabase } from '../lib/supabase'
 import { CANONICAL_BOOKS } from '../lib/entries'
@@ -74,7 +75,7 @@ export function usePassageConnections(userId, book, chapter, verseRange) {
     const noteIds = new Set(notes.map((n) => n.id))
     // Notes whose Scripture field is something else but whose text cites the passage.
     const mentionedNotes = (data.entries || []).filter((n) => !noteIds.has(n.id) && mentions([n.body, n.title], passage))
-    const sermons = (data.sermons || []).filter((s) => [s.primary_ref, ...(s.detected_refs || [])].some((r) => overlaps(r, passage)))
+    const sermons = (data.sermons || []).filter((s) => [...primaryRefSegments(s.primary_ref), ...(s.detected_refs || [])].some((r) => overlaps(r, passage)))
     const sessions = (data.study_sessions || []).filter((s) => overlaps({ ...s.state, verseStart: s.state?.verseRange?.start, verseEnd: s.state?.verseRange?.end }, passage))
     const linkedBooks = new Set(notes.map((n) => n.shelf_book_id).filter(Boolean))
     const library = libraryForPassage(data.books || [], book, CANONICAL_BOOKS, linkedBooks)

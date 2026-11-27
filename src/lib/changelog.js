@@ -4,6 +4,15 @@
 // fixes and polish only. Keep wording about what the reader can now do.
 export const CHANGELOG = [
   {
+    version: '1.20.1',
+    date: '2026-11-26',
+    title: 'Primary Text can span chapters',
+    changes: [
+      { kind: 'fix', text: 'Primary Text now accepts ranges that cross chapters, like 1 Peter 1:22–2:3. The sermon opens at the first verse in Bible Study and matches any verse in the range on passage pages and in Search.' },
+      { kind: 'fix', text: 'D-Group guides drafted from a linked sermon now get its Primary Text instead of a garbled passage reference.' },
+    ],
+  },
+  {
     version: '1.20.0',
     date: '2026-11-26',
     title: 'Sermon details fill themselves from the transcript',

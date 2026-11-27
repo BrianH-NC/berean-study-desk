@@ -76,6 +76,7 @@ export function passageLabel(p) {
   if (!v) return ''
   if (typeof v === 'string') return v
   if (typeof v !== 'object' || !v.book) return ''
+  if (v.chapterEnd && v.chapterEnd > v.chapter) return `${v.book} ${v.chapter}:${v.verseStart || 1}–${v.chapterEnd}:${v.verseEnd}`
   const verses = v.verseStart ? `:${v.verseStart}${v.verseEnd && v.verseEnd !== v.verseStart ? `–${v.verseEnd}` : ''}` : ''
   return `${v.book}${v.chapter ? ` ${v.chapter}${verses}` : ''}`
 }

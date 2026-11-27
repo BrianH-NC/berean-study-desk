@@ -1,6 +1,7 @@
 // "Save to my Sermons" for a SermonIndex sermon: fetches its full record from the open SermonIndex API (no key,
 // CORS open), keeps the timed VTT transcript when there is one, and saves it into the reader's own library, where the
 // usual Scripture indexing, study guide and Notes links take over.
+import { parsePrimaryText } from './primaryText'
 import { supabase } from './supabase'
 import { parseReference } from './bsb'
 import { parseTimedTranscript } from './sermonModel'
@@ -42,7 +43,7 @@ export async function saveSermonIndexSermon(userId, sermonIndexId, passage) {
   const already = await savedSermonId(userId, detail.url)
   if (already) return { id: already, existing: true }
   const primaryText = primaryScripture(detail, passage)
-  const primaryRef = primaryText ? parseReference(primaryText.replace(/[–—]/g, '-')) : null
+  const primaryRef = primaryText ? parsePrimaryText(primaryText, parseReference) : null
   const values = sermonIndexValues(detail, { primaryText: primaryRef ? primaryText : '', primaryRef })
   const transcript = await transcriptFor(detail)
   const id = crypto.randomUUID()

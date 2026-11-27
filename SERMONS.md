@@ -63,3 +63,10 @@ Study-guide generation now suggests 3–6 sermon topics with reasons. On the Stu
 - Code: `supabase/functions/sermon-autofill/index.ts` (deployed to `dswwzziwtbyzxojrnxvg`, verify_jwt off, auth checked in the body like `sermon-study-guide`), `src/lib/sermonAutofill.js` (+ tests), `fillSermonDetails` in `src/lib/sermons.js`, `SermonComposer.jsx`.
 - Validation: 7 new unit tests pass; the existing `passageLibrary.test.js` failure predates this change. Build and lint clean for the changed files. An isolated browser harness with a mocked AI response verified file upload and paste triggers, blank-only merge (a typed speaker survived), Parkside default, topic alias resolution (Church → The Church), and topic links on save. No paid AI request was made during verification.
 - One-time backfill, 2026-11-26: the seven Parkside sermons got catalog descriptions, added topics (merged with existing tags) with sermon `topic_links`, Primary Text where blank (1 Peter 2:11-12, 2:13-14), Speaker where blank, and "Parkside Baptist" normalized to "Parkside Baptist Church". Written directly in SQL from the transcripts; no API calls. Ravenhill and the French Deuteronomy sermon were left alone.
+
+## Cross-chapter Primary Text (1.20.1) — 2026-11-26
+
+- `src/lib/primaryText.js` parses ranges like "1 Peter 1:22-2:3" on top of `parseReference`. `primary_ref` keeps its single-chapter shape and adds `chapterEnd`; `verseEnd` then belongs to `chapterEnd`. Older rows are unchanged.
+- `primaryRefSegments` expands a span into per-chapter refs for `sermonPassageMatch` (Search) and Passage Connections; `sermonBibleUrl` opens at the first verse without a `verseEnd`; `passageLabel` prints "1 Peter 1:22–2:3". Composer and SermonIndex import both use the new parser.
+- Fixed `dgroup-generate` interpolating the `primary_ref` object ("[object Object]") into its prompt; it now uses `primary_text`. Redeployed as version 3, verify_jwt unchanged (on).
+- "Abiding Word, Abiding Love" updated to 1 Peter 1:22-2:3.
